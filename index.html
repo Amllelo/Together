@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Nuestro Calendario</title>
+
+<!-- ===== PWA ===== -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#16181A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calendario">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #16181A;
+    --surface: #1F2224;
+    --surface-2: #262A2D;
+    --text: #F4F1EA;
+    --text-dim: #9A9D9F;
+    --border: #33373A;
+    --accent-me: #3FA796;
+    --accent-other: #E8735C;
+    --radius: 16px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body{ overscroll-behavior-y: none; }
+  body{
+    margin:0; min-height:100vh;
+    background: var(--bg); color: var(--text);
+    font-family: 'Inter', sans-serif;
+    padding-top: var(--safe-top);
+  }
+  h1,h2,h3, .display{ font-family:'Fraunces', serif; }
+  ::-webkit-scrollbar{ display:none; }
+
+  #login-screen{
+    min-height:100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:28px; padding:24px;
+  }
+  #login-screen .brand{ text-align:center; }
+  #login-screen .brand h1{ font-size:2.1rem; font-weight:600; margin:0 0 6px; }
+  #login-screen .brand p{ color:var(--text-dim); margin:0; }
+  .who-row{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+  .who-card{
+    width:150px; padding:20px 16px; border-radius: var(--radius);
+    background: var(--surface); border:1px solid var(--border);
+    cursor:pointer; text-align:center; transition: transform .15s, border-color .15s;
+  }
+  .who-card:hover{ transform: translateY(-3px); border-color:#555; }
+  .who-dot{ width:36px; height:36px; border-radius:50%; margin:0 auto 10px; }
+  #login-form{ display:none; flex-direction:column; gap:10px; width:280px; }
+  #login-form input{
+    padding:13px 14px; border-radius:12px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text); font-size:16px;
+  }
+  #login-form button{
+    padding:13px; border-radius:12px; border:none; background:var(--text);
+    color:var(--bg); font-weight:600; cursor:pointer; font-size:.95rem;
+  }
+  #login-error{ color:var(--accent-other); font-size:.85rem; min-height:1.2em; }
+  #install-hint{ font-size:.75rem; color:var(--text-dim); text-align:center; max-width:280px; }
+
+  #app{ display:none; max-width:720px; margin:0 auto; padding:18px 16px calc(84px + var(--safe-bottom)); min-height:100vh; }
+  header.topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  header.topbar .who{ display:flex; align-items:center; gap:10px; }
+  .avatar{ width:32px; height:32px; border-radius:50%; background: var(--accent-me); flex-shrink:0; }
+  .icon-btn{
+    background:var(--surface); border:1px solid var(--border); color:var(--text);
+    width:38px; height:38px; border-radius:11px; cursor:pointer; font-size:1rem;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:active{ transform: scale(.94); }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  .month-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .month-nav h2{ margin:0; font-size:1.4rem; font-weight:600; text-transform:capitalize; }
+  .legend{ display:flex; gap:14px; font-size:.78rem; color:var(--text-dim); margin-bottom:10px; }
+  .legend span{ display:flex; align-items:center; gap:6px; }
+  .legend i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+
+  .grid-week{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:6px; }
+  .grid-week div{ text-align:center; font-size:.68rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; }
+  .grid-days{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+  .day-cell{
+    aspect-ratio:1; border-radius:12px; background:var(--surface);
+    border:1px solid var(--border); padding:6px; cursor:pointer;
+    display:flex; flex-direction:column; gap:4px; position:relative; overflow:hidden;
+  }
+  .day-cell:active{ transform: scale(.96); }
+  .day-cell.other-month{ opacity:.28; }
+  .day-cell.today{ border-color: var(--accent-me); border-width:1.5px; }
+  .day-num{ font-size:.78rem; font-weight:600; z-index:2; text-shadow:0 1px 4px #0008; }
+  .day-dots{ display:flex; gap:3px; flex-wrap:wrap; margin-top:auto; z-index:2; }
+  .day-dots i{ width:6px; height:6px; border-radius:50%; display:inline-block; box-shadow:0 0 0 1px #0006; }
+  .day-thumb{ position:absolute; inset:0; background-size:cover; background-position:center; }
+  .day-thumb::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg,#0000 40%,#000a 100%); }
+
+  #feed-list{ display:flex; flex-direction:column; gap:22px; padding-top:4px; }
+  .feed-empty{ text-align:center; color:var(--text-dim); padding:60px 20px; font-size:.9rem; }
+  .feed-card{ background:var(--surface); border-radius:20px; overflow:hidden; border:1px solid var(--border); }
+  .feed-card .fc-head{ display:flex; align-items:center; gap:10px; padding:12px 14px; }
+  .fc-dot{ width:26px; height:26px; border-radius:50%; flex-shrink:0; }
+  .fc-head-text{ flex:1; }
+  .fc-title{ font-weight:600; font-size:.95rem; }
+  .fc-date{ font-size:.72rem; color:var(--text-dim); text-transform:capitalize; }
+  .feed-card .fc-carousel{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:0; }
+  .feed-card .fc-carousel img{ width:100%; flex:0 0 100%; scroll-snap-align:center; aspect-ratio:1/1; object-fit:cover; cursor:pointer; }
+  .fc-notes{ padding:12px 14px; font-size:.85rem; color:var(--text-dim); white-space:pre-wrap; }
+  .fc-foot{ display:flex; justify-content:space-between; align-items:center; padding:0 14px 12px; }
+  .fc-author{ font-size:.72rem; color:var(--text-dim); }
+  .fc-del{ background:none; border:none; color:var(--text-dim); font-size:.75rem; cursor:pointer; }
+
+  #bottom-nav{
+    position:fixed; bottom:0; left:0; right:0; z-index:40;
+    background:var(--surface); border-top:1px solid var(--border);
+    display:flex; padding: 8px 12px calc(10px + var(--safe-bottom));
+    max-width:720px; margin:0 auto;
+  }
+  #bottom-nav button{
+    flex:1; background:none; border:none; color:var(--text-dim); cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:3px; font-size:.68rem; padding:6px;
+  }
+  #bottom-nav button.active{ color:var(--accent-me); }
+  #bottom-nav .nav-ic{ font-size:1.25rem; }
+
+  .overlay{
+    display:none; position:fixed; inset:0; background:#000a; z-index:50;
+    align-items:flex-end; justify-content:center;
+  }
+  @media(min-width:600px){ .overlay{ align-items:center; } }
+  .modal{
+    background:var(--surface); width:100%; max-width:480px; max-height:88vh; overflow-y:auto;
+    border-radius: 22px 22px 0 0; padding:20px 20px calc(20px + var(--safe-bottom)); border:1px solid var(--border);
+  }
+  @media(min-width:600px){ .modal{ border-radius: var(--radius); padding-bottom:20px; } }
+  .modal h3{ margin:0 0 14px; }
+  .modal label{ font-size:.76rem; color:var(--text-dim); display:block; margin:12px 0 5px; }
+  .modal input[type=text], .modal textarea{
+    width:100%; padding:11px 12px; border-radius:12px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--text); font-family:inherit; font-size:16px;
+  }
+  .modal textarea{ resize:vertical; min-height:70px; }
+  .file-drop{
+    border:1.5px dashed var(--border); border-radius:14px; padding:18px;
+    text-align:center; cursor:pointer; color:var(--text-dim); font-size:.85rem;
+  }
+  .thumbs{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .thumb{ position:relative; width:64px; height:64px; border-radius:10px; overflow:hidden; }
+  .thumb img{ width:100%; height:100%; object-fit:cover; }
+  .thumb button{
+    position:absolute; top:2px; right:2px; background:#000a; border:none; color:#fff;
+    width:18px; height:18px; border-radius:50%; font-size:.65rem; cursor:pointer; line-height:1;
+  }
+  .modal-actions{ display:flex; gap:10px; margin-top:18px; }
+  .btn{ flex:1; padding:13px; border-radius:12px; border:none; cursor:pointer; font-weight:600; font-size:.9rem; }
+  .btn-primary{ background:var(--accent-me); color:#0d0d0d; }
+  .btn-secondary{ background:var(--surface-2); color:var(--text); border:1px solid var(--border); }
+
+  .events-list{ display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .event-item{ background:var(--surface-2); border-radius:14px; padding:0; overflow:hidden; border-left:4px solid var(--accent-me); }
+  .event-item.by-other{ border-left-color: var(--accent-other); }
+  .event-item .ev-carousel{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; }
+  .event-item .ev-carousel img{ width:100%; flex:0 0 100%; scroll-snap-align:center; aspect-ratio:4/3; object-fit:cover; cursor:pointer; }
+  .event-item .ev-body{ padding:12px; }
+  .event-item .ev-title{ font-weight:600; margin-bottom:4px; }
+  .event-item .ev-notes{ font-size:.85rem; color:var(--text-dim); margin-bottom:8px; white-space:pre-wrap; }
+  .event-item .ev-foot{ display:flex; justify-content:space-between; align-items:center; }
+  .event-item .ev-author{ font-size:.7rem; color:var(--text-dim); }
+  .event-item .ev-del{ background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:.8rem; }
+
+  #lightbox{ display:none; position:fixed; inset:0; background:#000d; z-index:80; align-items:center; justify-content:center; padding:20px; }
+  #lightbox img{ max-width:100%; max-height:100%; border-radius:12px; }
+
+  #theme-panel{
+    position:fixed; bottom:0; left:0; right:0; background:var(--surface);
+    border-top:1px solid var(--border); padding:18px 18px calc(18px + var(--safe-bottom)); display:none; z-index:60;
+    border-radius:20px 20px 0 0; max-width:720px; margin:0 auto;
+  }
+  #theme-panel h3{ margin:0 0 12px; }
+  .swatches{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .swatch{ width:34px; height:34px; border-radius:50%; cursor:pointer; border:2px solid transparent; }
+  .swatch.active{ border-color:#fff; }
+  #custom-color{ width:100%; height:40px; border:none; border-radius:8px; background:none; cursor:pointer; }
+
+  #install-banner{
+    display:none; position:fixed; top:calc(var(--safe-top) + 10px); left:12px; right:12px; z-index:70;
+    background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px;
+    align-items:center; gap:10px; max-width:696px; margin:0 auto;
+  }
+  #install-banner span{ flex:1; font-size:.82rem; }
+  #install-banner button{ font-size:.8rem; padding:8px 12px; border-radius:9px; border:none; background:var(--accent-me); color:#0d0d0d; font-weight:600; cursor:pointer; }
+  #install-banner .dismiss{ background:none; color:var(--text-dim); font-weight:400; }
+</style>
+</head>
+<body>
+
+<div id="install-banner">
+  <span id="install-text">Instalá la app en tu pantalla de inicio para acceder más rápido.</span>
+  <button class="dismiss" id="install-dismiss">Ahora no</button>
+  <button id="install-action">Instalar</button>
+</div>
+
+<div id="login-screen">
+  <div class="brand">
+    <h1>Nuestro Calendario</h1>
+    <p>Compartido, sin límites de fotos.</p>
+  </div>
+  <div class="who-row" id="who-row">
+    <div class="who-card" data-slot="1">
+      <div class="who-dot" style="background:#3FA796"></div>
+      <div>Persona 1</div>
+    </div>
+    <div class="who-card" data-slot="2">
+      <div class="who-dot" style="background:#E8735C"></div>
+      <div>Persona 2</div>
+    </div>
+  </div>
+  <form id="login-form">
+    <input type="email" id="email" placeholder="Email" autocomplete="username" required>
+    <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password" required>
+    <button type="submit" id="login-btn">Entrar</button>
+    <div id="login-error"></div>
+  </form>
+  <p id="install-hint">Tip: una vez adentro, tocá "Instalar" cuando te lo ofrezca para tenerla como app en tu teléfono.</p>
+</div>
+
+<div id="app">
+  <header class="topbar">
+    <div class="who">
+      <div class="avatar" id="my-avatar"></div>
+      <div>
+        <div style="font-weight:600; font-size:.92rem" id="my-name">—</div>
+        <div style="font-size:.72rem;color:var(--text-dim)" id="sync-status">Sincronizando…</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="icon-btn" id="theme-btn" title="Cambiar mi color">🎨</button>
+      <button class="icon-btn" id="logout-btn" title="Salir">⏻</button>
+    </div>
+  </header>
+
+  <section class="view active" id="view-calendar">
+    <div class="month-nav">
+      <button class="icon-btn" id="prev-month">←</button>
+      <h2 id="month-label">Mes</h2>
+      <button class="icon-btn" id="next-month">→</button>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--accent-me)"></i><span id="legend-me-label">Yo</span></span>
+      <span><i style="background:var(--accent-other)"></i><span id="legend-other-label">La otra persona</span></span>
+    </div>
+    <div class="grid-week">
+      <div>Do</div><div>Lu</div><div>Ma</div><div>Mi</div><div>Ju</div><div>Vi</div><div>Sa</div>
+    </div>
+    <div class="grid-days" id="grid-days"></div>
+  </section>
+
+  <section class="view" id="view-feed">
+    <h2 style="font-size:1.4rem; margin:0 0 16px;">Recuerdos</h2>
+    <div id="feed-list"></div>
+  </section>
+</div>
+
+<div id="bottom-nav">
+  <button class="tab-btn active" data-view="view-calendar">
+    <span class="nav-ic">📅</span> Calendario
+  </button>
+  <button class="tab-btn" data-view="view-feed">
+    <span class="nav-ic">🖼️</span> Recuerdos
+  </button>
+</div>
+
+<div class="overlay" id="day-overlay">
+  <div class="modal">
+    <h3 id="day-modal-title">Fecha</h3>
+    <div class="events-list" id="events-list"></div>
+    <button class="btn btn-primary" style="width:100%; margin-top:14px;" id="add-event-btn">+ Agregar evento</button>
+    <button class="btn btn-secondary" style="width:100%; margin-top:10px;" id="close-day-btn">Cerrar</button>
+  </div>
+</div>
+
+<div class="overlay" id="event-overlay">
+  <div class="modal">
+    <h3>Nuevo evento</h3>
+    <label>Título</label>
+    <input type="text" id="ev-title" placeholder="Ej: Aniversario, cita, viaje...">
+    <label>Notas</label>
+    <textarea id="ev-notes" placeholder="Detalles del evento..."></textarea>
+    <label>Fotos (sin límite)</label>
+    <div class="file-drop" id="file-drop">Tocar para elegir imágenes</div>
+    <input type="file" id="file-input" accept="image/*" multiple style="display:none">
+    <div class="thumbs" id="thumbs"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="cancel-event-btn">Cancelar</button>
+      <button class="btn btn-primary" id="save-event-btn">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="lightbox"><img id="lightbox-img" src=""></div>
+
+<div id="theme-panel">
+  <h3>Mi color</h3>
+  <div class="swatches" id="swatches"></div>
+  <label style="font-size:.78rem;color:var(--text-dim)">Color personalizado</label>
+  <input type="color" id="custom-color">
+  <button class="btn btn-secondary" style="width:100%;margin-top:12px" id="close-theme-btn">Cerrar</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, getDoc, collection, onSnapshot,
+  addDoc, deleteDoc, query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_PROYECTO.firebaseapp.com",
+  projectId: "TU_PROYECTO",
+  storageBucket: "TU_PROYECTO.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "TU_APP_ID"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+const NAMES = { p1: "Persona 1", p2: "Persona 2" };
+const DEFAULT_COLORS = { p1: "#3FA796", p2: "#E8735C" };
+const SWATCH_OPTIONS = ["#3FA796","#E8735C","#7C9CF2","#F2C14E","#C77DFF","#4EC9F2","#F28C8C","#8CE9A1"];
+
+let currentUID = null;
+let myColor = DEFAULT_COLORS.p1;
+let otherColor = DEFAULT_COLORS.p2;
+let viewDate = new Date();
+let selectedDay = null;
+let eventsCache = [];
+let pendingImages = [];
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(console.error);
+  });
+}
+
+let deferredPrompt = null;
+const banner = document.getElementById("install-banner");
+const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!isStandalone && !localStorage.getItem("install-dismissed")) {
+    banner.style.display = "flex";
+  }
+});
+
+document.getElementById("install-action").addEventListener("click", async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    banner.style.display = "none";
+  } else {
+    alert("En iPhone: tocá el botón de Compartir y elegí 'Agregar a pantalla de inicio'.");
+  }
+});
+document.getElementById("install-dismiss").addEventListener("click", () => {
+  banner.style.display = "none";
+  localStorage.setItem("install-dismissed", "1");
+});
+const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+if (iOS && !isStandalone && !localStorage.getItem("install-dismissed")) {
+  document.getElementById("install-text").textContent =
+    "Instalala: tocá Compartir y luego 'Agregar a pantalla de inicio'.";
+  document.getElementById("install-action").textContent = "Entendido";
+  banner.style.display = "flex";
+}
+
+document.querySelectorAll(".who-card").forEach(card=>{
+  card.addEventListener("click", ()=>{
+    document.querySelectorAll(".who-card").forEach(c=>c.style.borderColor="var(--border)");
+    card.style.borderColor = card.dataset.slot === "1" ? DEFAULT_COLORS.p1 : DEFAULT_COLORS.p2;
+    document.getElementById("login-form").style.display = "flex";
+    document.getElementById("login-form").dataset.slot = card.dataset.slot;
+  });
+});
+
+document.getElementById("login-form").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const errorBox = document.getElementById("login-error");
+  errorBox.textContent = "";
+  try{
+    await signInWithEmailAndPassword(auth, email, password);
+  }catch(err){
+    errorBox.textContent = "No se pudo entrar. Revisá el email y la contraseña.";
+    console.error(err);
+  }
+});
+document.getElementById("logout-btn").addEventListener("click", ()=> signOut(auth));
+
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("app").style.display = "none";
+    document.getElementById("bottom-nav").style.display = "none";
+    return;
+  }
+  currentUID = user.uid;
+  const slot = document.getElementById("login-form").dataset.slot === "2" ? "p2" : "p1";
+
+  const userRef = doc(db, "users", currentUID);
+  const snap = await getDoc(userRef);
+  if(!snap.exists()){
+    await setDoc(userRef, { slot, name: NAMES[slot], color: DEFAULT_COLORS[slot] });
+  }
+  const userData = (await getDoc(userRef)).data();
+  myColor = userData.color || DEFAULT_COLORS[slot];
+  document.getElementById("my-name").textContent = userData.name || NAMES[slot];
+  document.getElementById("legend-me-label").textContent = (userData.name || NAMES[slot]) + " (yo)";
+  applyMyColor(myColor);
+
+  onSnapshot(collection(db, "users"), (qs)=>{
+    qs.forEach(d=>{
+      if(d.id !== currentUID){
+        const data = d.data();
+        otherColor = data.color || otherColor;
+        document.getElementById("legend-other-label").textContent = data.name || "La otra persona";
+        document.documentElement.style.setProperty("--accent-other", otherColor);
+        renderCalendar();
+        renderFeed();
+      }
+    });
+  });
+
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("bottom-nav").style.display = "flex";
+  document.getElementById("sync-status").textContent = "Sincronizado ✓";
+
+  listenEvents();
+  renderCalendar();
+});
+
+function applyMyColor(hex){ document.documentElement.style.setProperty("--accent-me", hex); }
+
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    document.getElementById(btn.dataset.view).classList.add("active");
+    if(btn.dataset.view === "view-feed") renderFeed();
+  });
+});
+
+const swatchesEl = document.getElementById("swatches");
+SWATCH_OPTIONS.forEach(c=>{
+  const el = document.createElement("div");
+  el.className = "swatch";
+  el.style.background = c;
+  el.addEventListener("click", ()=> saveMyColor(c));
+  swatchesEl.appendChild(el);
+});
+document.getElementById("custom-color").addEventListener("input", (e)=> saveMyColor(e.target.value));
+
+async function saveMyColor(hex){
+  myColor = hex;
+  applyMyColor(hex);
+  await setDoc(doc(db,"users",currentUID), { color: hex }, { merge:true });
+  renderCalendar();
+  renderFeed();
+}
+document.getElementById("theme-btn").addEventListener("click", ()=>{
+  document.getElementById("theme-panel").style.display = "block";
+});
+document.getElementById("close-theme-btn").addEventListener("click", ()=>{
+  document.getElementById("theme-panel").style.display = "none";
+});
+
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+document.getElementById("prev-month").addEventListener("click", ()=>{ viewDate.setMonth(viewDate.getMonth()-1); renderCalendar(); });
+document.getElementById("next-month").addEventListener("click", ()=>{ viewDate.setMonth(viewDate.getMonth()+1); renderCalendar(); });
+
+function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+
+function renderCalendar(){
+  document.getElementById("month-label").textContent = MESES[viewDate.getMonth()] + " " + viewDate.getFullYear();
+  const grid = document.getElementById("grid-days");
+  grid.innerHTML = "";
+
+  const year = viewDate.getFullYear(), month = viewDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const today = ymd(new Date());
+  const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+  for(let i=0;i<totalCells;i++){
+    const dayNum = i - startOffset + 1;
+    const cellDate = new Date(year, month, dayNum);
+    const key = ymd(cellDate);
+    const cell = document.createElement("div");
+    cell.className = "day-cell";
+    if(dayNum < 1 || dayNum > daysInMonth) cell.classList.add("other-month");
+    if(key === today) cell.classList.add("today");
+
+    const dayEvents = eventsCache.filter(ev => ev.date === key);
+    const thumbEvent = dayEvents.find(ev => ev.images && ev.images.length);
+    if(thumbEvent){
+      const thumb = document.createElement("div");
+      thumb.className = "day-thumb";
+      thumb.style.backgroundImage = "url(" + thumbEvent.images[0] + ")";
+      cell.appendChild(thumb);
+    }
+
+    const num = document.createElement("div");
+    num.className = "day-num";
+    num.textContent = dayNum > 0 && dayNum <= daysInMonth ? dayNum : "";
+    cell.appendChild(num);
+
+    const dots = document.createElement("div");
+    dots.className = "day-dots";
+    dayEvents.slice(0,4).forEach(ev=>{
+      const dot = document.createElement("i");
+      dot.style.background = ev.authorUID === currentUID ? "var(--accent-me)" : "var(--accent-other)";
+      dots.appendChild(dot);
+    });
+    cell.appendChild(dots);
+
+    cell.addEventListener("click", ()=> openDay(key, cellDate));
+    grid.appendChild(cell);
+  }
+}
+
+function listenEvents(){
+  const q = query(collection(db, "events"), orderBy("date"));
+  onSnapshot(q, (qs)=>{
+    eventsCache = [];
+    qs.forEach(d=> eventsCache.push({ id: d.id, ...d.data() }));
+    renderCalendar();
+    renderFeed();
+    if(selectedDay) renderDayModal(selectedDay);
+  });
+}
+
+function openDay(key, dateObj){
+  selectedDay = key;
+  document.getElementById("day-modal-title").textContent =
+    dateObj.toLocaleDateString("es-ES", { weekday:"long", day:"numeric", month:"long" });
+  renderDayModal(key);
+  document.getElementById("day-overlay").style.display = "flex";
+}
+document.getElementById("close-day-btn").addEventListener("click", ()=>{
+  document.getElementById("day-overlay").style.display = "none";
+  selectedDay = null;
+});
+
+function renderDayModal(key){
+  const list = document.getElementById("events-list");
+  list.innerHTML = "";
+  const dayEvents = eventsCache.filter(ev => ev.date === key);
+  if(dayEvents.length === 0){
+    list.innerHTML = '<div style="color:var(--text-dim); font-size:.85rem;">Sin eventos todavía.</div>';
+  }
+  dayEvents.forEach(ev=> list.appendChild(buildEventCard(ev, false)));
+}
+
+function buildEventCard(ev, feedStyle){
+  const item = document.createElement("div");
+  item.className = feedStyle ? "feed-card" : "event-item";
+  if(!feedStyle && ev.authorUID !== currentUID) item.classList.add("by-other");
+
+  let html = "";
+  if(feedStyle){
+    const dateObj = new Date(ev.date + "T00:00:00");
+    const label = dateObj.toLocaleDateString("es-ES", { day:"numeric", month:"long", year:"numeric" });
+    html += '<div class="fc-head">' +
+      '<div class="fc-dot" style="background:' + (ev.authorUID === currentUID ? 'var(--accent-me)' : 'var(--accent-other)') + '"></div>' +
+      '<div class="fc-head-text">' +
+        '<div class="fc-title">' + escapeHTML(ev.title) + '</div>' +
+        '<div class="fc-date">' + label + '</div>' +
+      '</div></div>';
+  }
+
+  const carouselClass = feedStyle ? "fc-carousel" : "ev-carousel";
+  if(ev.images && ev.images.length){
+    html += '<div class="' + carouselClass + '"></div>';
+  }
+
+  if(feedStyle){
+    if(ev.notes) html += '<div class="fc-notes">' + escapeHTML(ev.notes) + '</div>';
+    html += '<div class="fc-foot"><span class="fc-author">' + (ev.authorUID === currentUID ? "Vos" : "La otra persona") + '</span>' +
+      (ev.authorUID === currentUID ? '<button class="fc-del">Eliminar</button>' : '') + '</div>';
+  } else {
+    html += '<div class="ev-body"><div class="ev-title">' + escapeHTML(ev.title) + '</div>' +
+      (ev.notes ? '<div class="ev-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
+      '<div class="ev-foot"><span class="ev-author">' + (ev.authorUID === currentUID ? "Agregado por vos" : "Agregado por la otra persona") + '</span>' +
+      (ev.authorUID === currentUID ? '<button class="ev-del">Eliminar</button>' : '') + '</div></div>';
+  }
+
+  item.innerHTML = html;
+
+  const carouselEl = item.querySelector("." + carouselClass);
+  if(carouselEl){
+    (ev.images||[]).forEach(src=>{
+      const img = document.createElement("img");
+      img.src = src;
+      img.addEventListener("click", ()=> openLightbox(src));
+      carouselEl.appendChild(img);
+    });
+  }
+
+  const delBtn = item.querySelector(".ev-del, .fc-del");
+  if(delBtn){
+    delBtn.addEventListener("click", async ()=>{
+      if(confirm("¿Eliminar este evento?")) await deleteDoc(doc(db,"events", ev.id));
+    });
+  }
+  return item;
+}
+
+function renderFeed(){
+  const list = document.getElementById("feed-list");
+  list.innerHTML = "";
+  const withPhotos = eventsCache
+    .filter(ev => ev.images && ev.images.length)
+    .sort((a,b)=> b.date.localeCompare(a.date));
+
+  if(withPhotos.length === 0){
+    list.innerHTML = '<div class="feed-empty">Todavía no hay recuerdos con fotos.<br>Agregá uno desde el calendario 📅</div>';
+    return;
+  }
+  withPhotos.forEach(ev => list.appendChild(buildEventCard(ev, true)));
+}
+
+function escapeHTML(str){
+  const d = document.createElement("div");
+  d.textContent = str || "";
+  return d.innerHTML;
+}
+
+function openLightbox(src){
+  document.getElementById("lightbox-img").src = src;
+  document.getElementById("lightbox").style.display = "flex";
+}
+document.getElementById("lightbox").addEventListener("click", ()=>{
+  document.getElementById("lightbox").style.display = "none";
+});
+
+document.getElementById("add-event-btn").addEventListener("click", ()=>{
+  pendingImages = [];
+  document.getElementById("ev-title").value = "";
+  document.getElementById("ev-notes").value = "";
+  document.getElementById("thumbs").innerHTML = "";
+  document.getElementById("event-overlay").style.display = "flex";
+});
+document.getElementById("cancel-event-btn").addEventListener("click", ()=>{
+  document.getElementById("event-overlay").style.display = "none";
+});
+document.getElementById("file-drop").addEventListener("click", ()=>{
+  document.getElementById("file-input").click();
+});
+document.getElementById("file-input").addEventListener("change", async (e)=>{
+  const files = Array.from(e.target.files);
+  for(const file of files){
+    const resized = await resizeImage(file, 1000, 0.75);
+    pendingImages.push(resized);
+    addThumb(resized, pendingImages.length-1);
+  }
+  e.target.value = "";
+});
+function addThumb(src, idx){
+  const t = document.createElement("div");
+  t.className = "thumb";
+  t.innerHTML = '<img src="' + src + '"><button>×</button>';
+  t.querySelector("button").addEventListener("click", ()=>{
+    pendingImages.splice(idx,1);
+    refreshThumbs();
+  });
+  document.getElementById("thumbs").appendChild(t);
+}
+function refreshThumbs(){
+  document.getElementById("thumbs").innerHTML = "";
+  pendingImages.forEach((src,i)=> addThumb(src,i));
+}
+function resizeImage(file, maxSize, quality){
+  return new Promise((resolve)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let width = img.width, height = img.height;
+        if(width > height && width > maxSize){ height *= maxSize/width; width = maxSize; }
+        else if(height > maxSize){ width *= maxSize/height; height = maxSize; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+document.getElementById("save-event-btn").addEventListener("click", async ()=>{
+  const title = document.getElementById("ev-title").value.trim();
+  if(!title){ alert("Poné al menos un título."); return; }
+  const notes = document.getElementById("ev-notes").value.trim();
+  await addDoc(collection(db,"events"), {
+    date: selectedDay, title, notes,
+    images: pendingImages, authorUID: currentUID, createdAt: serverTimestamp()
+  });
+  document.getElementById("event-overlay").style.display = "none";
+});
+</script>
+</body>
+</html>
