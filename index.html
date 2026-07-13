@@ -214,16 +214,16 @@
 <div id="login-screen">
   <div class="brand">
     <h1>Nuestra historia</h1>
-    <p>Un baúl de recuerdos</p>
+    <p>.</p>
   </div>
   <div class="who-row" id="who-row">
     <div class="who-card" data-slot="1">
       <div class="who-dot" style="background:#3FA796"></div>
-      <div>Angeliquito</div>
+      <div>Persona 1</div>
     </div>
     <div class="who-card" data-slot="2">
       <div class="who-dot" style="background:#E8735C"></div>
-      <div>Mimi</div>
+      <div>Persona 2</div>
     </div>
   </div>
   <form id="login-form">
@@ -341,7 +341,7 @@ const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 
-const NAMES = { p1: "Persona 1", p2: "Persona 2" };
+const NAMES = { p1: "Angeliquito", p2: "Mimi" };
 const DEFAULT_COLORS = { p1: "#3FA796", p2: "#E8735C" };
 const SWATCH_OPTIONS = ["#3FA796","#E8735C","#7C9CF2","#F2C14E","#C77DFF","#4EC9F2","#F28C8C","#8CE9A1"];
 
