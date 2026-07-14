@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Together</title>
 
-<!-- ===== PWA ===== -->
+<!-- PWA -->
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#16181A">
 <meta name="mobile-web-app-capable" content="yes">
@@ -16,276 +16,1034 @@
 <link rel="icon" href="./icon-192.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-  :root{
-    --bg: #16181A;
-    --surface: #1F2224;
-    --surface-2: #262A2D;
-    --text: #F4F1EA;
-    --text-dim: #9A9D9F;
-    --border: #33373A;
-    --accent-me: #3FA796;
-    --accent-other: #E8735C;
-    --radius: 16px;
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body{ overscroll-behavior-y: none; }
-  body{
-    margin:0; min-height:100vh;
-    background: var(--bg); color: var(--text);
-    font-family: 'Inter', sans-serif;
-    padding-top: var(--safe-top);
-  }
-  h1,h2,h3, .display{ font-family:'Fraunces', serif; }
-  ::-webkit-scrollbar{ display:none; }
+:root {
+  --bg: #16181A;
+  --surface: #1F2224;
+  --surface-2: #262A2D;
+  --text: #F4F1EA;
+  --text-dim: #9A9D9F;
+  --border: #33373A;
+  --accent-me: #3FA796;
+  --accent-other: #E8735C;
+  --radius: 16px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  #login-screen{
-    min-height:100vh; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:28px; padding:24px;
-  }
-  #login-screen .brand{ text-align:center; }
-  #login-screen .brand h1{ font-size:2.1rem; font-weight:600; margin:0 0 6px; }
-  #login-screen .brand p{ color:var(--text-dim); margin:0; }
-  #login-form{ display:flex; flex-direction:column; gap:10px; width:280px; }
-  #login-form input{
-    padding:13px 14px; border-radius:12px; border:1px solid var(--border);
-    background:var(--surface); color:var(--text); font-size:16px;
-  }
-  #login-form button{
-    padding:13px; border-radius:12px; border:none; background:var(--text);
-    color:var(--bg); font-weight:600; cursor:pointer; font-size:.95rem;
-  }
-  #login-error{ color:var(--accent-other); font-size:.85rem; min-height:1.2em; }
-  #install-hint{ font-size:.75rem; color:var(--text-dim); text-align:center; max-width:280px; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { overscroll-behavior-y: none; margin: 0; }
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  padding-top: var(--safe-top);
+}
 
-  #app{ display:none; max-width:720px; margin:0 auto; padding:18px 16px calc(84px + var(--safe-bottom)); min-height:100vh; }
-  header.topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
-  header.topbar .who{ display:flex; align-items:center; gap:10px; }
-  .avatar{ width:32px; height:32px; border-radius:50%; background: var(--accent-me); flex-shrink:0; }
-  .icon-btn{
-    background:var(--surface); border:1px solid var(--border); color:var(--text);
-    width:38px; height:38px; border-radius:11px; cursor:pointer; font-size:1rem;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .icon-btn:active{ transform: scale(.94); }
+h1, h2, h3 { font-family: 'Fraunces', serif; }
+::-webkit-scrollbar { display: none; }
 
-  .view{ display:none; }
-  .view.active{ display:block; }
+/* ===== ICONOS SVG INLINE ===== */
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  fill: currentColor;
+}
 
-  .month-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-  .month-nav h2{ margin:0; font-size:1.4rem; font-weight:600; text-transform:capitalize; }
-  .legend{ display:flex; gap:14px; font-size:.78rem; color:var(--text-dim); margin-bottom:10px; }
-  .legend span{ display:flex; align-items:center; gap:6px; }
-  .legend i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+/* ===== LOGIN SCREEN ===== */
+#login-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  gap: 48px;
+}
 
-  .grid-week{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:6px; }
-  .grid-week div{ text-align:center; font-size:.68rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; }
-  .grid-days{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
-  .day-cell{
-    aspect-ratio:1; border-radius:12px; background:var(--surface);
-    border:1px solid var(--border); padding:6px; cursor:pointer;
-    display:flex; flex-direction:column; gap:4px; position:relative; overflow:hidden;
-  }
-  .day-cell:active{ transform: scale(.96); }
-  .day-cell.other-month{ opacity:.28; }
-  .day-cell.today{ border-color: var(--accent-me); border-width:1.5px; }
-  .day-num{ font-size:.78rem; font-weight:600; z-index:2; text-shadow:0 1px 4px #0008; }
-  .day-dots{ display:flex; gap:3px; flex-wrap:wrap; margin-top:auto; z-index:2; }
-  .day-dots i{ width:6px; height:6px; border-radius:50%; display:inline-block; box-shadow:0 0 0 1px #0006; }
-  .day-thumb{ position:absolute; inset:0; background-size:cover; background-position:center; }
-  .day-thumb::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg,#0000 40%,#000a 100%); }
+.brand {
+  text-align: center;
+}
 
-  #feed-list{ display:flex; flex-direction:column; gap:22px; padding-top:4px; }
-  .feed-empty{ text-align:center; color:var(--text-dim); padding:60px 20px; font-size:.9rem; }
-  .feed-card{ background:var(--surface); border-radius:20px; overflow:hidden; border:1px solid var(--border); }
-  .feed-card .fc-head{ display:flex; align-items:center; gap:10px; padding:12px 14px; }
-  .fc-dot{ width:26px; height:26px; border-radius:50%; flex-shrink:0; }
-  .fc-head-text{ flex:1; }
-  .fc-title{ font-weight:600; font-size:.95rem; }
-  .fc-date{ font-size:.72rem; color:var(--text-dim); text-transform:capitalize; }
-  .feed-card .fc-carousel{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:0; }
-  .feed-card .fc-carousel img{ width:100%; flex:0 0 100%; scroll-snap-align:center; aspect-ratio:1/1; object-fit:cover; cursor:pointer; }
-  .fc-notes{ padding:12px 14px; font-size:.85rem; color:var(--text-dim); white-space:pre-wrap; }
-  .fc-foot{ display:flex; justify-content:space-between; align-items:center; padding:0 14px 12px; }
-  .fc-author{ font-size:.72rem; color:var(--text-dim); }
-  .fc-del{ background:none; border:none; color:var(--text-dim); font-size:.75rem; cursor:pointer; }
-  .fc-edit{ background:none; border:none; color:var(--accent-me); font-size:.75rem; cursor:pointer; margin-right:10px; font-weight:600; }
+.brand h1 {
+  font-size: 2.4rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+}
 
-  #bottom-nav{
-    position:fixed; bottom:0; left:0; right:0; z-index:40;
-    background:var(--surface); border-top:1px solid var(--border);
-    display:flex; padding: 8px 12px calc(10px + var(--safe-bottom));
-    max-width:720px; margin:0 auto;
-  }
-  #bottom-nav button{
-    flex:1; background:none; border:none; color:var(--text-dim); cursor:pointer;
-    display:flex; flex-direction:column; align-items:center; gap:3px; font-size:.68rem; padding:6px;
-  }
-  #bottom-nav button.active{ color:var(--accent-me); }
-  #bottom-nav .nav-ic{ font-size:1.25rem; }
+.brand p {
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  margin: 0;
+  font-weight: 300;
+}
 
-  .overlay{
-    display:none; position:fixed; inset:0; background:#000a; z-index:50;
-    align-items:flex-end; justify-content:center;
-  }
-  @media(min-width:600px){ .overlay{ align-items:center; } }
-  .modal{
-    background:var(--surface); width:100%; max-width:480px; max-height:88vh; overflow-y:auto;
-    border-radius: 22px 22px 0 0; padding:20px 20px calc(20px + var(--safe-bottom)); border:1px solid var(--border);
-  }
-  @media(min-width:600px){ .modal{ border-radius: var(--radius); padding-bottom:20px; } }
-  .modal h3{ margin:0 0 14px; }
-  .modal label{ font-size:.76rem; color:var(--text-dim); display:block; margin:12px 0 5px; }
-  .modal input[type=text], .modal textarea{
-    width:100%; padding:11px 12px; border-radius:12px; border:1px solid var(--border);
-    background:var(--surface-2); color:var(--text); font-family:inherit; font-size:16px;
-  }
-  .modal textarea{ resize:vertical; min-height:70px; }
-  .file-drop{
-    border:1.5px dashed var(--border); border-radius:14px; padding:18px;
-    text-align:center; cursor:pointer; color:var(--text-dim); font-size:.85rem;
-  }
-  .thumbs{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-  .thumb{ position:relative; width:64px; height:64px; border-radius:10px; overflow:hidden; }
-  .thumb img{ width:100%; height:100%; object-fit:cover; }
-  .thumb button{
-    position:absolute; top:2px; right:2px; background:#000a; border:none; color:#fff;
-    width:18px; height:18px; border-radius:50%; font-size:.65rem; cursor:pointer; line-height:1;
-  }
-  .modal-actions{ display:flex; gap:10px; margin-top:18px; }
-  .btn{ flex:1; padding:13px; border-radius:12px; border:none; cursor:pointer; font-weight:600; font-size:.9rem; }
-  .btn-primary{ background:var(--accent-me); color:#0d0d0d; }
-  .btn-secondary{ background:var(--surface-2); color:var(--text); border:1px solid var(--border); }
+#login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+}
 
-  .events-list{ display:flex; flex-direction:column; gap:10px; margin-top:6px; }
-  .event-item{ background:var(--surface-2); border-radius:14px; padding:0; overflow:hidden; border-left:4px solid var(--accent-me); }
-  .event-item.by-other{ border-left-color: var(--accent-other); }
-  .event-item .ev-carousel{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; }
-  .event-item .ev-carousel img{ width:100%; flex:0 0 100%; scroll-snap-align:center; aspect-ratio:4/3; object-fit:cover; cursor:pointer; }
-  .event-item .ev-body{ padding:12px; }
-  .event-item .ev-title{ font-weight:600; margin-bottom:4px; }
-  .event-item .ev-notes{ font-size:.85rem; color:var(--text-dim); margin-bottom:8px; white-space:pre-wrap; }
-  .event-item .ev-foot{ display:flex; justify-content:space-between; align-items:center; }
-  .event-item .ev-author{ font-size:.7rem; color:var(--text-dim); }
-  .event-item .ev-del{ background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:.8rem; }
-  .event-item .ev-edit{ background:none; border:none; color:var(--accent-me); cursor:pointer; font-size:.8rem; margin-right:10px; font-weight:600; }
+#login-form input {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+  font-family: inherit;
+  transition: var(--transition);
+}
 
-  #lightbox{ display:none; position:fixed; inset:0; background:#000d; z-index:80; align-items:center; justify-content:center; padding:20px; }
-  #lightbox img{ max-width:100%; max-height:100%; border-radius:12px; }
+#login-form input:focus {
+  outline: none;
+  border-color: var(--accent-me);
+  background: var(--surface-2);
+}
 
-  #theme-panel{
-    position:fixed; bottom:0; left:0; right:0; background:var(--surface);
-    border-top:1px solid var(--border); padding:18px 18px calc(18px + var(--safe-bottom)); display:none; z-index:60;
-    border-radius:20px 20px 0 0; max-width:720px; margin:0 auto;
+#login-form button {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent-me);
+  color: #0d0d0d;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 4px;
+}
+
+#login-form button:active {
+  transform: scale(0.98);
+}
+
+#login-error {
+  color: var(--accent-other);
+  font-size: 0.85rem;
+  min-height: 1.2em;
+  text-align: center;
+}
+
+/* ===== APP SHELL ===== */
+#app {
+  display: none;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px 16px calc(76px + var(--safe-bottom));
+  min-height: 100vh;
+}
+
+header.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding: 12px 0;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent-me);
+  flex-shrink: 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.sync-status {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: var(--transition);
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+  background: var(--surface-2);
+}
+
+/* ===== VIEWS ===== */
+.view { display: none; }
+.view.active { display: block; }
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.month-nav h2 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ===== CALENDARIO ===== */
+.grid-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.day-label {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.grid-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.day-cell {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.day-cell:active {
+  transform: scale(0.96);
+}
+
+.day-cell.other-month {
+  opacity: 0.25;
+}
+
+.day-cell.today {
+  border-color: var(--accent-me);
+  border-width: 1.5px;
+}
+
+.day-num {
+  font-size: 0.8rem;
+  font-weight: 600;
+  z-index: 2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.day-dots {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  z-index: 2;
+}
+
+.day-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.2);
+}
+
+.day-thumb {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.day-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+/* ===== FEED ===== */
+#feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.feed-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 60px 20px;
+  font-size: 0.95rem;
+}
+
+.feed-card {
+  background: var(--surface);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: var(--transition);
+}
+
+.feed-card:active {
+  border-color: var(--text-dim);
+}
+
+.fc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+}
+
+.fc-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.fc-meta {
+  flex: 1;
+}
+
+.fc-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.fc-date {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: capitalize;
+  margin: 4px 0 0 0;
+}
+
+.fc-carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 0;
+}
+
+.fc-carousel img {
+  width: 100%;
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.fc-body {
+  padding: 12px 14px;
+}
+
+.fc-time {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fc-notes {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  margin: 8px 0;
+}
+
+.fc-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 14px 12px 14px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.fc-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-small {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.btn-small.edit {
+  color: var(--accent-me);
+}
+
+.btn-small:active {
+  opacity: 0.7;
+}
+
+/* ===== BOTTOM NAV ===== */
+#bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding: 8px 12px calc(10px + var(--safe-bottom));
+  max-width: 720px;
+  margin: 0 auto;
+  z-index: 30;
+}
+
+.nav-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  padding: 6px 0;
+  transition: var(--transition);
+}
+
+.nav-btn.active {
+  color: var(--accent-me);
+}
+
+.nav-icon {
+  font-size: 1.3rem;
+}
+
+/* ===== MODALS ===== */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 50;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@media (min-width: 600px) {
+  .overlay { align-items: center; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal {
+  background: var(--surface);
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(20px + var(--safe-bottom));
+  border: 1px solid var(--border);
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 600px) {
+  .modal {
+    border-radius: 16px;
+    padding-bottom: 20px;
   }
-  #theme-panel h3{ margin:0 0 12px; }
-  .swatches{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
-  .swatch{ width:34px; height:34px; border-radius:50%; cursor:pointer; border:2px solid transparent; }
-  .swatch.active{ border-color:#fff; }
-  #custom-color{ width:100%; height:40px; border:none; border-radius:8px; background:none; cursor:pointer; }
+}
 
-  #install-banner{
-    display:none; position:fixed; top:calc(var(--safe-top) + 10px); left:12px; right:12px; z-index:70;
-    background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px;
-    align-items:center; gap:10px; max-width:696px; margin:0 auto;
-  }
-  #install-banner span{ flex:1; font-size:.82rem; }
-  #install-banner button{ font-size:.8rem; padding:8px 12px; border-radius:9px; border:none; background:var(--accent-me); color:#0d0d0d; font-weight:600; cursor:pointer; }
-  #install-banner .dismiss{ background:none; color:var(--text-dim); font-weight:400; }
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.modal-close:active {
+  color: var(--text);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.form-input {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: var(--transition);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent-me);
+  background: var(--bg);
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 70px;
+  font-family: 'Inter', sans-serif;
+}
+
+.file-drop {
+  border: 1.5px dashed var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  transition: var(--transition);
+}
+
+.file-drop:active {
+  border-color: var(--accent-me);
+  background: rgba(63, 167, 150, 0.05);
+}
+
+.thumbs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.thumb {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(0, 0, 0, 0.8);
+  border: none;
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.btn-primary {
+  background: var(--accent-me);
+  color: #0d0d0d;
+}
+
+.btn-primary:active {
+  transform: scale(0.96);
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:active {
+  background: var(--surface);
+}
+
+/* ===== EVENTS LIST ===== */
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.event-item {
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  border-left: 3px solid var(--accent-me);
+}
+
+.event-item.by-other {
+  border-left-color: var(--accent-other);
+}
+
+.event-carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.event-carousel img {
+  width: 100%;
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.event-body {
+  padding: 12px;
+}
+
+.event-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.event-time {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.event-notes {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+}
+
+.event-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.event-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* ===== LIGHTBOX ===== */
+#lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 80;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+#lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 12px;
+}
+
+/* ===== SETTINGS PANEL ===== */
+#theme-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 18px 18px calc(18px + var(--safe-bottom));
+  display: none;
+  z-index: 60;
+  border-radius: 20px 20px 0 0;
+  max-width: 720px;
+  margin: 0 auto;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+}
+
+.setting-group {
+  margin-bottom: 18px;
+}
+
+.setting-label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  display: block;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.swatches {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: var(--transition);
+}
+
+.swatch:active {
+  transform: scale(0.9);
+}
+
+.swatch.active {
+  border-color: #fff;
+  box-shadow: 0 0 0 1px var(--surface);
+}
+
+#custom-color {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+#name-input {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+/* ===== INSTALL BANNER ===== */
+#install-banner {
+  display: none;
+  position: fixed;
+  top: calc(var(--safe-top) + 12px);
+  left: 12px;
+  right: 12px;
+  z-index: 70;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  align-items: center;
+  gap: 10px;
+  max-width: 696px;
+  margin: 0 auto;
+  animation: slideUp 0.3s ease-out;
+}
+
+#install-banner span {
+  flex: 1;
+  font-size: 0.82rem;
+}
+
+#install-banner button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+#install-action {
+  background: var(--accent-me);
+  color: #0d0d0d;
+}
+
+#install-action:active {
+  transform: scale(0.96);
+}
+
+.install-dismiss {
+  background: none;
+  color: var(--text-dim);
+}
 </style>
 </head>
 <body>
 
+<!-- INSTALL BANNER -->
 <div id="install-banner">
-  <span id="install-text">Instalá la app en tu pantalla de inicio para acceder más rápido.</span>
-  <button class="dismiss" id="install-dismiss">Ahora no</button>
+  <span id="install-text">Instala la app en tu pantalla de inicio</span>
+  <button class="install-dismiss" id="install-dismiss">Descartar</button>
   <button id="install-action">Instalar</button>
 </div>
 
+<!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="brand">
     <h1>Together</h1>
+    <p>Nuestro calendario compartido</p>
   </div>
   <form id="login-form">
-    <input type="email" id="email" placeholder="Email" autocomplete="username" required>
+    <input type="email" id="email" placeholder="Correo electrónico" autocomplete="username" required>
     <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password" required>
     <button type="submit" id="login-btn">Entrar</button>
     <div id="login-error"></div>
   </form>
-  <p id="install-hint">💡 Tip: Una vez adentro, podés instalar la app en tu pantalla de inicio.</p>
 </div>
 
+<!-- APP SHELL -->
 <div id="app">
   <header class="topbar">
-    <div class="who">
+    <div class="user-info">
       <div class="avatar" id="my-avatar"></div>
-      <div>
-        <div style="font-weight:600; font-size:.92rem" id="my-name">—</div>
-        <div style="font-size:.72rem;color:var(--text-dim)" id="sync-status">Sincronizando…</div>
+      <div class="user-details">
+        <div class="user-name" id="my-name">Usuario</div>
+        <div class="sync-status" id="sync-status">Sincronizando...</div>
       </div>
     </div>
-    <div style="display:flex; gap:8px;">
-      <button class="icon-btn" id="theme-btn" title="Cambiar mi color">🎨</button>
-      <button class="icon-btn" id="logout-btn" title="Salir">⏻</button>
+    <div class="header-actions">
+      <button class="icon-btn" id="theme-btn" title="Preferencias">⚙</button>
+      <button class="icon-btn" id="logout-btn" title="Salir">⎋</button>
     </div>
   </header>
 
+  <!-- CALENDAR VIEW -->
   <section class="view active" id="view-calendar">
     <div class="month-nav">
-      <button class="icon-btn" id="prev-month">←</button>
+      <button class="icon-btn" id="prev-month">‹</button>
       <h2 id="month-label">Mes</h2>
-      <button class="icon-btn" id="next-month">→</button>
+      <button class="icon-btn" id="next-month">›</button>
     </div>
     <div class="legend">
-      <span><i style="background:var(--accent-me)"></i><span id="legend-me-label">Yo</span></span>
-      <span><i style="background:var(--accent-other)"></i><span id="legend-other-label">La otra persona</span></span>
+      <div class="legend-item">
+        <div class="legend-dot" id="legend-me-dot" style="background:var(--accent-me)"></div>
+        <span id="legend-me-label">Yo</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--accent-other)"></div>
+        <span id="legend-other-label">La otra persona</span>
+      </div>
     </div>
     <div class="grid-week">
-      <div>Do</div><div>Lu</div><div>Ma</div><div>Mi</div><div>Ju</div><div>Vi</div><div>Sa</div>
+      <div class="day-label">Do</div>
+      <div class="day-label">Lu</div>
+      <div class="day-label">Ma</div>
+      <div class="day-label">Mi</div>
+      <div class="day-label">Ju</div>
+      <div class="day-label">Vi</div>
+      <div class="day-label">Sa</div>
     </div>
     <div class="grid-days" id="grid-days"></div>
   </section>
 
+  <!-- MEMORIES VIEW -->
   <section class="view" id="view-feed">
-    <h2 style="font-size:1.4rem; margin:0 0 16px;">Recuerdos</h2>
+    <h2 style="font-size:1.4rem; margin:0 0 20px 0; font-weight:600;">Recuerdos</h2>
     <div id="feed-list"></div>
   </section>
 </div>
 
+<!-- BOTTOM NAV -->
 <div id="bottom-nav">
-  <button class="tab-btn active" data-view="view-calendar">
-    <span class="nav-ic">📅</span> Calendario
+  <button class="nav-btn active" data-view="view-calendar">
+    <span class="nav-icon">📅</span>
+    <span>Calendario</span>
   </button>
-  <button class="tab-btn" data-view="view-feed">
-    <span class="nav-ic">🖼️</span> Recuerdos
+  <button class="nav-btn" data-view="view-feed">
+    <span class="nav-icon">🖼</span>
+    <span>Recuerdos</span>
   </button>
 </div>
 
+<!-- DAY MODAL -->
 <div class="overlay" id="day-overlay">
   <div class="modal">
-    <h3 id="day-modal-title">Fecha</h3>
+    <div class="modal-header">
+      <h2 class="modal-title" id="day-modal-title">Fecha</h2>
+      <button class="modal-close" id="close-day-btn">×</button>
+    </div>
     <div class="events-list" id="events-list"></div>
-    <button class="btn btn-primary" style="width:100%; margin-top:14px;" id="add-event-btn">+ Agregar evento</button>
-    <button class="btn btn-secondary" style="width:100%; margin-top:10px;" id="close-day-btn">Cerrar</button>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="add-event-btn">+ Evento</button>
+    </div>
   </div>
 </div>
 
+<!-- EVENT FORM MODAL -->
 <div class="overlay" id="event-overlay">
   <div class="modal">
-    <h3 id="event-modal-title">Nuevo evento</h3>
-    <label>Título</label>
-    <input type="text" id="ev-title" placeholder="Ej: Aniversario, cita, viaje...">
-    <label>Horario (opcional)</label>
-    <input type="time" id="ev-time" placeholder="HH:MM">
-    <label>Notas</label>
-    <textarea id="ev-notes" placeholder="Detalles del evento..."></textarea>
-    <label>Fotos (sin límite)</label>
-    <div class="file-drop" id="file-drop">Tocar para elegir imágenes</div>
-    <input type="file" id="file-input" accept="image/*" multiple style="display:none">
-    <div class="thumbs" id="thumbs"></div>
+    <div class="modal-header">
+      <h2 class="modal-title" id="event-modal-title">Nuevo evento</h2>
+      <button class="modal-close" id="close-event-btn">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Título</label>
+      <input type="text" id="ev-title" class="form-input" placeholder="Ej: Aniversario, cita, viaje...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Hora (opcional)</label>
+      <input type="time" id="ev-time" class="form-input">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notas</label>
+      <textarea id="ev-notes" class="form-input" placeholder="Detalles del evento..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fotos</label>
+      <div class="file-drop" id="file-drop">Toca para seleccionar imágenes</div>
+      <input type="file" id="file-input" accept="image/*" multiple style="display:none">
+      <div class="thumbs" id="thumbs"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" id="cancel-event-btn">Cancelar</button>
       <button class="btn btn-primary" id="save-event-btn">Guardar</button>
@@ -293,17 +1051,28 @@
   </div>
 </div>
 
-<div id="lightbox"><img id="lightbox-img" src=""></div>
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <img id="lightbox-img" src="">
+</div>
 
+<!-- SETTINGS PANEL -->
 <div id="theme-panel">
-  <h3>Mis preferencias</h3>
-  <label style="font-size:.76rem;color:var(--text-dim)">Mi nombre</label>
-  <input type="text" id="name-input" placeholder="Tu nombre" style="width:100%; padding:11px 12px; border-radius:12px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-family:inherit; font-size:.95rem; margin-bottom:14px;">
-  <label style="font-size:.76rem;color:var(--text-dim)">Mi color</label>
-  <div class="swatches" id="swatches"></div>
-  <label style="font-size:.78rem;color:var(--text-dim)">Color personalizado</label>
-  <input type="color" id="custom-color">
-  <button class="btn btn-secondary" style="width:100%;margin-top:12px" id="close-theme-btn">Cerrar</button>
+  <h3 class="settings-title">Preferencias</h3>
+  
+  <div class="setting-group">
+    <label class="setting-label">Mi nombre</label>
+    <input type="text" id="name-input" class="form-input" placeholder="Tu nombre">
+  </div>
+  
+  <div class="setting-group">
+    <label class="setting-label">Mi color</label>
+    <div class="swatches" id="swatches"></div>
+    <label class="setting-label" style="margin-top:8px;">Personalizado</label>
+    <input type="color" id="custom-color">
+  </div>
+  
+  <button class="btn btn-secondary" style="width:100%;margin-top:16px;" id="close-theme-btn">Listo</button>
 </div>
 
 <script type="module">
@@ -317,21 +1086,19 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyD7fnh1Mg264Zrqmux-p2168WaTBKEmhGg",
-    authDomain: "together-5729b.firebaseapp.com",
-    projectId: "together-5729b",
-    storageBucket: "together-5729b.firebasestorage.app",
-    messagingSenderId: "985516430457",
-    appId: "1:985516430457:web:e70ab030c9c6779fdc30a8"
-  };
+  apiKey: "AIzaSyD7fnh1Mg264Zrqmux-p2168WaTBKEmhGg",
+  authDomain: "together-5729b.firebaseapp.com",
+  projectId: "together-5729b",
+  storageBucket: "together-5729b.firebasestorage.app",
+  messagingSenderId: "985516430457",
+  appId: "1:985516430457:web:e70ab030c9c6779fdc30a8"
+};
 
 const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 
 console.log("✓ Firebase inicializado");
-console.log("✓ Auth:", auth);
-console.log("✓ DB:", db);
 
 const SWATCH_OPTIONS = ["#3FA796","#E8735C","#7C9CF2","#F2C14E","#C77DFF","#4EC9F2","#F28C8C","#8CE9A1"];
 
@@ -345,8 +1112,8 @@ let viewDate = new Date();
 let selectedDay = null;
 let eventsCache = [];
 let pendingImages = [];
-let usersData = {}; // guardar info de todos los usuarios
-let editingEventId = null; // para saber si estamos editando
+let usersData = {};
+let editingEventId = null;
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -372,37 +1139,23 @@ document.getElementById("install-action").addEventListener("click", async () => 
     await deferredPrompt.userChoice;
     deferredPrompt = null;
     banner.style.display = "none";
-  } else {
-    alert("En iPhone: tocá el botón de Compartir y elegí 'Agregar a pantalla de inicio'.");
   }
 });
 document.getElementById("install-dismiss").addEventListener("click", () => {
   banner.style.display = "none";
   localStorage.setItem("install-dismissed", "1");
 });
-const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-if (iOS && !isStandalone && !localStorage.getItem("install-dismissed")) {
-  document.getElementById("install-text").textContent =
-    "Instalala: tocá Compartir y luego 'Agregar a pantalla de inicio'.";
-  document.getElementById("install-action").textContent = "Entendido";
-  banner.style.display = "flex";
-}
 
 document.getElementById("login-form").addEventListener("submit", async (e)=>{
   e.preventDefault();
-  console.log("✓ Submit del formulario capturado");
-  
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
   const errorBox = document.getElementById("login-error");
   const loginBtn = document.getElementById("login-btn");
   errorBox.textContent = "";
   
-  console.log("Email:", email, "Password:", password.length > 0 ? "***" : "");
-  
   if(!email || !password){
-    console.log("Validación falla: email vacío o password vacío");
-    errorBox.textContent = "Ponés email y contraseña.";
+    errorBox.textContent = "Completa email y contraseña.";
     return;
   }
   
@@ -410,11 +1163,8 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
   loginBtn.disabled = true;
   
   try{
-    console.log("Intentando autenticación con Firebase...");
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    console.log("✓ Login exitoso:", result.user.email);
+    await signInWithEmailAndPassword(auth, email, password);
   }catch(err){
-    console.error("✗ Error de login:", err.code, err.message);
     loginBtn.textContent = "Entrar";
     loginBtn.disabled = false;
     
@@ -441,24 +1191,20 @@ onAuthStateChanged(auth, async (user)=>{
   
   try {
     currentUID = user.uid;
-    console.log("Usuario autenticado:", user.email);
 
-    // Si es la primera vez, crear documento en Firebase
     const userRef = doc(db, "users", currentUID);
     const snap = await getDoc(userRef);
     if(!snap.exists()){
-      const name = prompt("¿Cuál es tu nombre? (ej: Angeliquito)") || "Usuario";
+      const name = prompt("¿Cuál es tu nombre?") || "Usuario";
       await setDoc(userRef, { name, color: "#3FA796" });
     }
 
-    // Escuchar TODOS los usuarios de Firebase en tiempo real
     onSnapshot(collection(db, "users"), (qs)=>{
       usersData = {};
       qs.forEach(d=>{
         usersData[d.id] = d.data();
       });
       
-      // Actualizar mi nombre y color
       if(usersData[currentUID]){
         const myData = usersData[currentUID];
         currentUserName = myData.name || "Usuario";
@@ -468,7 +1214,6 @@ onAuthStateChanged(auth, async (user)=>{
         applyMyColor(myColor);
       }
 
-      // Buscar el otro usuario (cualquier UID que no sea el mío)
       Object.keys(usersData).forEach(uid=>{
         if(uid !== currentUID){
           otherUID = uid;
@@ -493,17 +1238,17 @@ onAuthStateChanged(auth, async (user)=>{
     listenEvents();
     renderCalendar();
   } catch(err) {
-    console.error("Error en onAuthStateChanged:", err);
-    alert("Error al conectar: " + err.message);
+    console.error("Error:", err);
+    alert("Error: " + err.message);
     await signOut(auth);
   }
 });
 
 function applyMyColor(hex){ document.documentElement.style.setProperty("--accent-me", hex); }
 
-document.querySelectorAll(".tab-btn").forEach(btn=>{
+document.querySelectorAll(".nav-btn").forEach(btn=>{
   btn.addEventListener("click", ()=>{
-    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
     document.getElementById(btn.dataset.view).classList.add("active");
@@ -513,9 +1258,10 @@ document.querySelectorAll(".tab-btn").forEach(btn=>{
 
 const swatchesEl = document.getElementById("swatches");
 SWATCH_OPTIONS.forEach(c=>{
-  const el = document.createElement("div");
+  const el = document.createElement("button");
   el.className = "swatch";
   el.style.background = c;
+  el.type = "button";
   el.addEventListener("click", ()=> saveMyColor(c));
   swatchesEl.appendChild(el);
 });
@@ -590,7 +1336,8 @@ function renderCalendar(){
     const dots = document.createElement("div");
     dots.className = "day-dots";
     dayEvents.slice(0,4).forEach(ev=>{
-      const dot = document.createElement("i");
+      const dot = document.createElement("div");
+      dot.className = "day-dot";
       dot.style.background = ev.authorUID === currentUID ? "var(--accent-me)" : "var(--accent-other)";
       dots.appendChild(dot);
     });
@@ -629,13 +1376,48 @@ function renderDayModal(key){
   list.innerHTML = "";
   const dayEvents = eventsCache.filter(ev => ev.date === key);
   if(dayEvents.length === 0){
-    list.innerHTML = '<div style="color:var(--text-dim); font-size:.85rem;">Sin eventos todavía.</div>';
+    list.innerHTML = '<div style="color:var(--text-dim); font-size:.85rem; text-align:center; padding:20px;">Sin eventos</div>';
   }
   dayEvents.forEach(ev=> list.appendChild(buildEventCard(ev, false)));
 }
 
+function openEditEvent(ev){
+  editingEventId = ev.id;
+  pendingImages = ev.images ? [...ev.images] : [];
+  document.getElementById("event-modal-title").textContent = "Editar evento";
+  document.getElementById("ev-title").value = ev.title || "";
+  document.getElementById("ev-time").value = ev.time || "";
+  document.getElementById("ev-notes").value = ev.notes || "";
+  document.getElementById("thumbs").innerHTML = "";
+  pendingImages.forEach((src, i)=> addThumb(src, i));
+  document.getElementById("event-overlay").style.display = "flex";
+}
+
+function addThumb(src, idx){
+  const t = document.createElement("div");
+  t.className = "thumb";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "thumb-remove";
+  btn.textContent = "×";
+  btn.addEventListener("click", ()=>{
+    pendingImages.splice(idx,1);
+    refreshThumbs();
+  });
+  const img = document.createElement("img");
+  img.src = src;
+  t.appendChild(img);
+  t.appendChild(btn);
+  document.getElementById("thumbs").appendChild(t);
+}
+
+function refreshThumbs(){
+  document.getElementById("thumbs").innerHTML = "";
+  pendingImages.forEach((src,i)=> addThumb(src,i));
+}
+
 function buildEventCard(ev, feedStyle){
-  const item = document.createElement("div");
+  const item = document.createElement(feedStyle ? "div" : "div");
   item.className = feedStyle ? "feed-card" : "event-item";
   if(!feedStyle && ev.authorUID !== currentUID) item.classList.add("by-other");
 
@@ -643,39 +1425,35 @@ function buildEventCard(ev, feedStyle){
   if(feedStyle){
     const dateObj = new Date(ev.date + "T00:00:00");
     const label = dateObj.toLocaleDateString("es-ES", { day:"numeric", month:"long", year:"numeric" });
-    html += '<div class="fc-head">' +
+    html += '<div class="fc-header">' +
       '<div class="fc-dot" style="background:' + (ev.authorUID === currentUID ? 'var(--accent-me)' : 'var(--accent-other)') + '"></div>' +
-      '<div class="fc-head-text">' +
-        '<div class="fc-title">' + escapeHTML(ev.title) + '</div>' +
-        '<div class="fc-date">' + label + '</div>' +
-      '</div></div>';
+      '<div class="fc-meta"><h3 class="fc-title">' + escapeHTML(ev.title) + '</h3><p class="fc-date">' + label + '</p></div></div>';
   }
 
-  const carouselClass = feedStyle ? "fc-carousel" : "ev-carousel";
+  const carouselClass = feedStyle ? "fc-carousel" : "event-carousel";
   if(ev.images && ev.images.length){
     html += '<div class="' + carouselClass + '"></div>';
   }
 
   if(feedStyle){
+    html += '<div class="fc-body">';
+    if(ev.time) html += '<div class="fc-time">🕐 ' + ev.time + '</div>';
     if(ev.notes) html += '<div class="fc-notes">' + escapeHTML(ev.notes) + '</div>';
-    if(ev.time) html += '<div style="font-size:.8rem;color:var(--text-dim);margin-bottom:8px;">🕐 ' + ev.time + '</div>';
     const authorName = ev.authorUID === currentUID ? "Vos" : (usersData[ev.authorUID]?.name || "La otra persona");
-    html += '<div class="fc-foot"><span class="fc-author">' + authorName + '</span>' +
-      '<div>' +
-        (ev.authorUID === currentUID ? `<button class="fc-edit" data-id="${ev.id}">Editar</button>` : '') +
-        (ev.authorUID === currentUID ? '<button class="fc-del">Eliminar</button>' : '') +
-      '</div></div>';
+    html += '<div class="fc-footer"><span>' + authorName + '</span>' +
+      '<div class="fc-actions">' +
+        (ev.authorUID === currentUID ? `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` : '') +
+        (ev.authorUID === currentUID ? `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` : '') +
+      '</div></div></div>';
   } else {
     const authorName = ev.authorUID === currentUID ? "Agregado por vos" : ("Agregado por " + (usersData[ev.authorUID]?.name || "la otra persona"));
-    const timeStr = ev.time ? `<div style="font-size:.8rem;color:var(--text-dim);margin-bottom:8px;">🕐 ${ev.time}</div>` : "";
-    html += '<div class="ev-body">' + 
-      '<div class="ev-title">' + escapeHTML(ev.title) + '</div>' +
-      timeStr +
-      (ev.notes ? '<div class="ev-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
-      '<div class="ev-foot"><span class="ev-author">' + authorName + '</span>' +
-      '<div>' +
-        (ev.authorUID === currentUID ? `<button class="ev-edit" data-id="${ev.id}">Editar</button>` : '') +
-        (ev.authorUID === currentUID ? `<button class="ev-del">Eliminar</button>` : '') +
+    html += '<div class="event-body"><h3 class="event-title">' + escapeHTML(ev.title) + '</h3>' +
+      (ev.time ? '<div class="event-time">🕐 ' + ev.time + '</div>' : '') +
+      (ev.notes ? '<div class="event-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
+      '<div class="event-footer"><span>' + authorName + '</span>' +
+      '<div class="event-actions">' +
+        (ev.authorUID === currentUID ? `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` : '') +
+        (ev.authorUID === currentUID ? `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` : '') +
       '</div></div></div>';
   }
 
@@ -691,17 +1469,15 @@ function buildEventCard(ev, feedStyle){
     });
   }
 
-  const delBtn = item.querySelector(".ev-del, .fc-del");
-  if(delBtn){
-    delBtn.addEventListener("click", async ()=>{
-      if(confirm("¿Eliminar este evento?")) await deleteDoc(doc(db,"events", ev.id));
+  item.querySelectorAll(".btn-small").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      if(btn.dataset.action === "delete"){
+        if(confirm("¿Eliminar este evento?")) await deleteDoc(doc(db,"events", ev.id));
+      } else {
+        openEditEvent(ev);
+      }
     });
-  }
-  
-  const editBtn = item.querySelector(".ev-edit, .fc-edit");
-  if(editBtn){
-    editBtn.addEventListener("click", ()=> openEditEvent(ev));
-  }
+  });
   
   return item;
 }
@@ -714,7 +1490,7 @@ function renderFeed(){
     .sort((a,b)=> b.date.localeCompare(a.date));
 
   if(withPhotos.length === 0){
-    list.innerHTML = '<div class="feed-empty">Todavía no hay recuerdos con fotos.<br>Agregá uno desde el calendario 📅</div>';
+    list.innerHTML = '<div class="feed-empty">No hay recuerdos con fotos<br><span style="font-size:0.9rem;">Agrega uno desde el calendario</span></div>';
     return;
   }
   withPhotos.forEach(ev => list.appendChild(buildEventCard(ev, true)));
@@ -745,40 +1521,20 @@ document.getElementById("add-event-btn").addEventListener("click", ()=>{
   document.getElementById("event-overlay").style.display = "flex";
 });
 
-function openEditEvent(ev){
-  editingEventId = ev.id;
-  pendingImages = ev.images ? [...ev.images] : [];
-  document.getElementById("event-modal-title").textContent = "Editar evento";
-  document.getElementById("ev-title").value = ev.title || "";
-  document.getElementById("ev-time").value = ev.time || "";
-  document.getElementById("ev-notes").value = ev.notes || "";
-  document.getElementById("thumbs").innerHTML = "";
-  pendingImages.forEach((src, i)=> addThumb(src, i));
-  document.getElementById("event-overlay").style.display = "flex";
-}
+document.getElementById("close-event-btn").addEventListener("click", ()=>{
+  editingEventId = null;
+  document.getElementById("event-overlay").style.display = "none";
+});
 
-function addThumb(src, idx){
-  const t = document.createElement("div");
-  t.className = "thumb";
-  t.innerHTML = '<img src="' + src + '"><button>×</button>';
-  t.querySelector("button").addEventListener("click", ()=>{
-    pendingImages.splice(idx,1);
-    refreshThumbs();
-  });
-  document.getElementById("thumbs").appendChild(t);
-}
-
-function refreshThumbs(){
-  document.getElementById("thumbs").innerHTML = "";
-  pendingImages.forEach((src,i)=> addThumb(src,i));
-}
 document.getElementById("cancel-event-btn").addEventListener("click", ()=>{
   editingEventId = null;
   document.getElementById("event-overlay").style.display = "none";
 });
+
 document.getElementById("file-drop").addEventListener("click", ()=>{
   document.getElementById("file-input").click();
 });
+
 document.getElementById("file-input").addEventListener("change", async (e)=>{
   const files = Array.from(e.target.files);
   for(const file of files){
@@ -788,6 +1544,7 @@ document.getElementById("file-input").addEventListener("change", async (e)=>{
   }
   e.target.value = "";
 });
+
 function resizeImage(file, maxSize, quality){
   return new Promise((resolve)=>{
     const reader = new FileReader();
@@ -807,9 +1564,10 @@ function resizeImage(file, maxSize, quality){
     reader.readAsDataURL(file);
   });
 }
+
 document.getElementById("save-event-btn").addEventListener("click", async ()=>{
   const title = document.getElementById("ev-title").value.trim();
-  if(!title){ alert("Poné al menos un título."); return; }
+  if(!title){ alert("Ponés al menos un título."); return; }
   const notes = document.getElementById("ev-notes").value.trim();
   const time = document.getElementById("ev-time").value || null;
   
@@ -820,11 +1578,9 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
   };
 
   if(editingEventId){
-    // Editar evento existente
     await updateDoc(doc(db,"events", editingEventId), eventData);
     editingEventId = null;
   } else {
-    // Crear nuevo evento
     eventData.date = selectedDay;
     eventData.createdAt = serverTimestamp();
     await addDoc(collection(db,"events"), eventData);
