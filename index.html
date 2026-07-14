@@ -390,24 +390,25 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
   const errorBox = document.getElementById("login-error");
+  const loginBtn = document.getElementById("login-btn");
   errorBox.textContent = "";
-  try{
-    await signInWithEmailAndPassword(auth, email, password);
-  }catch(err){
-    errorBox.textContent = "No se pudo entrar. Revisá email y contraseña.";
-    console.error(err);
-  }
-});
-document.getElementById("logout-btn").addEventListener("click", ()=> signOut(auth));
-
-onAuthStateChanged(auth, async (user)=>{
-  if(!user){
-    document.getElementById("login-screen").style.display = "flex";
-    document.getElementById("app").style.display = "none";
-    document.getElementById("bottom-nav").style.display = "none";
+  
+  if(!email || !password){
+    errorBox.textContent = "Ponés email y contraseña.";
     return;
   }
-  currentUID = user.uid;
-
-  // Si es la primera vez, crear documento en Firebase
-  const userRef = doc(db, "users", curre
+  
+  loginBtn.textContent = "Entrando...";
+  loginBtn.disabled = true;
+  
+  try{
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    console.log("Login exitoso:", result.user.email);
+  }catch(err){
+    console.error("Error de login:", err.code, err.message);
+    loginBtn.textContent = "Entrar";
+    loginBtn.disabled = false;
+    
+    if(err.code === "auth/user-not-found"){
+      errorBox.textContent = "El email no existe.";
+    } else if(err.code === "auth/wrong-passwo
