@@ -219,16 +219,17 @@
   <div class="who-row" id="who-row">
     <div class="who-card" data-slot="1">
       <div class="who-dot" style="background:#3FA796"></div>
-      <div>Angeliquito</div>
+      <div>Persona 1</div>
     </div>
     <div class="who-card" data-slot="2">
       <div class="who-dot" style="background:#E8735C"></div>
-      <div>Mimi</div>
+      <div>Persona 2</div>
     </div>
   </div>
   <form id="login-form">
     <input type="email" id="email" placeholder="Email" autocomplete="username" required>
     <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password" required>
+    <input type="text" id="username" placeholder="Tu nombre (ej: Angeliquito)" required>
     <button type="submit" id="login-btn">Entrar</button>
     <div id="login-error"></div>
   </form>
@@ -341,17 +342,19 @@ const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 
-const NAMES = { p1: "Angeliquito", p2: "Mimi" };
-const DEFAULT_COLORS = { p1: "#3FA796", p2: "#E8735C" };
 const SWATCH_OPTIONS = ["#3FA796","#E8735C","#7C9CF2","#F2C14E","#C77DFF","#4EC9F2","#F28C8C","#8CE9A1"];
 
 let currentUID = null;
-let myColor = DEFAULT_COLORS.p1;
-let otherColor = DEFAULT_COLORS.p2;
+let currentUserName = "Usuario";
+let myColor = "#3FA796";
+let otherColor = "#E8735C";
+let otherUserName = "Otra persona";
+let otherUID = null;
 let viewDate = new Date();
 let selectedDay = null;
 let eventsCache = [];
 let pendingImages = [];
+let usersData = {}; // guardar info de todos los usuarios
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -406,12 +409,18 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
   e.preventDefault();
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
+  const username = document.getElementById("username").value.trim();
   const errorBox = document.getElementById("login-error");
   errorBox.textContent = "";
   try{
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCred = await signInWithEmailAndPassword(auth, email, password);
+    // Guardar el nombre en Firebase para este usuario
+    await setDoc(doc(db, "users", userCred.user.uid), { 
+      name: username,
+      color: "#3FA796"
+    }, { merge: true });
   }catch(err){
-    errorBox.textContent = "No se pudo entrar. Revisá el email y la contraseña.";
+    errorBox.textContent = "No se pudo entrar. Revisá el email, contraseña y nombre.";
     console.error(err);
   }
 });
@@ -425,30 +434,39 @@ onAuthStateChanged(auth, async (user)=>{
     return;
   }
   currentUID = user.uid;
-  const slot = document.getElementById("login-form").dataset.slot === "2" ? "p2" : "p1";
 
-  const userRef = doc(db, "users", currentUID);
-  const snap = await getDoc(userRef);
-  if(!snap.exists()){
-    await setDoc(userRef, { slot, name: NAMES[slot], color: DEFAULT_COLORS[slot] });
-  }
-  const userData = (await getDoc(userRef)).data();
-  myColor = userData.color || DEFAULT_COLORS[slot];
-  document.getElementById("my-name").textContent = userData.name || NAMES[slot];
-  document.getElementById("legend-me-label").textContent = (userData.name || NAMES[slot]) + " (yo)";
-  applyMyColor(myColor);
-
+  // Escuchar TODOS los usuarios de Firebase en tiempo real
   onSnapshot(collection(db, "users"), (qs)=>{
+    usersData = {};
     qs.forEach(d=>{
-      if(d.id !== currentUID){
-        const data = d.data();
-        otherColor = data.color || otherColor;
-        document.getElementById("legend-other-label").textContent = data.name || "La otra persona";
+      usersData[d.id] = d.data();
+    });
+    
+    // Actualizar mi nombre y color
+    if(usersData[currentUID]){
+      const myData = usersData[currentUID];
+      currentUserName = myData.name || "Usuario";
+      myColor = myData.color || "#3FA796";
+      document.getElementById("my-name").textContent = currentUserName;
+      document.getElementById("legend-me-label").textContent = currentUserName + " (yo)";
+      applyMyColor(myColor);
+    }
+
+    // Buscar el otro usuario (cualquier UID que no sea el mío)
+    Object.keys(usersData).forEach(uid=>{
+      if(uid !== currentUID){
+        otherUID = uid;
+        const otherData = usersData[uid];
+        otherUserName = otherData.name || "Otra persona";
+        otherColor = otherData.color || "#E8735C";
+        document.getElementById("legend-other-label").textContent = otherUserName;
         document.documentElement.style.setProperty("--accent-other", otherColor);
-        renderCalendar();
-        renderFeed();
       }
     });
+    
+    renderCalendar();
+    renderFeed();
+    if(selectedDay) renderDayModal(selectedDay);
   });
 
   document.getElementById("login-screen").style.display = "none";
@@ -609,12 +627,14 @@ function buildEventCard(ev, feedStyle){
 
   if(feedStyle){
     if(ev.notes) html += '<div class="fc-notes">' + escapeHTML(ev.notes) + '</div>';
-    html += '<div class="fc-foot"><span class="fc-author">' + (ev.authorUID === currentUID ? "Vos" : "La otra persona") + '</span>' +
+    const authorName = ev.authorUID === currentUID ? "Vos" : (usersData[ev.authorUID]?.name || "La otra persona");
+    html += '<div class="fc-foot"><span class="fc-author">' + authorName + '</span>' +
       (ev.authorUID === currentUID ? '<button class="fc-del">Eliminar</button>' : '') + '</div>';
   } else {
+    const authorName = ev.authorUID === currentUID ? "Agregado por vos" : ("Agregado por " + (usersData[ev.authorUID]?.name || "la otra persona"));
     html += '<div class="ev-body"><div class="ev-title">' + escapeHTML(ev.title) + '</div>' +
       (ev.notes ? '<div class="ev-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
-      '<div class="ev-foot"><span class="ev-author">' + (ev.authorUID === currentUID ? "Agregado por vos" : "Agregado por la otra persona") + '</span>' +
+      '<div class="ev-foot"><span class="ev-author">' + authorName + '</span>' +
       (ev.authorUID === currentUID ? '<button class="ev-del">Eliminar</button>' : '') + '</div></div>';
   }
 
