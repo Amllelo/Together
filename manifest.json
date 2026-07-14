@@ -1,6 +1,6 @@
 {
-  "name": "Nuestro Calendario",
-  "short_name": "Calendario",
+  "name": "Together",
+  "short_name": "Together",
   "description": "Calendario compartido de recuerdos, fotos y eventos",
   "start_url": "./index.html",
   "scope": "./",
