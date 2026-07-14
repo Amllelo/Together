@@ -49,15 +49,7 @@
   #login-screen .brand{ text-align:center; }
   #login-screen .brand h1{ font-size:2.1rem; font-weight:600; margin:0 0 6px; }
   #login-screen .brand p{ color:var(--text-dim); margin:0; }
-  .who-row{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
-  .who-card{
-    width:150px; padding:20px 16px; border-radius: var(--radius);
-    background: var(--surface); border:1px solid var(--border);
-    cursor:pointer; text-align:center; transition: transform .15s, border-color .15s;
-  }
-  .who-card:hover{ transform: translateY(-3px); border-color:#555; }
-  .who-dot{ width:36px; height:36px; border-radius:50%; margin:0 auto 10px; }
-  #login-form{ display:none; flex-direction:column; gap:10px; width:280px; }
+  #login-form{ display:flex; flex-direction:column; gap:10px; width:280px; }
   #login-form input{
     padding:13px 14px; border-radius:12px; border:1px solid var(--border);
     background:var(--surface); color:var(--text); font-size:16px;
@@ -213,18 +205,8 @@
 
 <div id="login-screen">
   <div class="brand">
-    <h1>Nuestra historia</h1>
-    <p>Un baúl de recuerdos</p>
-  </div>
-  <div class="who-row" id="who-row">
-    <div class="who-card" data-slot="1">
-      <div class="who-dot" style="background:#3FA796"></div>
-      <div>Persona 1</div>
-    </div>
-    <div class="who-card" data-slot="2">
-      <div class="who-dot" style="background:#E8735C"></div>
-      <div>Persona 2</div>
-    </div>
+    <h1>Together</h1>
+    <p>Nuestro calendario compartido.</p>
   </div>
   <form id="login-form">
     <input type="email" id="email" placeholder="Email" autocomplete="username" required>
@@ -232,7 +214,7 @@
     <button type="submit" id="login-btn">Entrar</button>
     <div id="login-error"></div>
   </form>
-  <p id="install-hint">Tip: una vez adentro, tocá "Instalar" para tener como app en el teléfono.</p>
+  <p id="install-hint">💡 Tip: Una vez adentro, podés instalar la app en tu pantalla de inicio.</p>
 </div>
 
 <div id="app">
@@ -397,15 +379,6 @@ if (iOS && !isStandalone && !localStorage.getItem("install-dismissed")) {
   document.getElementById("install-action").textContent = "Entendido";
   banner.style.display = "flex";
 }
-
-document.querySelectorAll(".who-card").forEach(card=>{
-  card.addEventListener("click", ()=>{
-    document.querySelectorAll(".who-card").forEach(c=>c.style.borderColor="var(--border)");
-    card.style.borderColor = card.dataset.slot === "1" ? "#3FA796" : "#E8735C";
-    document.getElementById("login-form").style.display = "flex";
-    document.getElementById("login-form").dataset.slot = card.dataset.slot;
-  });
-});
 
 document.getElementById("login-form").addEventListener("submit", async (e)=>{
   e.preventDefault();
