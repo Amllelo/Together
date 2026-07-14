@@ -109,9 +109,10 @@
   .feed-card .fc-carousel{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:0; }
   .feed-card .fc-carousel img{ width:100%; flex:0 0 100%; scroll-snap-align:center; aspect-ratio:1/1; object-fit:cover; cursor:pointer; }
   .fc-notes{ padding:12px 14px; font-size:.85rem; color:var(--text-dim); white-space:pre-wrap; }
-  .fc-foot{ display:flex; justify-content:space-between; align-items:center; padding:0 14px 12px; }
+  .fc-foot{ display:flex; justify-content:space-between; align-items:center; padding:0 14px 12px; gap:10px; }
   .fc-author{ font-size:.72rem; color:var(--text-dim); }
-  .fc-del{ background:none; border:none; color:var(--text-dim); font-size:.75rem; cursor:pointer; }
+  .fc-actions{ display:flex; gap:12px; }
+  .fc-edit, .fc-del{ background:none; border:none; color:var(--text-dim); font-size:.75rem; cursor:pointer; }
 
   #bottom-nav{
     position:fixed; bottom:0; left:0; right:0; z-index:40;
@@ -169,7 +170,8 @@
   .event-item .ev-notes{ font-size:.85rem; color:var(--text-dim); margin-bottom:8px; white-space:pre-wrap; }
   .event-item .ev-foot{ display:flex; justify-content:space-between; align-items:center; }
   .event-item .ev-author{ font-size:.7rem; color:var(--text-dim); }
-  .event-item .ev-del{ background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:.8rem; }
+  .event-item .ev-actions{ display:flex; gap:12px; }
+  .event-item .ev-edit, .event-item .ev-del{ background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:.8rem; }
 
   #lightbox{ display:none; position:fixed; inset:0; background:#000d; z-index:80; align-items:center; justify-content:center; padding:20px; }
   #lightbox img{ max-width:100%; max-height:100%; border-radius:12px; }
@@ -274,7 +276,7 @@
 
 <div class="overlay" id="event-overlay">
   <div class="modal">
-    <h3>Nuevo evento</h3>
+    <h3 id="event-modal-title">Nuevo evento</h3>
     <label>Título</label>
     <input type="text" id="ev-title" placeholder="Ej: Aniversario, cita, viaje...">
     <label>Notas</label>
@@ -310,7 +312,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, collection, onSnapshot,
-  addDoc, deleteDoc, query, orderBy, serverTimestamp
+  addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -339,6 +341,7 @@ let selectedDay = null;
 let eventsCache = [];
 let pendingImages = [];
 let usersData = {}; // guardar info de todos los usuarios
+let editingEventId = null;
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -616,13 +619,13 @@ function buildEventCard(ev, feedStyle){
     if(ev.notes) html += '<div class="fc-notes">' + escapeHTML(ev.notes) + '</div>';
     const authorName = ev.authorUID === currentUID ? "Vos" : (usersData[ev.authorUID]?.name || "La otra persona");
     html += '<div class="fc-foot"><span class="fc-author">' + authorName + '</span>' +
-      (ev.authorUID === currentUID ? '<button class="fc-del">Eliminar</button>' : '') + '</div>';
+      (ev.authorUID === currentUID ? '<span class="fc-actions"><button class="fc-edit">Editar</button><button class="fc-del">Eliminar</button></span>' : '') + '</div>';
   } else {
     const authorName = ev.authorUID === currentUID ? "Agregado por vos" : ("Agregado por " + (usersData[ev.authorUID]?.name || "la otra persona"));
     html += '<div class="ev-body"><div class="ev-title">' + escapeHTML(ev.title) + '</div>' +
       (ev.notes ? '<div class="ev-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
       '<div class="ev-foot"><span class="ev-author">' + authorName + '</span>' +
-      (ev.authorUID === currentUID ? '<button class="ev-del">Eliminar</button>' : '') + '</div></div>';
+      (ev.authorUID === currentUID ? '<span class="ev-actions"><button class="ev-edit">Editar</button><button class="ev-del">Eliminar</button></span>' : '') + '</div></div>';
   }
 
   item.innerHTML = html;
@@ -635,6 +638,11 @@ function buildEventCard(ev, feedStyle){
       img.addEventListener("click", ()=> openLightbox(src));
       carouselEl.appendChild(img);
     });
+  }
+
+  const editBtn = item.querySelector(".ev-edit, .fc-edit");
+  if(editBtn){
+    editBtn.addEventListener("click", ()=> openEditEvent(ev));
   }
 
   const delBtn = item.querySelector(".ev-del, .fc-del");
@@ -675,14 +683,31 @@ document.getElementById("lightbox").addEventListener("click", ()=>{
 });
 
 document.getElementById("add-event-btn").addEventListener("click", ()=>{
+  editingEventId = null;
+  document.getElementById("event-modal-title").textContent = "Nuevo evento";
+  document.getElementById("save-event-btn").textContent = "Guardar";
   pendingImages = [];
   document.getElementById("ev-title").value = "";
   document.getElementById("ev-notes").value = "";
   document.getElementById("thumbs").innerHTML = "";
   document.getElementById("event-overlay").style.display = "flex";
 });
+
+function openEditEvent(ev){
+  editingEventId = ev.id;
+  selectedDay = ev.date;
+  document.getElementById("event-modal-title").textContent = "Editar evento";
+  document.getElementById("save-event-btn").textContent = "Guardar cambios";
+  pendingImages = (ev.images || []).slice();
+  document.getElementById("ev-title").value = ev.title || "";
+  document.getElementById("ev-notes").value = ev.notes || "";
+  refreshThumbs();
+  document.getElementById("event-overlay").style.display = "flex";
+}
+
 document.getElementById("cancel-event-btn").addEventListener("click", ()=>{
   document.getElementById("event-overlay").style.display = "none";
+  editingEventId = null;
 });
 document.getElementById("file-drop").addEventListener("click", ()=>{
   document.getElementById("file-input").click();
@@ -733,10 +758,18 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
   const title = document.getElementById("ev-title").value.trim();
   if(!title){ alert("Poné al menos un título."); return; }
   const notes = document.getElementById("ev-notes").value.trim();
-  await addDoc(collection(db,"events"), {
-    date: selectedDay, title, notes,
-    images: pendingImages, authorUID: currentUID, createdAt: serverTimestamp()
-  });
+
+  if(editingEventId){
+    await updateDoc(doc(db,"events", editingEventId), {
+      title, notes, images: pendingImages
+    });
+    editingEventId = null;
+  } else {
+    await addDoc(collection(db,"events"), {
+      date: selectedDay, title, notes,
+      images: pendingImages, authorUID: currentUID, createdAt: serverTimestamp()
+    });
+  }
   document.getElementById("event-overlay").style.display = "none";
 });
 </script>
