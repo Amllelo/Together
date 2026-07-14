@@ -330,6 +330,10 @@ const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 
+console.log("✓ Firebase inicializado");
+console.log("✓ Auth:", auth);
+console.log("✓ DB:", db);
+
 const SWATCH_OPTIONS = ["#3FA796","#E8735C","#7C9CF2","#F2C14E","#C77DFF","#4EC9F2","#F28C8C","#8CE9A1"];
 
 let currentUID = null;
@@ -387,13 +391,18 @@ if (iOS && !isStandalone && !localStorage.getItem("install-dismissed")) {
 
 document.getElementById("login-form").addEventListener("submit", async (e)=>{
   e.preventDefault();
+  console.log("✓ Submit del formulario capturado");
+  
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
   const errorBox = document.getElementById("login-error");
   const loginBtn = document.getElementById("login-btn");
   errorBox.textContent = "";
   
+  console.log("Email:", email, "Password:", password.length > 0 ? "***" : "");
+  
   if(!email || !password){
+    console.log("Validación falla: email vacío o password vacío");
     errorBox.textContent = "Ponés email y contraseña.";
     return;
   }
@@ -402,13 +411,5 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
   loginBtn.disabled = true;
   
   try{
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    console.log("Login exitoso:", result.user.email);
-  }catch(err){
-    console.error("Error de login:", err.code, err.message);
-    loginBtn.textContent = "Entrar";
-    loginBtn.disabled = false;
-    
-    if(err.code === "auth/user-not-found"){
-      errorBox.textContent = "El email no existe.";
-    } else if(err.code === "auth/wrong-passwo
+    console.log("Intentando autenticación con Firebase...");
+    const result = await signInWithEmailAndPassword(auth,
