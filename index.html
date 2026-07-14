@@ -109,10 +109,10 @@
   .feed-card .fc-carousel{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:0; }
   .feed-card .fc-carousel img{ width:100%; flex:0 0 100%; scroll-snap-align:center; aspect-ratio:1/1; object-fit:cover; cursor:pointer; }
   .fc-notes{ padding:12px 14px; font-size:.85rem; color:var(--text-dim); white-space:pre-wrap; }
-  .fc-foot{ display:flex; justify-content:space-between; align-items:center; padding:0 14px 12px; gap:10px; }
+  .fc-foot{ display:flex; justify-content:space-between; align-items:center; padding:0 14px 12px; }
   .fc-author{ font-size:.72rem; color:var(--text-dim); }
-  .fc-actions{ display:flex; gap:12px; }
-  .fc-edit, .fc-del{ background:none; border:none; color:var(--text-dim); font-size:.75rem; cursor:pointer; }
+  .fc-del{ background:none; border:none; color:var(--text-dim); font-size:.75rem; cursor:pointer; }
+  .fc-edit{ background:none; border:none; color:var(--accent-me); font-size:.75rem; cursor:pointer; margin-right:10px; font-weight:600; }
 
   #bottom-nav{
     position:fixed; bottom:0; left:0; right:0; z-index:40;
@@ -170,8 +170,8 @@
   .event-item .ev-notes{ font-size:.85rem; color:var(--text-dim); margin-bottom:8px; white-space:pre-wrap; }
   .event-item .ev-foot{ display:flex; justify-content:space-between; align-items:center; }
   .event-item .ev-author{ font-size:.7rem; color:var(--text-dim); }
-  .event-item .ev-actions{ display:flex; gap:12px; }
-  .event-item .ev-edit, .event-item .ev-del{ background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:.8rem; }
+  .event-item .ev-del{ background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:.8rem; }
+  .event-item .ev-edit{ background:none; border:none; color:var(--accent-me); cursor:pointer; font-size:.8rem; margin-right:10px; font-weight:600; }
 
   #lightbox{ display:none; position:fixed; inset:0; background:#000d; z-index:80; align-items:center; justify-content:center; padding:20px; }
   #lightbox img{ max-width:100%; max-height:100%; border-radius:12px; }
@@ -279,6 +279,8 @@
     <h3 id="event-modal-title">Nuevo evento</h3>
     <label>Título</label>
     <input type="text" id="ev-title" placeholder="Ej: Aniversario, cita, viaje...">
+    <label>Horario (opcional)</label>
+    <input type="time" id="ev-time" placeholder="HH:MM">
     <label>Notas</label>
     <textarea id="ev-notes" placeholder="Detalles del evento..."></textarea>
     <label>Fotos (sin límite)</label>
@@ -341,7 +343,7 @@ let selectedDay = null;
 let eventsCache = [];
 let pendingImages = [];
 let usersData = {}; // guardar info de todos los usuarios
-let editingEventId = null;
+let editingEventId = null; // para saber si estamos editando
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -408,370 +410,4 @@ onAuthStateChanged(auth, async (user)=>{
   currentUID = user.uid;
 
   // Si es la primera vez, crear documento en Firebase
-  const userRef = doc(db, "users", currentUID);
-  const snap = await getDoc(userRef);
-  if(!snap.exists()){
-    const name = prompt("¿Cuál es tu nombre? (ej: Angeliquito)") || "Usuario";
-    await setDoc(userRef, { name, color: "#3FA796" });
-  }
-
-  // Escuchar TODOS los usuarios de Firebase en tiempo real
-  onSnapshot(collection(db, "users"), (qs)=>{
-    usersData = {};
-    qs.forEach(d=>{
-      usersData[d.id] = d.data();
-    });
-    
-    // Actualizar mi nombre y color
-    if(usersData[currentUID]){
-      const myData = usersData[currentUID];
-      currentUserName = myData.name || "Usuario";
-      myColor = myData.color || "#3FA796";
-      document.getElementById("my-name").textContent = currentUserName;
-      document.getElementById("legend-me-label").textContent = currentUserName + " (yo)";
-      applyMyColor(myColor);
-    }
-
-    // Buscar el otro usuario (cualquier UID que no sea el mío)
-    Object.keys(usersData).forEach(uid=>{
-      if(uid !== currentUID){
-        otherUID = uid;
-        const otherData = usersData[uid];
-        otherUserName = otherData.name || "Otra persona";
-        otherColor = otherData.color || "#E8735C";
-        document.getElementById("legend-other-label").textContent = otherUserName;
-        document.documentElement.style.setProperty("--accent-other", otherColor);
-      }
-    });
-    
-    renderCalendar();
-    renderFeed();
-    if(selectedDay) renderDayModal(selectedDay);
-  });
-
-  document.getElementById("login-screen").style.display = "none";
-  document.getElementById("app").style.display = "block";
-  document.getElementById("bottom-nav").style.display = "flex";
-  document.getElementById("sync-status").textContent = "Sincronizado ✓";
-
-  listenEvents();
-  renderCalendar();
-});
-
-function applyMyColor(hex){ document.documentElement.style.setProperty("--accent-me", hex); }
-
-document.querySelectorAll(".tab-btn").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
-    btn.classList.add("active");
-    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
-    document.getElementById(btn.dataset.view).classList.add("active");
-    if(btn.dataset.view === "view-feed") renderFeed();
-  });
-});
-
-const swatchesEl = document.getElementById("swatches");
-SWATCH_OPTIONS.forEach(c=>{
-  const el = document.createElement("div");
-  el.className = "swatch";
-  el.style.background = c;
-  el.addEventListener("click", ()=> saveMyColor(c));
-  swatchesEl.appendChild(el);
-});
-document.getElementById("custom-color").addEventListener("input", (e)=> saveMyColor(e.target.value));
-
-async function saveMyColor(hex){
-  myColor = hex;
-  applyMyColor(hex);
-  await setDoc(doc(db,"users",currentUID), { color: hex }, { merge:true });
-  renderCalendar();
-  renderFeed();
-}
-document.getElementById("theme-btn").addEventListener("click", ()=>{
-  document.getElementById("name-input").value = currentUserName;
-  document.getElementById("theme-panel").style.display = "block";
-});
-
-document.getElementById("name-input").addEventListener("blur", async ()=>{
-  const newName = document.getElementById("name-input").value.trim();
-  if(newName && newName !== currentUserName){
-    currentUserName = newName;
-    await setDoc(doc(db,"users",currentUID), { name: newName }, { merge:true });
-  }
-});
-
-document.getElementById("close-theme-btn").addEventListener("click", ()=>{
-  document.getElementById("theme-panel").style.display = "none";
-});
-
-const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-
-document.getElementById("prev-month").addEventListener("click", ()=>{ viewDate.setMonth(viewDate.getMonth()-1); renderCalendar(); });
-document.getElementById("next-month").addEventListener("click", ()=>{ viewDate.setMonth(viewDate.getMonth()+1); renderCalendar(); });
-
-function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-
-function renderCalendar(){
-  document.getElementById("month-label").textContent = MESES[viewDate.getMonth()] + " " + viewDate.getFullYear();
-  const grid = document.getElementById("grid-days");
-  grid.innerHTML = "";
-
-  const year = viewDate.getFullYear(), month = viewDate.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const startOffset = firstDay.getDay();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  const today = ymd(new Date());
-  const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
-
-  for(let i=0;i<totalCells;i++){
-    const dayNum = i - startOffset + 1;
-    const cellDate = new Date(year, month, dayNum);
-    const key = ymd(cellDate);
-    const cell = document.createElement("div");
-    cell.className = "day-cell";
-    if(dayNum < 1 || dayNum > daysInMonth) cell.classList.add("other-month");
-    if(key === today) cell.classList.add("today");
-
-    const dayEvents = eventsCache.filter(ev => ev.date === key);
-    const thumbEvent = dayEvents.find(ev => ev.images && ev.images.length);
-    if(thumbEvent){
-      const thumb = document.createElement("div");
-      thumb.className = "day-thumb";
-      thumb.style.backgroundImage = "url(" + thumbEvent.images[0] + ")";
-      cell.appendChild(thumb);
-    }
-
-    const num = document.createElement("div");
-    num.className = "day-num";
-    num.textContent = dayNum > 0 && dayNum <= daysInMonth ? dayNum : "";
-    cell.appendChild(num);
-
-    const dots = document.createElement("div");
-    dots.className = "day-dots";
-    dayEvents.slice(0,4).forEach(ev=>{
-      const dot = document.createElement("i");
-      dot.style.background = ev.authorUID === currentUID ? "var(--accent-me)" : "var(--accent-other)";
-      dots.appendChild(dot);
-    });
-    cell.appendChild(dots);
-
-    cell.addEventListener("click", ()=> openDay(key, cellDate));
-    grid.appendChild(cell);
-  }
-}
-
-function listenEvents(){
-  const q = query(collection(db, "events"), orderBy("date"));
-  onSnapshot(q, (qs)=>{
-    eventsCache = [];
-    qs.forEach(d=> eventsCache.push({ id: d.id, ...d.data() }));
-    renderCalendar();
-    renderFeed();
-    if(selectedDay) renderDayModal(selectedDay);
-  });
-}
-
-function openDay(key, dateObj){
-  selectedDay = key;
-  document.getElementById("day-modal-title").textContent =
-    dateObj.toLocaleDateString("es-ES", { weekday:"long", day:"numeric", month:"long" });
-  renderDayModal(key);
-  document.getElementById("day-overlay").style.display = "flex";
-}
-document.getElementById("close-day-btn").addEventListener("click", ()=>{
-  document.getElementById("day-overlay").style.display = "none";
-  selectedDay = null;
-});
-
-function renderDayModal(key){
-  const list = document.getElementById("events-list");
-  list.innerHTML = "";
-  const dayEvents = eventsCache.filter(ev => ev.date === key);
-  if(dayEvents.length === 0){
-    list.innerHTML = '<div style="color:var(--text-dim); font-size:.85rem;">Sin eventos todavía.</div>';
-  }
-  dayEvents.forEach(ev=> list.appendChild(buildEventCard(ev, false)));
-}
-
-function buildEventCard(ev, feedStyle){
-  const item = document.createElement("div");
-  item.className = feedStyle ? "feed-card" : "event-item";
-  if(!feedStyle && ev.authorUID !== currentUID) item.classList.add("by-other");
-
-  let html = "";
-  if(feedStyle){
-    const dateObj = new Date(ev.date + "T00:00:00");
-    const label = dateObj.toLocaleDateString("es-ES", { day:"numeric", month:"long", year:"numeric" });
-    html += '<div class="fc-head">' +
-      '<div class="fc-dot" style="background:' + (ev.authorUID === currentUID ? 'var(--accent-me)' : 'var(--accent-other)') + '"></div>' +
-      '<div class="fc-head-text">' +
-        '<div class="fc-title">' + escapeHTML(ev.title) + '</div>' +
-        '<div class="fc-date">' + label + '</div>' +
-      '</div></div>';
-  }
-
-  const carouselClass = feedStyle ? "fc-carousel" : "ev-carousel";
-  if(ev.images && ev.images.length){
-    html += '<div class="' + carouselClass + '"></div>';
-  }
-
-  if(feedStyle){
-    if(ev.notes) html += '<div class="fc-notes">' + escapeHTML(ev.notes) + '</div>';
-    const authorName = ev.authorUID === currentUID ? "Vos" : (usersData[ev.authorUID]?.name || "La otra persona");
-    html += '<div class="fc-foot"><span class="fc-author">' + authorName + '</span>' +
-      (ev.authorUID === currentUID ? '<span class="fc-actions"><button class="fc-edit">Editar</button><button class="fc-del">Eliminar</button></span>' : '') + '</div>';
-  } else {
-    const authorName = ev.authorUID === currentUID ? "Agregado por vos" : ("Agregado por " + (usersData[ev.authorUID]?.name || "la otra persona"));
-    html += '<div class="ev-body"><div class="ev-title">' + escapeHTML(ev.title) + '</div>' +
-      (ev.notes ? '<div class="ev-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
-      '<div class="ev-foot"><span class="ev-author">' + authorName + '</span>' +
-      (ev.authorUID === currentUID ? '<span class="ev-actions"><button class="ev-edit">Editar</button><button class="ev-del">Eliminar</button></span>' : '') + '</div></div>';
-  }
-
-  item.innerHTML = html;
-
-  const carouselEl = item.querySelector("." + carouselClass);
-  if(carouselEl){
-    (ev.images||[]).forEach(src=>{
-      const img = document.createElement("img");
-      img.src = src;
-      img.addEventListener("click", ()=> openLightbox(src));
-      carouselEl.appendChild(img);
-    });
-  }
-
-  const editBtn = item.querySelector(".ev-edit, .fc-edit");
-  if(editBtn){
-    editBtn.addEventListener("click", ()=> openEditEvent(ev));
-  }
-
-  const delBtn = item.querySelector(".ev-del, .fc-del");
-  if(delBtn){
-    delBtn.addEventListener("click", async ()=>{
-      if(confirm("¿Eliminar este evento?")) await deleteDoc(doc(db,"events", ev.id));
-    });
-  }
-  return item;
-}
-
-function renderFeed(){
-  const list = document.getElementById("feed-list");
-  list.innerHTML = "";
-  const withPhotos = eventsCache
-    .filter(ev => ev.images && ev.images.length)
-    .sort((a,b)=> b.date.localeCompare(a.date));
-
-  if(withPhotos.length === 0){
-    list.innerHTML = '<div class="feed-empty">Todavía no hay recuerdos con fotos.<br>Agregá uno desde el calendario 📅</div>';
-    return;
-  }
-  withPhotos.forEach(ev => list.appendChild(buildEventCard(ev, true)));
-}
-
-function escapeHTML(str){
-  const d = document.createElement("div");
-  d.textContent = str || "";
-  return d.innerHTML;
-}
-
-function openLightbox(src){
-  document.getElementById("lightbox-img").src = src;
-  document.getElementById("lightbox").style.display = "flex";
-}
-document.getElementById("lightbox").addEventListener("click", ()=>{
-  document.getElementById("lightbox").style.display = "none";
-});
-
-document.getElementById("add-event-btn").addEventListener("click", ()=>{
-  editingEventId = null;
-  document.getElementById("event-modal-title").textContent = "Nuevo evento";
-  document.getElementById("save-event-btn").textContent = "Guardar";
-  pendingImages = [];
-  document.getElementById("ev-title").value = "";
-  document.getElementById("ev-notes").value = "";
-  document.getElementById("thumbs").innerHTML = "";
-  document.getElementById("event-overlay").style.display = "flex";
-});
-
-function openEditEvent(ev){
-  editingEventId = ev.id;
-  selectedDay = ev.date;
-  document.getElementById("event-modal-title").textContent = "Editar evento";
-  document.getElementById("save-event-btn").textContent = "Guardar cambios";
-  pendingImages = (ev.images || []).slice();
-  document.getElementById("ev-title").value = ev.title || "";
-  document.getElementById("ev-notes").value = ev.notes || "";
-  refreshThumbs();
-  document.getElementById("event-overlay").style.display = "flex";
-}
-
-document.getElementById("cancel-event-btn").addEventListener("click", ()=>{
-  document.getElementById("event-overlay").style.display = "none";
-  editingEventId = null;
-});
-document.getElementById("file-drop").addEventListener("click", ()=>{
-  document.getElementById("file-input").click();
-});
-document.getElementById("file-input").addEventListener("change", async (e)=>{
-  const files = Array.from(e.target.files);
-  for(const file of files){
-    const resized = await resizeImage(file, 1000, 0.75);
-    pendingImages.push(resized);
-    addThumb(resized, pendingImages.length-1);
-  }
-  e.target.value = "";
-});
-function addThumb(src, idx){
-  const t = document.createElement("div");
-  t.className = "thumb";
-  t.innerHTML = '<img src="' + src + '"><button>×</button>';
-  t.querySelector("button").addEventListener("click", ()=>{
-    pendingImages.splice(idx,1);
-    refreshThumbs();
-  });
-  document.getElementById("thumbs").appendChild(t);
-}
-function refreshThumbs(){
-  document.getElementById("thumbs").innerHTML = "";
-  pendingImages.forEach((src,i)=> addThumb(src,i));
-}
-function resizeImage(file, maxSize, quality){
-  return new Promise((resolve)=>{
-    const reader = new FileReader();
-    reader.onload = (e)=>{
-      const img = new Image();
-      img.onload = ()=>{
-        let width = img.width, height = img.height;
-        if(width > height && width > maxSize){ height *= maxSize/width; width = maxSize; }
-        else if(height > maxSize){ width *= maxSize/height; height = maxSize; }
-        const canvas = document.createElement("canvas");
-        canvas.width = width; canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-document.getElementById("save-event-btn").addEventListener("click", async ()=>{
-  const title = document.getElementById("ev-title").value.trim();
-  if(!title){ alert("Poné al menos un título."); return; }
-  const notes = document.getElementById("ev-notes").value.trim();
-
-  if(editingEventId){
-    await updateDoc(doc(db,"events", editingEventId), {
-      title, notes, images: pendingImages
-    });
-    editingEventId = null;
-  } else {
-    await addDoc(collection(db,"events"), {
-      date: selectedDay, title, notes,
-      images: pendingImages, authorUID: currentUID, createdAt: serverTimestamp()
-    });
-  }
-  document.getElementById("event-overlay").style.display = "none";
-});
-</script>
-</body>
-</html>
+  const userRef = doc(db, "users", curre
