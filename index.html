@@ -229,7 +229,6 @@
   <form id="login-form">
     <input type="email" id="email" placeholder="Email" autocomplete="username" required>
     <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password" required>
-    <input type="text" id="username" placeholder="Tu nombre (ej: Angeliquito)" required>
     <button type="submit" id="login-btn">Entrar</button>
     <div id="login-error"></div>
   </form>
@@ -312,7 +311,10 @@
 <div id="lightbox"><img id="lightbox-img" src=""></div>
 
 <div id="theme-panel">
-  <h3>Mi color</h3>
+  <h3>Mis preferencias</h3>
+  <label style="font-size:.76rem;color:var(--text-dim)">Mi nombre</label>
+  <input type="text" id="name-input" placeholder="Tu nombre" style="width:100%; padding:11px 12px; border-radius:12px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-family:inherit; font-size:.95rem; margin-bottom:14px;">
+  <label style="font-size:.76rem;color:var(--text-dim)">Mi color</label>
   <div class="swatches" id="swatches"></div>
   <label style="font-size:.78rem;color:var(--text-dim)">Color personalizado</label>
   <input type="color" id="custom-color">
@@ -399,7 +401,7 @@ if (iOS && !isStandalone && !localStorage.getItem("install-dismissed")) {
 document.querySelectorAll(".who-card").forEach(card=>{
   card.addEventListener("click", ()=>{
     document.querySelectorAll(".who-card").forEach(c=>c.style.borderColor="var(--border)");
-    card.style.borderColor = card.dataset.slot === "1" ? DEFAULT_COLORS.p1 : DEFAULT_COLORS.p2;
+    card.style.borderColor = card.dataset.slot === "1" ? "#3FA796" : "#E8735C";
     document.getElementById("login-form").style.display = "flex";
     document.getElementById("login-form").dataset.slot = card.dataset.slot;
   });
@@ -409,18 +411,12 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
   e.preventDefault();
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
-  const username = document.getElementById("username").value.trim();
   const errorBox = document.getElementById("login-error");
   errorBox.textContent = "";
   try{
-    const userCred = await signInWithEmailAndPassword(auth, email, password);
-    // Guardar el nombre en Firebase para este usuario
-    await setDoc(doc(db, "users", userCred.user.uid), { 
-      name: username,
-      color: "#3FA796"
-    }, { merge: true });
+    await signInWithEmailAndPassword(auth, email, password);
   }catch(err){
-    errorBox.textContent = "No se pudo entrar. Revisá el email, contraseña y nombre.";
+    errorBox.textContent = "No se pudo entrar. Revisá email y contraseña.";
     console.error(err);
   }
 });
@@ -434,6 +430,14 @@ onAuthStateChanged(auth, async (user)=>{
     return;
   }
   currentUID = user.uid;
+
+  // Si es la primera vez, crear documento en Firebase
+  const userRef = doc(db, "users", currentUID);
+  const snap = await getDoc(userRef);
+  if(!snap.exists()){
+    const name = prompt("¿Cuál es tu nombre? (ej: Angeliquito)") || "Usuario";
+    await setDoc(userRef, { name, color: "#3FA796" });
+  }
 
   // Escuchar TODOS los usuarios de Firebase en tiempo real
   onSnapshot(collection(db, "users"), (qs)=>{
@@ -508,8 +512,18 @@ async function saveMyColor(hex){
   renderFeed();
 }
 document.getElementById("theme-btn").addEventListener("click", ()=>{
+  document.getElementById("name-input").value = currentUserName;
   document.getElementById("theme-panel").style.display = "block";
 });
+
+document.getElementById("name-input").addEventListener("blur", async ()=>{
+  const newName = document.getElementById("name-input").value.trim();
+  if(newName && newName !== currentUserName){
+    currentUserName = newName;
+    await setDoc(doc(db,"users",currentUID), { name: newName }, { merge:true });
+  }
+});
+
 document.getElementById("close-theme-btn").addEventListener("click", ()=>{
   document.getElementById("theme-panel").style.display = "none";
 });
