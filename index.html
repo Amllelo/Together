@@ -243,6 +243,7 @@ header.topbar {
   justify-content: center;
   font-size: 1rem;
   transition: var(--transition);
+  padding: 0;
 }
 
 .icon-btn:hover {
@@ -252,6 +253,11 @@ header.topbar {
 
 .icon-btn:active {
   transform: scale(0.92);
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 /* ===== VIEWS ===== */
@@ -296,6 +302,7 @@ header.topbar {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
 }
 
 .month-nav button:hover {
@@ -472,6 +479,7 @@ header.topbar {
   justify-content: center;
   transition: var(--transition);
   flex-shrink: 0;
+  padding: 0;
 }
 
 .modal-close:hover {
@@ -714,6 +722,7 @@ header.topbar {
   justify-content: center;
   transition: var(--transition);
   opacity: 0;
+  padding: 0;
 }
 
 .thumb:hover .thumb-remove {
@@ -902,6 +911,7 @@ header.topbar {
   right: 16px;
   z-index: 30;
   box-shadow: 0 4px 16px rgba(63, 185, 80, 0.3);
+  padding: 0;
 }
 
 #add-event-btn:hover {
@@ -913,58 +923,61 @@ header.topbar {
   transform: scale(0.95);
 }
 
-/* ===== DEBUG ===== */
-#debug-panel {
-  position: fixed;
-  bottom: calc(76px + var(--safe-bottom));
-  right: 76px;
-  max-width: 260px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
-  font-size: 0.7rem;
-  font-family: 'Courier New', monospace;
-  max-height: 280px;
-  overflow-y: auto;
-  z-index: 35;
-  color: var(--text-muted);
-  box-shadow: var(--shadow-md);
-}
-
-#debug-toggle {
-  position: fixed;
-  right: 16px;
-  bottom: calc(76px + var(--safe-bottom));
-  background: var(--accent-me);
-  border: none;
-  color: var(--bg);
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-md);
-  z-index: 35;
-  transition: var(--transition);
-}
-
-#debug-toggle:hover {
-  transform: scale(1.1);
-}
-
-#debug-log {
+/* ===== SETTINGS ===== */
+.settings-form {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
 }
 
-#debug-log div {
-  line-height: 1.3;
-  color: var(--text-muted);
+.settings-section {
+  padding: 0;
+}
+
+.setting-item {
+  padding: 12px 0;
+}
+
+.setting-item input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--accent-me);
+}
+
+.setting-item button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.setting-item button:active {
+  transform: translateY(0);
+}
+
+.color-picker-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.color-option {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.color-option:hover {
+  transform: translateY(-2px);
+}
+
+.color-option.active {
+  border-color: var(--text);
+  background: var(--surface-3);
 }
 
 /* ===== BOTTOMBAR ===== */
@@ -1008,6 +1021,11 @@ header.topbar {
   background: rgba(63, 185, 80, 0.05);
 }
 
+.nav-item svg {
+  width: 20px;
+  height: 20px;
+}
+
 /* ===== LIGHTBOX ===== */
 #lightbox {
   display: none;
@@ -1032,6 +1050,15 @@ header.topbar {
   object-fit: contain;
   border-radius: var(--radius);
   animation: zoomIn 0.3s ease-out;
+  display: none;
+}
+
+#lightbox-video {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius);
+  animation: zoomIn 0.3s ease-out;
+  display: none;
 }
 
 @keyframes zoomIn {
@@ -1076,8 +1103,18 @@ header.topbar {
       </div>
     </div>
     <div class="header-actions">
-      <button class="icon-btn" id="settings-btn" title="Configuración">⚙️</button>
-      <button class="icon-btn" id="logout-btn" title="Cerrar sesión">🚪</button>
+      <button class="icon-btn" id="settings-btn" title="Configuración">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.12 2.12l4.24 4.24M1 12h6m6 0h6m-17.78 7.78l4.24-4.24m2.12-2.12l4.24-4.24"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="logout-btn" title="Cerrar sesión">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
     </div>
   </header>
 
@@ -1093,11 +1130,11 @@ header.topbar {
     <div class="legend">
       <div class="legend-item">
         <div class="legend-dot" style="background:var(--accent-me)"></div>
-        <span>Vos</span>
+        <span id="legend-me">Vos</span>
       </div>
       <div class="legend-item">
         <div class="legend-dot" style="background:var(--accent-other)"></div>
-        <span>Otra persona</span>
+        <span id="legend-other">Otra persona</span>
       </div>
     </div>
     <div id="calendar"></div>
@@ -1142,7 +1179,7 @@ header.topbar {
         </div>
         <div class="form-group">
           <label>Fotos y videos (opcional)</label>
-          <div id="file-drop">📸 📹 Toca para agregar fotos o videos</div>
+          <div id="file-drop">Toca para agregar fotos o videos</div>
           <input type="file" id="file-input" accept="image/*,video/*" multiple>
           <div id="upload-progress" style="display:none; margin-top:12px;">
             <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">Procesando...</div>
@@ -1160,37 +1197,111 @@ header.topbar {
     </div>
   </div>
 
+  <!-- SETTINGS MODAL -->
+  <div id="settings-overlay" class="modal-overlay">
+    <div class="modal-content" style="max-width:500px;">
+      <div class="modal-header">
+        <h2>Configuración</h2>
+        <button id="close-settings-btn" class="modal-close">×</button>
+      </div>
+      <div class="settings-form">
+        <div class="settings-section">
+          <h3 style="font-size:0.95rem; margin-bottom:14px; color:var(--text);">Tu nombre</h3>
+          <div class="setting-item">
+            <input type="text" id="user-display-name" placeholder="Tu nombre personalizado" style="width:100%; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-family:inherit; font-size:0.95rem;">
+            <button id="save-name-btn" style="margin-top:8px; padding:8px 14px; border-radius:var(--radius-sm); border:none; background:var(--accent-me); color:var(--bg); font-weight:600; cursor:pointer; font-size:0.9rem; width:100%;">Guardar nombre</button>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:8px; margin-bottom:0;">Tu pareja verá este nombre en el calendario</p>
+          </div>
+        </div>
+
+        <div class="settings-section" style="border-top:1px solid var(--border); padding-top:16px;">
+          <h3 style="font-size:0.95rem; margin-bottom:14px; color:var(--text);">Tema de color personal</h3>
+          <div class="color-picker-group" id="color-picker">
+            <div class="color-option active" data-color="#3FB950" title="Verde">
+              <div style="width:24px; height:24px; background:#3FB950; border-radius:4px; margin:0 auto 4px;"></div>
+              Verde
+            </div>
+            <div class="color-option" data-color="#58A6FF" title="Azul">
+              <div style="width:24px; height:24px; background:#58A6FF; border-radius:4px; margin:0 auto 4px;"></div>
+              Azul
+            </div>
+            <div class="color-option" data-color="#FF7B72" title="Rojo">
+              <div style="width:24px; height:24px; background:#FF7B72; border-radius:4px; margin:0 auto 4px;"></div>
+              Rojo
+            </div>
+            <div class="color-option" data-color="#D29922" title="Naranja">
+              <div style="width:24px; height:24px; background:#D29922; border-radius:4px; margin:0 auto 4px;"></div>
+              Naranja
+            </div>
+            <div class="color-option" data-color="#A371F7" title="Púrpura">
+              <div style="width:24px; height:24px; background:#A371F7; border-radius:4px; margin:0 auto 4px;"></div>
+              Púrpura
+            </div>
+            <div class="color-option" data-color="#F85149" title="Coral">
+              <div style="width:24px; height:24px; background:#F85149; border-radius:4px; margin:0 auto 4px;"></div>
+              Coral
+            </div>
+          </div>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-top:12px; margin-bottom:0;">Este tema es solo personal, tu pareja no lo verá</p>
+        </div>
+
+        <div class="settings-section" style="border-top:1px solid var(--border); padding-top:16px;">
+          <h3 style="font-size:0.95rem; margin-bottom:14px; color:var(--text);">Datos</h3>
+          <div class="setting-item">
+            <button id="export-btn" style="width:100%; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-weight:600; cursor:pointer; font-size:0.9rem;">Descargar datos</button>
+          </div>
+          <div class="setting-item" style="margin-top:8px;">
+            <button id="clear-btn" style="width:100%; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--accent-other); background:transparent; color:var(--accent-other); font-weight:600; cursor:pointer; font-size:0.9rem;">Eliminar todos los eventos</button>
+          </div>
+        </div>
+
+        <div class="settings-section" style="border-top:1px solid var(--border); padding-top:16px;">
+          <h3 style="font-size:0.95rem; margin-bottom:14px; color:var(--text);">Info</h3>
+          <div style="font-size:0.85rem; color:var(--text-muted); line-height:1.6;">
+            <p style="margin:0 0 8px 0;"><strong>Together v2.0</strong></p>
+            <p style="margin:0;">Calendario compartido para parejas</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- FAB -->
   <button id="add-event-btn" title="Nuevo evento">+</button>
 
-  <!-- DEBUG PANEL -->
-  <div id="debug-panel">
-    <div style="color:var(--accent-me); font-weight:bold; margin-bottom:8px;">🔍 Debug</div>
-    <div id="debug-log"></div>
-  </div>
-
   <!-- LIGHTBOX -->
   <div id="lightbox">
-    <img id="lightbox-img" src="" alt="" style="display:none;">
-    <video id="lightbox-video" style="display:none; max-width:100%; max-height:100%; border-radius:var(--radius);" controls></video>
+    <img id="lightbox-img" src="" alt="">
+    <video id="lightbox-video" style="max-width:100%; max-height:100%; border-radius:var(--radius);" controls></video>
   </div>
 </div>
 
 <!-- BOTTOM NAV -->
 <div id="navbar">
   <div class="nav-item active" data-view="month-view">
-    📅 Calendario
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    Calendario
   </div>
   <div class="nav-item" data-view="feed-view">
-    📸 Recuerdos
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <rect x="3" y="3" width="7" height="7" rx="1"/>
+      <rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/>
+      <rect x="14" y="14" width="7" height="7" rx="1"/>
+    </svg>
+    Recuerdos
   </div>
-  <button id="debug-toggle" style="background:transparent; border:none; margin:auto; padding:0;">🐛</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD7fnh1Mg264Zrqmux-p2168WaTBKEmhGg",
@@ -1214,65 +1325,165 @@ let editingEventId = null;
 let pendingImages = [];
 let currentDate = new Date();
 
-// DEBUG SYSTEM
-const DEBUG = true;
-const debugLog = [];
-function addLog(msg, type = "info") {
-  const timestamp = new Date().toLocaleTimeString();
-  const emoji = type === "error" ? "❌" : type === "success" ? "✅" : "ℹ️";
-  const line = `${emoji} ${timestamp} ${msg}`;
-  debugLog.push(line);
-  if (DEBUG) {
-    const panel = document.getElementById("debug-log");
-    if (panel) {
-      panel.innerHTML = debugLog.slice(-8).map(l => `<div>${l}</div>`).join("");
-    }
+// Load personal theme
+function loadTheme() {
+  const savedColor = localStorage.getItem("accentColor");
+  if(savedColor) {
+    document.documentElement.style.setProperty("--accent-me", savedColor);
+  }
+  const colorPicker = document.getElementById("color-picker");
+  if(colorPicker && savedColor) {
+    colorPicker.querySelectorAll(".color-option").forEach(opt => {
+      opt.classList.remove("active");
+      if(opt.dataset.color === savedColor) opt.classList.add("active");
+    });
   }
 }
+loadTheme();
 
-document.getElementById("debug-toggle")?.addEventListener("click", ()=>{
-  const panel = document.getElementById("debug-panel");
-  panel.style.display = panel.style.display === "none" ? "block" : "none";
+// Color picker
+document.getElementById("color-picker")?.querySelectorAll(".color-option").forEach(opt => {
+  opt.addEventListener("click", ()=>{
+    const color = opt.dataset.color;
+    document.documentElement.style.setProperty("--accent-me", color);
+    localStorage.setItem("accentColor", color);
+    document.getElementById("color-picker").querySelectorAll(".color-option").forEach(o => o.classList.remove("active"));
+    opt.classList.add("active");
+  });
 });
 
-addLog("Iniciando...", "info");
-
-onAuthStateChanged(auth, (user)=>{
+onAuthStateChanged(auth, async (user)=>{
   if(user){
-    addLog("✅ " + user.email, "success");
     currentUID = user.uid;
     currentUser = user;
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("app").style.display = "block";
-    document.getElementById("user-name").textContent = user.email.split("@")[0];
+    
+    // Load user display name
+    try {
+      const userDoc = await getDoc(doc(db, "users", currentUID));
+      if(userDoc.exists()) {
+        const userData = userDoc.data();
+        usersData[currentUID] = userData;
+        document.getElementById("user-name").textContent = userData.displayName || user.email.split("@")[0];
+        document.getElementById("user-display-name").value = userData.displayName || "";
+      } else {
+        document.getElementById("user-name").textContent = user.email.split("@")[0];
+      }
+    } catch(err) {
+      console.error("Error cargando perfil:", err);
+    }
+    
     const initial = (user.email[0] || "?").toUpperCase();
     document.getElementById("avatar-display").textContent = initial;
     renderCalendar();
     listenEvents();
+    listenUsers();
   } else {
-    addLog("Sin usuario", "error");
     currentUID = null;
     document.getElementById("login-screen").style.display = "flex";
     document.getElementById("app").style.display = "none";
   }
 });
 
+function listenUsers() {
+  const q = query(collection(db, "users"));
+  onSnapshot(q, (qs)=>{
+    qs.forEach(d=> usersData[d.id] = d.data());
+    updateUserLabels();
+    renderCalendar();
+    if(selectedDay) renderDayModal(selectedDay);
+  });
+}
+
+function updateUserLabels() {
+  const myName = usersData[currentUID]?.displayName || "Vos";
+  const otherUID = Object.keys(usersData).find(uid => uid !== currentUID);
+  const otherName = otherUID ? (usersData[otherUID]?.displayName || "Otra persona") : "Otra persona";
+  
+  document.getElementById("legend-me").textContent = myName + " (yo)";
+  document.getElementById("legend-other").textContent = otherName;
+}
+
 document.getElementById("login-form").addEventListener("submit", async (e)=>{
   e.preventDefault();
   const email = document.getElementById("email-input").value;
   const password = document.getElementById("password-input").value;
-  addLog("Login: " + email, "info");
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    addLog("✅ Login OK", "success");
   } catch(err){
-    addLog("❌ " + err.code, "error");
     document.getElementById("login-error").textContent = err.message;
   }
 });
 
 document.getElementById("logout-btn").addEventListener("click", async ()=>{
   if(confirm("¿Cerrar sesión?")) await signOut(auth);
+});
+
+// Settings
+document.getElementById("settings-btn").addEventListener("click", ()=>{
+  document.getElementById("settings-overlay").classList.add("active");
+});
+
+document.getElementById("close-settings-btn").addEventListener("click", ()=>{
+  document.getElementById("settings-overlay").classList.remove("active");
+});
+
+document.getElementById("settings-overlay").addEventListener("click", (e)=>{
+  if(e.target === document.getElementById("settings-overlay")) {
+    document.getElementById("settings-overlay").classList.remove("active");
+  }
+});
+
+document.getElementById("save-name-btn").addEventListener("click", async ()=>{
+  const displayName = document.getElementById("user-display-name").value.trim();
+  if(!displayName) { alert("Ingresa tu nombre"); return; }
+  
+  try {
+    await setDoc(doc(db, "users", currentUID), {
+      displayName: displayName,
+      email: currentUser.email,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    
+    usersData[currentUID].displayName = displayName;
+    document.getElementById("user-name").textContent = displayName;
+    updateUserLabels();
+    alert("✅ Nombre actualizado");
+  } catch(err) {
+    console.error("Error guardando nombre:", err);
+  }
+});
+
+document.getElementById("export-btn").addEventListener("click", ()=>{
+  const data = {
+    events: eventsCache,
+    exportedAt: new Date().toISOString(),
+    user: currentUser?.email
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "together-backup-" + new Date().toISOString().split("T")[0] + ".json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("clear-btn").addEventListener("click", async ()=>{
+  if(confirm("⚠️ ¿Eliminar TODOS los eventos?")) {
+    if(confirm("¿Estás seguro? Se borrarán " + eventsCache.length + " eventos.")) {
+      for(const ev of eventsCache) {
+        try {
+          await deleteDoc(doc(db, "events", ev.id));
+        } catch(err) {
+          console.error("Error eliminando evento:", err);
+        }
+      }
+      alert("✅ Eventos eliminados");
+    }
+  }
 });
 
 // Navigation
@@ -1381,20 +1592,18 @@ function renderCalendar(){
 function listenEvents(){
   try {
     const q = query(collection(db, "events"), orderBy("date"));
-    addLog("Firestore query", "info");
     
     onSnapshot(q, (qs)=>{
       eventsCache = [];
       qs.forEach(d=> eventsCache.push({ id: d.id, ...d.data() }));
-      addLog(eventsCache.length + " eventos", "success");
       renderCalendar();
       renderFeed();
       if(selectedDay) renderDayModal(selectedDay);
     }, (error)=>{
-      addLog(error.code, "error");
+      console.error("Error en Firestore:", error);
     });
   } catch(err) {
-    addLog(err.message, "error");
+    console.error("Error en listenEvents:", err);
   }
 }
 
@@ -1488,12 +1697,16 @@ function buildEventCard(ev, feedStyle){
   item.className = feedStyle ? "feed-card" : "event-item";
   if(!feedStyle && ev.authorUID !== currentUID) item.classList.add("by-other");
   
+  const authorUID = ev.authorUID;
+  const authorName = authorUID === currentUID ? (usersData[currentUID]?.displayName || "Vos") : (usersData[authorUID]?.displayName || "La otra persona");
+  const authorLabel = authorUID === currentUID ? authorName + " (yo)" : authorName;
+  
   let html = "";
   if(feedStyle){
     const dateObj = new Date(ev.date + "T00:00:00");
     const label = dateObj.toLocaleDateString("es-ES", { day:"numeric", month:"long", year:"numeric" });
     html += '<div class="fc-header">' +
-      '<div class="fc-dot" style="background:' + (ev.authorUID === currentUID ? 'var(--accent-me)' : 'var(--accent-other)') + '"></div>' +
+      '<div class="fc-dot" style="background:' + (authorUID === currentUID ? 'var(--accent-me)' : 'var(--accent-other)') + '"></div>' +
       '<div class="fc-meta"><h3 class="fc-title">' + escapeHTML(ev.title) + '</h3><p class="fc-date">' + label + '</p></div></div>';
   }
   
@@ -1506,21 +1719,19 @@ function buildEventCard(ev, feedStyle){
     html += '<div class="fc-body">';
     if(ev.time) html += '<div class="fc-time">🕐 ' + ev.time + '</div>';
     if(ev.notes) html += '<div class="fc-notes">' + escapeHTML(ev.notes) + '</div>';
-    const authorName = ev.authorUID === currentUID ? "Vos" : (usersData[ev.authorUID]?.name || "La otra persona");
-    html += '<div class="fc-footer"><span>' + authorName + '</span>' +
+    html += '<div class="fc-footer"><span>' + authorLabel + '</span>' +
       '<div class="fc-actions">' +
-        (ev.authorUID === currentUID ? `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` : '') +
-        (ev.authorUID === currentUID ? `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` : '') +
+        (authorUID === currentUID ? `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` : '') +
+        (authorUID === currentUID ? `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` : '') +
       '</div></div></div>';
   } else {
-    const authorName = ev.authorUID === currentUID ? "Agregado por vos" : ("Agregado por " + (usersData[ev.authorUID]?.name || "la otra persona"));
     html += '<div class="event-body"><h3 class="event-title">' + escapeHTML(ev.title) + '</h3>' +
       (ev.time ? '<div class="event-time">🕐 ' + ev.time + '</div>' : '') +
       (ev.notes ? '<div class="event-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
-      '<div class="event-footer"><span>' + authorName + '</span>' +
+      '<div class="event-footer"><span>' + authorLabel + '</span>' +
       '<div class="event-actions">' +
-        (ev.authorUID === currentUID ? `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` : '') +
-        (ev.authorUID === currentUID ? `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` : '') +
+        (authorUID === currentUID ? `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` : '') +
+        (authorUID === currentUID ? `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` : '') +
       '</div></div></div>';
   }
   
@@ -1531,7 +1742,6 @@ function buildEventCard(ev, feedStyle){
     (ev.images||[]).forEach(media=>{
       let el;
       if(typeof media === "object" && media.data) {
-        // Nuevo formato con tipo
         if(media.type === "video") {
           el = document.createElement("video");
           el.src = media.data;
@@ -1542,7 +1752,6 @@ function buildEventCard(ev, feedStyle){
           el.src = media.data;
         }
       } else {
-        // Formato antiguo (solo data URL)
         el = document.createElement("img");
         el.src = media;
       }
@@ -1572,7 +1781,7 @@ function renderFeed(){
     .sort((a,b)=> b.date.localeCompare(a.date));
   
   if(withPhotos.length === 0){
-    list.innerHTML = '<div class="feed-empty">📸 No hay recuerdos con fotos<br><span>Agrega uno desde el calendario</span></div>';
+    list.innerHTML = '<div class="feed-empty">No hay recuerdos con fotos<br><span>Agrega uno desde el calendario</span></div>';
     return;
   }
   withPhotos.forEach(ev => list.appendChild(buildEventCard(ev, true)));
@@ -1589,7 +1798,6 @@ function openLightbox(media){
   const lightboxVideo = document.getElementById("lightbox-video");
   
   if(typeof media === "object" && media.data) {
-    // Nuevo formato con tipo
     if(media.type === "video") {
       lightboxImg.style.display = "none";
       lightboxVideo.src = media.data;
@@ -1600,7 +1808,6 @@ function openLightbox(media){
       lightboxImg.style.display = "block";
     }
   } else {
-    // Formato antiguo (asume imagen)
     lightboxVideo.style.display = "none";
     lightboxImg.src = media;
     lightboxImg.style.display = "block";
@@ -1673,8 +1880,7 @@ async function processMedia(file) {
   }
   
   if(isVideo) {
-    // Para videos: comprimir si es necesario, pero mantener formato
-    const maxVideoSize = 50 * 1024 * 1024; // 50MB max
+    const maxVideoSize = 50 * 1024 * 1024;
     if(file.size > maxVideoSize) {
       throw new Error("Video muy grande (máx 50MB)");
     }
@@ -1682,7 +1888,6 @@ async function processMedia(file) {
   }
   
   if(isImage) {
-    // Para imágenes: redimensionar y comprimir
     return await resizeImage(file, 1200, 0.8);
   }
 }
