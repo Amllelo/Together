@@ -513,7 +513,8 @@ header.topbar {
 
 .event-carousel::-webkit-scrollbar { display: none; }
 
-.event-carousel img {
+.event-carousel img,
+.event-carousel video {
   width: 100px;
   height: 100px;
   border-radius: var(--radius-sm);
@@ -521,9 +522,11 @@ header.topbar {
   flex-shrink: 0;
   cursor: pointer;
   transition: var(--transition);
+  background: var(--surface-2);
 }
 
-.event-carousel img:hover {
+.event-carousel img:hover,
+.event-carousel video:hover {
   transform: scale(1.05);
   box-shadow: var(--shadow-md);
 }
@@ -671,12 +674,27 @@ header.topbar {
   border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--border);
+  background: var(--surface-2);
 }
 
-.thumb img {
+.thumb img,
+.thumb video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.thumb .video-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  font-size: 0.65rem;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-weight: bold;
+  z-index: 2;
 }
 
 .thumb-remove {
@@ -1123,9 +1141,15 @@ header.topbar {
           <textarea id="ev-notes" placeholder="Agrega detalles..."></textarea>
         </div>
         <div class="form-group">
-          <label>Fotos (opcional)</label>
-          <div id="file-drop">📸 Toca para agregar fotos</div>
-          <input type="file" id="file-input" accept="image/*" multiple>
+          <label>Fotos y videos (opcional)</label>
+          <div id="file-drop">📸 📹 Toca para agregar fotos o videos</div>
+          <input type="file" id="file-input" accept="image/*,video/*" multiple>
+          <div id="upload-progress" style="display:none; margin-top:12px;">
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">Procesando...</div>
+            <div style="background:var(--surface-2); border-radius:var(--radius-sm); height:4px; overflow:hidden;">
+              <div id="progress-bar" style="height:100%; background:var(--accent-me); width:0%; transition:width 0.3s;"></div>
+            </div>
+          </div>
         </div>
         <div id="thumbs" class="thumbs"></div>
         <div class="form-actions">
@@ -1147,7 +1171,8 @@ header.topbar {
 
   <!-- LIGHTBOX -->
   <div id="lightbox">
-    <img id="lightbox-img" src="" alt="">
+    <img id="lightbox-img" src="" alt="" style="display:none;">
+    <video id="lightbox-video" style="display:none; max-width:100%; max-height:100%; border-radius:var(--radius);" controls></video>
   </div>
 </div>
 
@@ -1404,13 +1429,20 @@ function openEditEvent(ev){
   document.getElementById("ev-time").value = ev.time || "";
   document.getElementById("ev-notes").value = ev.notes || "";
   document.getElementById("thumbs").innerHTML = "";
-  pendingImages.forEach((src, i)=> addThumb(src, i));
+  pendingImages.forEach((media, i)=> {
+    if(typeof media === "object" && media.data) {
+      addThumb(media.data, i, media.type);
+    } else {
+      addThumb(media, i, "image");
+    }
+  });
   document.getElementById("event-overlay").classList.add("active");
 }
 
-function addThumb(src, idx){
+function addThumb(src, idx, type = "image"){
   const t = document.createElement("div");
   t.className = "thumb";
+  
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "thumb-remove";
@@ -1419,16 +1451,36 @@ function addThumb(src, idx){
     pendingImages.splice(idx,1);
     refreshThumbs();
   });
-  const img = document.createElement("img");
-  img.src = src;
-  t.appendChild(img);
+  
+  if(type === "video") {
+    const video = document.createElement("video");
+    video.src = src;
+    video.controls = false;
+    t.appendChild(video);
+    
+    const badge = document.createElement("div");
+    badge.className = "video-badge";
+    badge.textContent = "VIDEO";
+    t.appendChild(badge);
+  } else {
+    const img = document.createElement("img");
+    img.src = src;
+    t.appendChild(img);
+  }
+  
   t.appendChild(btn);
   document.getElementById("thumbs").appendChild(t);
 }
 
 function refreshThumbs(){
   document.getElementById("thumbs").innerHTML = "";
-  pendingImages.forEach((src,i)=> addThumb(src,i));
+  pendingImages.forEach((media,i)=> {
+    if(typeof media === "object" && media.data) {
+      addThumb(media.data, i, media.type);
+    } else {
+      addThumb(media, i, "image");
+    }
+  });
 }
 
 function buildEventCard(ev, feedStyle){
@@ -1476,11 +1528,26 @@ function buildEventCard(ev, feedStyle){
   
   const carouselEl = item.querySelector("." + carouselClass);
   if(carouselEl){
-    (ev.images||[]).forEach(src=>{
-      const img = document.createElement("img");
-      img.src = src;
-      img.addEventListener("click", ()=> openLightbox(src));
-      carouselEl.appendChild(img);
+    (ev.images||[]).forEach(media=>{
+      let el;
+      if(typeof media === "object" && media.data) {
+        // Nuevo formato con tipo
+        if(media.type === "video") {
+          el = document.createElement("video");
+          el.src = media.data;
+          el.controls = false;
+          el.style.cursor = "pointer";
+        } else {
+          el = document.createElement("img");
+          el.src = media.data;
+        }
+      } else {
+        // Formato antiguo (solo data URL)
+        el = document.createElement("img");
+        el.src = media;
+      }
+      el.addEventListener("click", ()=> openLightbox(media));
+      carouselEl.appendChild(el);
     });
   }
   
@@ -1517,8 +1584,28 @@ function escapeHTML(str){
   return d.innerHTML;
 }
 
-function openLightbox(src){
-  document.getElementById("lightbox-img").src = src;
+function openLightbox(media){
+  const lightboxImg = document.getElementById("lightbox-img");
+  const lightboxVideo = document.getElementById("lightbox-video");
+  
+  if(typeof media === "object" && media.data) {
+    // Nuevo formato con tipo
+    if(media.type === "video") {
+      lightboxImg.style.display = "none";
+      lightboxVideo.src = media.data;
+      lightboxVideo.style.display = "block";
+    } else {
+      lightboxVideo.style.display = "none";
+      lightboxImg.src = media.data;
+      lightboxImg.style.display = "block";
+    }
+  } else {
+    // Formato antiguo (asume imagen)
+    lightboxVideo.style.display = "none";
+    lightboxImg.src = media;
+    lightboxImg.style.display = "block";
+  }
+  
   document.getElementById("lightbox").classList.add("active");
 }
 
@@ -1553,16 +1640,66 @@ document.getElementById("file-drop").addEventListener("click", ()=>{
 
 document.getElementById("file-input").addEventListener("change", async (e)=>{
   const files = Array.from(e.target.files);
-  for(const file of files){
-    const resized = await resizeImage(file, 1000, 0.75);
-    pendingImages.push(resized);
-    addThumb(resized, pendingImages.length-1);
+  const progressDiv = document.getElementById("upload-progress");
+  const progressBar = document.getElementById("progress-bar");
+  progressDiv.style.display = "block";
+  progressBar.style.width = "0%";
+  
+  for(let i = 0; i < files.length; i++){
+    const file = files[i];
+    const percent = ((i + 1) / files.length) * 100;
+    progressBar.style.width = percent + "%";
+    
+    try {
+      const processed = await processMedia(file);
+      pendingImages.push(processed);
+      addThumb(processed.data, pendingImages.length-1, processed.type);
+    } catch(err) {
+      console.error("Error procesando archivo:", err);
+      alert("Error al procesar: " + file.name);
+    }
   }
+  
+  progressDiv.style.display = "none";
   e.target.value = "";
 });
 
-function resizeImage(file, maxSize, quality){
-  return new Promise((resolve)=>{
+async function processMedia(file) {
+  const isVideo = file.type.startsWith("video/");
+  const isImage = file.type.startsWith("image/");
+  
+  if(!isVideo && !isImage) {
+    throw new Error("Solo se aceptan fotos y videos");
+  }
+  
+  if(isVideo) {
+    // Para videos: comprimir si es necesario, pero mantener formato
+    const maxVideoSize = 50 * 1024 * 1024; // 50MB max
+    if(file.size > maxVideoSize) {
+      throw new Error("Video muy grande (máx 50MB)");
+    }
+    return await fileToDataURL(file, "video");
+  }
+  
+  if(isImage) {
+    // Para imágenes: redimensionar y comprimir
+    return await resizeImage(file, 1200, 0.8);
+  }
+}
+
+function fileToDataURL(file, type) {
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=> {
+      resolve({ data: e.target.result, type: type });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function resizeImage(file, maxSize, quality) {
+  return new Promise((resolve, reject)=>{
     const reader = new FileReader();
     reader.onload = (e)=>{
       const img = new Image();
@@ -1573,10 +1710,12 @@ function resizeImage(file, maxSize, quality){
         const canvas = document.createElement("canvas");
         canvas.width = width; canvas.height = height;
         canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", quality));
+        resolve({ data: canvas.toDataURL("image/jpeg", quality), type: "image" });
       };
+      img.onerror = reject;
       img.src = e.target.result;
     };
+    reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
