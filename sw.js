@@ -1,4 +1,4 @@
-const CACHE_NAME = "calendario-v1";
+const CACHE_NAME = "together-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -23,20 +23,22 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// Red primero: siempre intenta traer la versión nueva y guarda copia.
+// Si no hay conexión, usa lo guardado.
 self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
+  const req = event.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request).then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return res;
-        }).catch(() => cached)
-      );
-    })
+    fetch(req)
+      .then((res) => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        return res;
+      })
+      .catch(() => caches.match(req).then((c) => c || caches.match("./index.html")))
   );
 });
+//mod 8/10/26
