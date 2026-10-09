@@ -1,4 +1,4 @@
-const CACHE_NAME = "Together-v6";
+const CACHE_NAME = "calendario-v1";
 const ASSETS = [
   "./",
   "./index.html",
@@ -40,5 +40,3 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
-//mod 8/10/26
-//mod 8/10/26
