@@ -1384,11 +1384,22 @@ document.getElementById("color-picker")?.querySelectorAll(".color-option").forEa
       
       // Guardar en Firestore también para sincronizar
       try {
+        const userData = usersData[currentUID] || {};
+        userData.accentColor = color;
+        usersData[currentUID] = userData;
+        
         await updateDoc(doc(db, "users", currentUID), {
           accentColor: color,
           updatedAt: serverTimestamp()
         });
         console.log("✅ Color guardado en Firestore:", color);
+        
+        // Forzar actualización inmediata de la leyenda
+        setTimeout(() => {
+          updateUserLabels();
+          console.log("✅ Leyenda actualizada después de guardar color");
+        }, 100);
+        
       } catch(err) {
         console.error("Error guardando color en Firestore:", err);
       }
@@ -1397,7 +1408,7 @@ document.getElementById("color-picker")?.querySelectorAll(".color-option").forEa
     document.getElementById("color-picker").querySelectorAll(".color-option").forEach(o => o.classList.remove("active"));
     opt.classList.add("active");
     
-    // Actualizar leyenda con los colores correctos
+    // Actualizar leyenda inmediatamente
     updateUserLabels();
   });
 });
@@ -1466,11 +1477,22 @@ onAuthStateChanged(auth, async (user)=>{
 function listenUsers() {
   const q = query(collection(db, "users"));
   onSnapshot(q, (qs)=>{
+    let colorChanged = false;
     qs.forEach(d=> {
-      usersData[d.id] = d.data();
+      const newData = d.data();
+      const oldData = usersData[d.id];
+      
+      // Detectar si cambió el color
+      if(oldData && oldData.accentColor !== newData.accentColor) {
+        colorChanged = true;
+        console.log("🎨 Cambio de color detectado en usuario:", d.id);
+      }
+      
+      usersData[d.id] = newData;
+      
       // Si es el usuario actual, actualizar el nombre en UI
       if(d.id === currentUID) {
-        const displayName = d.data().displayName;
+        const displayName = newData.displayName;
         if(displayName && document.getElementById("user-name").textContent !== displayName) {
           document.getElementById("user-name").textContent = displayName;
           document.getElementById("user-display-name").value = displayName;
@@ -1478,44 +1500,64 @@ function listenUsers() {
         }
       }
     });
+    
+    // Actualizar leyenda (especialmente importante si cambió el color)
     updateUserLabels();
-    renderCalendar();
+    
+    if(colorChanged) {
+      console.log("🔄 Actualizando UI por cambio de color");
+      renderCalendar();
+    }
+    
     if(selectedDay) renderDayModal(selectedDay);
   });
 }
 
 function updateUserLabels() {
-  const myName = usersData[currentUID]?.displayName || "Vos";
-  const otherUID = Object.keys(usersData).find(uid => uid !== currentUID);
-  const otherName = otherUID ? (usersData[otherUID]?.displayName || "Otra persona") : "Otra persona";
-  
-  // Obtener color actual del usuario (de app)
-  const myColor = document.documentElement.style.getPropertyValue("--accent-me").trim() || "#3FB950";
-  
-  // Obtener color del otro usuario desde Firestore
-  let otherColor = "#FF7B72"; // Color default
-  if(otherUID && usersData[otherUID]?.accentColor) {
-    otherColor = usersData[otherUID].accentColor;
-  } else if(otherUID) {
-    // Si no tiene color en Firestore, intentar cargar del localStorage
-    const savedOtherColor = localStorage.getItem("accentColor_" + otherUID);
-    if(savedOtherColor) {
-      otherColor = savedOtherColor;
+  try {
+    const myName = usersData[currentUID]?.displayName || "Vos";
+    const otherUID = Object.keys(usersData).find(uid => uid !== currentUID);
+    const otherName = otherUID ? (usersData[otherUID]?.displayName || "Otra persona") : "Otra persona";
+    
+    // Obtener color actual del usuario (de app)
+    let myColor = document.documentElement.style.getPropertyValue("--accent-me").trim();
+    if(!myColor || myColor === "") {
+      myColor = localStorage.getItem("accentColor_" + currentUID) || "#3FB950";
+      document.documentElement.style.setProperty("--accent-me", myColor);
     }
+    
+    // Obtener color del otro usuario
+    let otherColor = "#FF7B72"; // Color default
+    if(otherUID) {
+      // Intentar obtener de usersData (Firestore)
+      if(usersData[otherUID]?.accentColor) {
+        otherColor = usersData[otherUID].accentColor;
+      } else {
+        // Si no, intentar del localStorage
+        const savedOtherColor = localStorage.getItem("accentColor_" + otherUID);
+        if(savedOtherColor) {
+          otherColor = savedOtherColor;
+        }
+      }
+    }
+    
+    // Actualizar leyenda
+    const legendMe = document.getElementById("legend-me");
+    const legendOther = document.getElementById("legend-other");
+    if(legendMe) legendMe.textContent = myName + " (yo)";
+    if(legendOther) legendOther.textContent = otherName;
+    
+    // Actualizar colores en la leyenda
+    const legendDots = document.querySelectorAll(".legend-dot");
+    if(legendDots && legendDots.length >= 2) {
+      legendDots[0].style.backgroundColor = myColor;
+      legendDots[1].style.backgroundColor = otherColor;
+    }
+    
+    console.log("✅ Leyenda actualizada - Mi color:", myColor, "- Otro usuario:", otherName, "color:", otherColor);
+  } catch(err) {
+    console.error("Error en updateUserLabels:", err);
   }
-  
-  // Actualizar leyenda
-  document.getElementById("legend-me").textContent = myName + " (yo)";
-  document.getElementById("legend-other").textContent = otherName;
-  
-  // Actualizar colores en la leyenda
-  const legendDots = document.querySelectorAll(".legend-dot");
-  if(legendDots.length >= 2) {
-    legendDots[0].style.background = myColor;
-    legendDots[1].style.background = otherColor;
-  }
-  
-  console.log("✅ Leyenda actualizada - Mi color:", myColor, "- Otro color:", otherColor);
 }
 
 document.getElementById("login-form").addEventListener("submit", async (e)=>{
