@@ -1317,7 +1317,36 @@ header.topbar {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, setDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// ===== SERVICE WORKER CON ACTUALIZACIÓN AUTOMÁTICA =====
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").then((reg) => {
+    console.log("✅ Service Worker registrado");
+    
+    reg.addEventListener("updatefound", () => {
+      const newWorker = reg.installing;
+      console.log("🔄 Actualización del Service Worker disponible");
+      
+      newWorker.addEventListener("statechange", () => {
+        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+          console.log("⚡ Nueva versión lista, recargando...");
+          newWorker.postMessage({ type: "SKIP_WAITING" });
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      });
+    });
+    
+    // Chequear actualizaciones cada 10 segundos
+    setInterval(() => {
+      reg.update();
+    }, 10000);
+  }).catch((err) => {
+    console.error("❌ Error registrando Service Worker:", err);
+  });
+}
 
 const firebaseConfig = {
   apiKey: "AIzaSyD7fnh1Mg264Zrqmux-p2168WaTBKEmhGg",
@@ -1511,6 +1540,38 @@ function listenUsers() {
     
     if(selectedDay) renderDayModal(selectedDay);
   });
+  
+  // Polling adicional para móvil - sincronizar cada 5 segundos
+  setInterval(async () => {
+    if(!currentUID) return;
+    
+    try {
+      const q = query(collection(db, "users"));
+      const snap = await getDocs(q);
+      let needsUpdate = false;
+      
+      snap.forEach(d => {
+        const newData = d.data();
+        const oldData = usersData[d.id];
+        
+        if(!oldData || 
+           oldData.accentColor !== newData.accentColor ||
+           oldData.displayName !== newData.displayName) {
+          needsUpdate = true;
+          usersData[d.id] = newData;
+        }
+      });
+      
+      if(needsUpdate) {
+        console.log("🔄 Sincronización desde polling");
+        updateUserLabels();
+        renderCalendar();
+        if(selectedDay) renderDayModal(selectedDay);
+      }
+    } catch(err) {
+      console.error("Error en polling de sincronización:", err);
+    }
+  }, 5000);
 }
 
 function updateUserLabels() {
