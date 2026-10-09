@@ -1128,6 +1128,7 @@ header.topbar {
         <h2 id="day-modal-title">Hoy</h2>
         <button id="close-day-btn" class="modal-close">×</button>
       </div>
+      <button id="new-event-in-day-btn" style="width:100%; padding:10px; margin:16px 0 0 0; background:var(--accent-me); color:var(--bg); border:none; border-radius:var(--radius-sm); font-weight:600; cursor:pointer;">+ Nuevo evento</button>
       <div id="events-list"></div>
     </div>
   </div>
@@ -1836,31 +1837,7 @@ function renderCalendar(){
     });
     cell.appendChild(dots);
     
-    // Hacer que click en celda abra modal para crear evento
-    if(key) {
-      cell.dataset.date = key;
-      cell.addEventListener("click", function(e) {
-        // Si es click en un evento, abrir ese evento (no hacer nada, openDay lo maneja)
-        if(e.target.closest(".event-badge")) {
-          return;
-        }
-        // Si es click en celda vacía, crear nuevo evento
-        const dateStr = this.dataset.date;
-        editingEventId = null;
-        pendingImages = [];
-        
-        document.getElementById("event-modal-title").textContent = "Nuevo evento";
-        document.getElementById("ev-title").value = "";
-        document.getElementById("ev-date").value = dateStr || "";
-        document.getElementById("ev-time").value = "";
-        document.getElementById("ev-notes").value = "";
-        document.getElementById("thumbs").innerHTML = "";
-        document.getElementById("event-overlay").classList.add("active");
-        
-        console.log("📅 Crear evento para:", dateStr);
-        e.stopPropagation();
-      });
-    }
+    if(key) cell.addEventListener("click", ()=> openDay(key, cellDate));
     daysGrid.appendChild(cell);
   }
   grid.appendChild(daysGrid);
@@ -1895,6 +1872,26 @@ function openDay(key, dateObj){
 document.getElementById("close-day-btn").addEventListener("click", ()=>{
   document.getElementById("day-overlay").classList.remove("active");
   selectedDay = null;
+});
+
+document.getElementById("new-event-in-day-btn").addEventListener("click", ()=>{
+  if(!selectedDay) return;
+  
+  editingEventId = null;
+  pendingImages = [];
+  
+  document.getElementById("event-modal-title").textContent = "Nuevo evento";
+  document.getElementById("ev-title").value = "";
+  document.getElementById("ev-date").value = selectedDay;
+  document.getElementById("ev-time").value = "";
+  document.getElementById("ev-notes").value = "";
+  document.getElementById("thumbs").innerHTML = "";
+  
+  // Cerrar modal de día y abrir modal de evento
+  document.getElementById("day-overlay").classList.remove("active");
+  document.getElementById("event-overlay").classList.add("active");
+  
+  console.log("📅 Crear evento para:", selectedDay);
 });
 
 function renderDayModal(key){
