@@ -1346,9 +1346,15 @@ const firebaseConfig = {
   appId: "1:985516430457:web:e70ab030c9c6779fdc30a8"
 };
 
+console.log("🚀 Inicializando Firebase...");
 const app = initializeApp(firebaseConfig);
+console.log("✅ Firebase inicializado");
+
 const auth = getAuth(app);
+console.log("✅ Auth inicializado");
+
 const db = getFirestore(app);
+console.log("✅ Firestore inicializado");
 
 let currentUID = null;
 let currentUser = null;
@@ -1401,35 +1407,6 @@ onAuthStateChanged(auth, async (user)=>{
     
     // Si no tiene biometría, proceder normalmente
     unlockApp(user);
-  } else {
-    currentUID = null;
-    document.getElementById("login-screen").style.display = "flex";
-    document.getElementById("app").style.display = "none";
-    document.getElementById("navbar").classList.remove("visible");
-  }
-});
-    
-    // Load user display name
-    try {
-      const userDoc = await getDoc(doc(db, "users", currentUID));
-      if(userDoc.exists()) {
-        const userData = userDoc.data();
-        usersData[currentUID] = userData;
-        document.getElementById("user-name").textContent = userData.displayName || user.email.split("@")[0];
-        document.getElementById("user-display-name").value = userData.displayName || "";
-      } else {
-        document.getElementById("user-name").textContent = user.email.split("@")[0];
-      }
-    } catch(err) {
-      console.error("Error cargando perfil:", err);
-    }
-    
-    const initial = (user.email[0] || "?").toUpperCase();
-    document.getElementById("avatar-display").textContent = initial;
-    document.getElementById("navbar").classList.add("visible");
-    renderCalendar();
-    listenEvents();
-    listenUsers();
   } else {
     currentUID = null;
     document.getElementById("login-screen").style.display = "flex";
@@ -1543,10 +1520,19 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
   e.preventDefault();
   const email = document.getElementById("email-input").value;
   const password = document.getElementById("password-input").value;
+  const errorDiv = document.getElementById("login-error");
+  
+  console.log("🔍 Intentando login con:", email);
+  errorDiv.textContent = "Ingresando...";
+  
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    console.log("🔄 Conectando a Firebase...");
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    console.log("✅ Login exitoso:", result.user.email);
+    errorDiv.textContent = "";
   } catch(err){
-    document.getElementById("login-error").textContent = err.message;
+    console.error("❌ Error de login:", err.code, err.message);
+    errorDiv.textContent = err.code + ": " + err.message;
   }
 });
 
