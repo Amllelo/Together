@@ -1,4 +1,4 @@
-const CACHE_NAME = "Together-v4";
+const CACHE_NAME = "Together-v5";
 const ASSETS = [
   "./",
   "./index.html",
