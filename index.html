@@ -1872,14 +1872,12 @@ function openDay(key, dateObj){
   const newEventBtn = document.getElementById("new-event-in-day-btn");
   if(newEventBtn) {
     newEventBtn.onclick = ()=>{
-      if(!selectedDay) return;
-      
+      // selectedDay ya está establecido
       editingEventId = null;
       pendingImages = [];
       
       document.getElementById("event-modal-title").textContent = "Nuevo evento";
       document.getElementById("ev-title").value = "";
-      document.getElementById("ev-date").value = selectedDay;
       document.getElementById("ev-time").value = "";
       document.getElementById("ev-notes").value = "";
       document.getElementById("thumbs").innerHTML = "";
@@ -1888,7 +1886,7 @@ function openDay(key, dateObj){
       document.getElementById("day-overlay").classList.remove("active");
       document.getElementById("event-overlay").classList.add("active");
       
-      console.log("📅 Crear evento para:", selectedDay);
+      console.log("✅ Crear nuevo evento para:", selectedDay);
     };
   }
 }
