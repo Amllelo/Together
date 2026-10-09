@@ -1373,18 +1373,32 @@ function loadTheme() {
 
 // Color picker
 document.getElementById("color-picker")?.querySelectorAll(".color-option").forEach(opt => {
-  opt.addEventListener("click", ()=>{
+  opt.addEventListener("click", async ()=>{
     const color = opt.dataset.color;
     document.documentElement.style.setProperty("--accent-me", color);
     
     // Guardar con UID del usuario actual
     if(currentUID) {
+      // Guardar en localStorage
       localStorage.setItem("accentColor_" + currentUID, color);
-      console.log("✅ Color guardado para usuario:", currentUID, color);
+      
+      // Guardar en Firestore también para sincronizar
+      try {
+        await updateDoc(doc(db, "users", currentUID), {
+          accentColor: color,
+          updatedAt: serverTimestamp()
+        });
+        console.log("✅ Color guardado en Firestore:", color);
+      } catch(err) {
+        console.error("Error guardando color en Firestore:", err);
+      }
     }
     
     document.getElementById("color-picker").querySelectorAll(".color-option").forEach(o => o.classList.remove("active"));
     opt.classList.add("active");
+    
+    // Actualizar leyenda con los colores correctos
+    updateUserLabels();
   });
 });
 
@@ -1475,8 +1489,33 @@ function updateUserLabels() {
   const otherUID = Object.keys(usersData).find(uid => uid !== currentUID);
   const otherName = otherUID ? (usersData[otherUID]?.displayName || "Otra persona") : "Otra persona";
   
+  // Obtener color actual del usuario (de app)
+  const myColor = document.documentElement.style.getPropertyValue("--accent-me").trim() || "#3FB950";
+  
+  // Obtener color del otro usuario desde Firestore
+  let otherColor = "#FF7B72"; // Color default
+  if(otherUID && usersData[otherUID]?.accentColor) {
+    otherColor = usersData[otherUID].accentColor;
+  } else if(otherUID) {
+    // Si no tiene color en Firestore, intentar cargar del localStorage
+    const savedOtherColor = localStorage.getItem("accentColor_" + otherUID);
+    if(savedOtherColor) {
+      otherColor = savedOtherColor;
+    }
+  }
+  
+  // Actualizar leyenda
   document.getElementById("legend-me").textContent = myName + " (yo)";
   document.getElementById("legend-other").textContent = otherName;
+  
+  // Actualizar colores en la leyenda
+  const legendDots = document.querySelectorAll(".legend-dot");
+  if(legendDots.length >= 2) {
+    legendDots[0].style.background = myColor;
+    legendDots[1].style.background = otherColor;
+  }
+  
+  console.log("✅ Leyenda actualizada - Mi color:", myColor, "- Otro color:", otherColor);
 }
 
 document.getElementById("login-form").addEventListener("submit", async (e)=>{
