@@ -1253,6 +1253,24 @@ header.topbar {
     </div>
   </div>
 
+  <!-- BIOMETRIC AUTH MODAL -->
+  <div id="biometric-overlay" class="modal-overlay">
+    <div class="modal-content" style="max-width:400px;">
+      <div class="modal-header">
+        <h2>Verificación de seguridad</h2>
+      </div>
+      <div style="text-align:center; padding:24px 0;">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:64px; height:64px; color:var(--accent-me); margin-bottom:20px;">
+          <path d="M12 1C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 7 15.5 7 14 7.67 14 8.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 7 8.5 7 7 7.67 7 8.5 7.67 10 8.5 10zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+        </svg>
+        <p style="font-size:1rem; color:var(--text); margin:0 0 12px 0;">Usa tu huella dactilar para acceder</p>
+        <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Solo tú y tu pareja pueden ingresar a esta app</p>
+      </div>
+      <button id="biometric-btn" style="width:100%; padding:12px 16px; border-radius:var(--radius-sm); border:none; background:var(--accent-me); color:var(--bg); font-weight:600; cursor:pointer; font-size:1rem; margin-bottom:10px;">Verificar huella dactilar</button>
+      <button id="biometric-cancel-btn" style="width:100%; padding:12px 16px; border-radius:var(--radius-sm); border:1px solid var(--border); background:transparent; color:var(--text); font-weight:600; cursor:pointer; font-size:1rem;">Cerrar sesión</button>
+    </div>
+  </div>
+
   <!-- LIGHTBOX -->
   <div id="lightbox">
     <img id="lightbox-img" src="" alt="">
@@ -1344,6 +1362,52 @@ let editingEventId = null;
 let pendingImages = [];
 let currentDate = new Date();
 
+// ===== FUNCIONES DE BIOMETRÍA =====
+async function authenticateWithBiometric() {
+  try {
+    // Verificar si el dispositivo soporta biometría
+    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    if (!available) {
+      alert("Tu dispositivo no soporta autenticación biométrica");
+      return false;
+    }
+
+    // Usar Web Authentication API
+    const credential = await navigator.credentials.get({
+      mediation: "optional",
+      publicKey: {
+        challenge: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]),
+        timeout: 30000,
+        userVerification: "preferred"
+      }
+    });
+
+    return credential !== null;
+  } catch (err) {
+    console.error("Error en autenticación biométrica:", err);
+    return false;
+  }
+}
+
+function unlockAppWithBiometric() {
+  document.getElementById("biometric-overlay").classList.remove("active");
+  document.getElementById("app").style.display = "block";
+  
+  const initial = (currentUser.email[0] || "?").toUpperCase();
+  document.getElementById("avatar-display").textContent = initial;
+  document.getElementById("navbar").classList.add("visible");
+  
+  // Mostrar placeholder mientras carga
+  document.getElementById("user-name").textContent = "Cargando...";
+  document.getElementById("user-display-name").value = "";
+  
+  renderCalendar();
+  listenEvents();
+  listenUsers();
+  
+  console.log("✅ Acceso otorgado con biometría");
+}
+
 // Load personal theme
 function loadTheme() {
   // Cargar color del usuario actual (si está autenticado)
@@ -1418,6 +1482,17 @@ onAuthStateChanged(auth, async (user)=>{
     
     // Cargar tema de color del usuario
     loadTheme();
+    
+    // Verificar si biometría está habilitada
+    const bioEnabled = localStorage.getItem("bioEnabled_" + user.uid);
+    if(bioEnabled === "true") {
+      console.log("🔐 Biometría habilitada, pidiendo verificación...");
+      // Mostrar modal de biometría y no mostrar la app hasta que se autentique
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app").style.display = "none";
+      document.getElementById("biometric-overlay").classList.add("active");
+      return; // No continuar hasta que se verifique biometría
+    }
     
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("app").style.display = "block";
@@ -1657,35 +1732,62 @@ document.getElementById("settings-overlay").addEventListener("click", (e)=>{
   }
 });
 
-// Biometric toggle
-const bioToggle = document.getElementById("biometric-toggle");
-if(currentUID) {
-  bioToggle.checked = localStorage.getItem("bioEnabled_" + currentUID) === "true";
-}
-
-bioToggle?.addEventListener("change", async ()=>{
-  if(bioToggle.checked) {
-    // Verificar si el dispositivo soporta biometría
-    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    if(!available) {
-      bioToggle.checked = false;
-      alert("Tu dispositivo no soporta autenticación biométrica");
-      return;
-    }
+// Biometric toggle en configuración
+document.addEventListener("DOMContentLoaded", ()=>{
+  const bioToggle = document.getElementById("biometric-toggle");
+  if(bioToggle && currentUID) {
+    bioToggle.checked = localStorage.getItem("bioEnabled_" + currentUID) === "true";
     
-    const confirmed = await authenticateWithBiometric();
-    if(confirmed) {
-      localStorage.setItem("bioEnabled_" + currentUID, "true");
-      localStorage.setItem("deviceKey_" + currentUID, "authenticated");
-      alert("✅ Autenticación biométrica habilitada");
-    } else {
-      bioToggle.checked = false;
-      alert("No se pudo configurar la autenticación biométrica");
-    }
+    bioToggle.addEventListener("change", async ()=>{
+      if(bioToggle.checked) {
+        // Verificar si el dispositivo soporta biometría
+        const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        if(!available) {
+          bioToggle.checked = false;
+          alert("Tu dispositivo no soporta autenticación biométrica");
+          return;
+        }
+        
+        const confirmed = await authenticateWithBiometric();
+        if(confirmed) {
+          localStorage.setItem("bioEnabled_" + currentUID, "true");
+          alert("✅ Autenticación biométrica habilitada");
+        } else {
+          bioToggle.checked = false;
+          alert("No se pudo verificar la biometría");
+        }
+      } else {
+        localStorage.removeItem("bioEnabled_" + currentUID);
+        alert("Autenticación biométrica deshabilitada");
+      }
+    });
+  }
+});
+
+// Botón de verificación en modal de biometría
+document.getElementById("biometric-btn")?.addEventListener("click", async ()=>{
+  const btn = document.getElementById("biometric-btn");
+  btn.textContent = "Verificando...";
+  btn.disabled = true;
+  
+  const success = await authenticateWithBiometric();
+  
+  if(success) {
+    unlockAppWithBiometric();
   } else {
-    localStorage.removeItem("bioEnabled_" + currentUID);
-    localStorage.removeItem("deviceKey_" + currentUID);
-    alert("Autenticación biométrica deshabilitada");
+    btn.textContent = "Verificar huella dactilar";
+    btn.disabled = false;
+    alert("❌ Autenticación fallida. Intenta de nuevo.");
+  }
+});
+
+// Botón de cancelar en modal de biometría
+document.getElementById("biometric-cancel-btn")?.addEventListener("click", async ()=>{
+  if(confirm("¿Cerrar sesión?")) {
+    if(currentUID) {
+      localStorage.removeItem("bioEnabled_" + currentUID);
+    }
+    await signOut(auth);
   }
 });
 
