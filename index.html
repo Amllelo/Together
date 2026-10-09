@@ -1387,6 +1387,39 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("avatar-display").textContent = initial;
     document.getElementById("navbar").classList.add("visible");
     
+    // Mostrar placeholder mientras carga
+    document.getElementById("user-name").textContent = "Cargando...";
+    document.getElementById("user-display-name").value = "";
+    
+    // Cargar nombre de usuario inmediatamente
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if(userDoc.exists()) {
+        const userData = userDoc.data();
+        const displayName = userData.displayName || user.email.split("@")[0];
+        document.getElementById("user-name").textContent = displayName;
+        document.getElementById("user-display-name").value = displayName;
+        usersData[user.uid] = userData;
+        console.log("✅ Nombre cargado:", displayName);
+      } else {
+        // Si no existe el documento, crear uno
+        const defaultName = user.email.split("@")[0];
+        await setDoc(doc(db, "users", user.uid), {
+          displayName: defaultName,
+          email: user.email,
+          updatedAt: serverTimestamp()
+        });
+        document.getElementById("user-name").textContent = defaultName;
+        document.getElementById("user-display-name").value = defaultName;
+        console.log("✅ Documento de usuario creado");
+      }
+    } catch(err) {
+      console.error("❌ Error cargando nombre:", err);
+      const fallback = user.email.split("@")[0];
+      document.getElementById("user-name").textContent = fallback;
+      document.getElementById("user-display-name").value = fallback;
+    }
+    
     renderCalendar();
     listenEvents();
     listenUsers();
@@ -1402,7 +1435,18 @@ onAuthStateChanged(auth, async (user)=>{
 function listenUsers() {
   const q = query(collection(db, "users"));
   onSnapshot(q, (qs)=>{
-    qs.forEach(d=> usersData[d.id] = d.data());
+    qs.forEach(d=> {
+      usersData[d.id] = d.data();
+      // Si es el usuario actual, actualizar el nombre en UI
+      if(d.id === currentUID) {
+        const displayName = d.data().displayName;
+        if(displayName && document.getElementById("user-name").textContent !== displayName) {
+          document.getElementById("user-name").textContent = displayName;
+          document.getElementById("user-display-name").value = displayName;
+          console.log("✅ Nombre sincronizado desde Firestore:", displayName);
+        }
+      }
+    });
     updateUserLabels();
     renderCalendar();
     if(selectedDay) renderDayModal(selectedDay);
@@ -1440,12 +1484,29 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
 
 document.getElementById("logout-btn").addEventListener("click", async ()=>{
   if(confirm("¿Cerrar sesión?")) {
-    // Limpiar biometría
-    if(currentUID) {
-      localStorage.removeItem("bioEnabled_" + currentUID);
-      localStorage.removeItem("deviceKey_" + currentUID);
+    try {
+      // Limpiar datos de sesión
+      currentUID = null;
+      currentUser = null;
+      usersData = {};
+      eventsCache = [];
+      
+      // Limpiar localStorage
+      localStorage.removeItem("bioEnabled");
+      localStorage.removeItem("deviceKey");
+      localStorage.removeItem("accentColor");
+      
+      // Limpiar UI
+      document.getElementById("user-name").textContent = "Usuario";
+      document.getElementById("user-display-name").value = "";
+      document.getElementById("avatar-display").textContent = "?";
+      
+      await signOut(auth);
+      console.log("✅ Sesión cerrada");
+    } catch(err) {
+      console.error("Error al cerrar sesión:", err);
+      alert("Error al cerrar sesión");
     }
-    await signOut(auth);
   }
 });
 
