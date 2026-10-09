@@ -893,36 +893,6 @@ header.topbar {
 }
 
 /* ===== FAB ===== */
-#add-event-btn {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--accent-me);
-  border: none;
-  color: var(--bg);
-  font-size: 1.6rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: var(--transition);
-  position: fixed;
-  bottom: calc(80px + var(--safe-bottom));
-  right: 16px;
-  z-index: 30;
-  box-shadow: 0 4px 16px rgba(63, 185, 80, 0.3);
-  padding: 0;
-}
-
-#add-event-btn:hover {
-  transform: scale(1.08);
-  box-shadow: 0 6px 20px rgba(63, 185, 80, 0.4);
-}
-
-#add-event-btn:active {
-  transform: scale(0.95);
-}
-
 /* ===== SETTINGS ===== */
 .settings-form {
   display: flex;
@@ -1282,9 +1252,6 @@ header.topbar {
     </div>
   </div>
 
-  <!-- FAB -->
-  <button id="add-event-btn" title="Nuevo evento">+</button>
-
   <!-- LIGHTBOX -->
   <div id="lightbox">
     <img id="lightbox-img" src="" alt="">
@@ -1400,45 +1367,45 @@ function loadTheme() {
 // Llamar loadTheme() después de que currentUID esté disponible
 // (se llama en onAuthStateChanged)
 
-// Color picker
+// Color picker - Cambio inmediato como guardar nombre
 document.getElementById("color-picker")?.querySelectorAll(".color-option").forEach(opt => {
   opt.addEventListener("click", async ()=>{
     const color = opt.dataset.color;
-    document.documentElement.style.setProperty("--accent-me", color);
     
-    // Guardar con UID del usuario actual
     if(currentUID) {
-      // Guardar en localStorage
-      localStorage.setItem("accentColor_" + currentUID, color);
-      
-      // Guardar en Firestore también para sincronizar
       try {
+        // Guardar en localStorage
+        localStorage.setItem("accentColor_" + currentUID, color);
+        
+        // Actualizar datos locales inmediatamente
         const userData = usersData[currentUID] || {};
         userData.accentColor = color;
         usersData[currentUID] = userData;
         
+        // Aplicar color a la app
+        document.documentElement.style.setProperty("--accent-me", color);
+        
+        // Guardar en Firestore (se sincroniza en tiempo real)
         await updateDoc(doc(db, "users", currentUID), {
           accentColor: color,
           updatedAt: serverTimestamp()
         });
-        console.log("✅ Color guardado en Firestore:", color);
         
-        // Forzar actualización inmediata de la leyenda
-        setTimeout(() => {
-          updateUserLabels();
-          console.log("✅ Leyenda actualizada después de guardar color");
-        }, 100);
+        console.log("✅ Color guardado:", color);
+        
+        // Actualizar leyenda y UI
+        updateUserLabels();
+        renderCalendar();
+        renderFeed();
         
       } catch(err) {
-        console.error("Error guardando color en Firestore:", err);
+        console.error("Error guardando color:", err);
+        alert("Error al guardar color");
       }
     }
     
     document.getElementById("color-picker").querySelectorAll(".color-option").forEach(o => o.classList.remove("active"));
     opt.classList.add("active");
-    
-    // Actualizar leyenda inmediatamente
-    updateUserLabels();
   });
 });
 
@@ -1869,7 +1836,18 @@ function renderCalendar(){
     });
     cell.appendChild(dots);
     
-    if(key) cell.addEventListener("click", ()=> openDay(key, cellDate));
+    // Hacer que click en celda abra modal para crear evento
+    if(key) {
+      cell.dataset.date = key;
+      cell.addEventListener("click", function(e) {
+        // Si es click en un evento, abrir ese evento
+        if(e.target.closest(".event-badge")) {
+          return;
+        }
+        // Si es click en celda vacía, crear nuevo evento
+        openNewEventModal.call(this, e);
+      });
+    }
     daysGrid.appendChild(cell);
   }
   grid.appendChild(daysGrid);
@@ -2106,16 +2084,33 @@ document.getElementById("lightbox").addEventListener("click", ()=>{
   document.getElementById("lightbox").classList.remove("active");
 });
 
-document.getElementById("add-event-btn").addEventListener("click", ()=>{
+// Hacer que click en cualquier celda de calendario abra modal para crear evento
+function attachCalendarCellListeners() {
+  const cells = document.querySelectorAll(".cal-cell");
+  cells.forEach(cell => {
+    cell.removeEventListener("click", openNewEventModal);
+    cell.addEventListener("click", openNewEventModal);
+  });
+}
+
+function openNewEventModal(e) {
+  // Si es un evento existente, no abrir modal nuevo
+  if(e.target.closest(".event-badge")) return;
+  
+  const dateStr = this.dataset.date;
   editingEventId = null;
   pendingImages = [];
+  
   document.getElementById("event-modal-title").textContent = "Nuevo evento";
   document.getElementById("ev-title").value = "";
+  document.getElementById("ev-date").value = dateStr || "";
   document.getElementById("ev-time").value = "";
   document.getElementById("ev-notes").value = "";
   document.getElementById("thumbs").innerHTML = "";
   document.getElementById("event-overlay").classList.add("active");
-});
+  
+  console.log("📅 Crear evento para:", dateStr);
+}
 
 document.getElementById("close-event-btn").addEventListener("click", ()=>{
   editingEventId = null;
