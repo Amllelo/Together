@@ -1867,6 +1867,30 @@ function openDay(key, dateObj){
     dateObj.toLocaleDateString("es-ES", { weekday:"long", day:"numeric", month:"long" });
   renderDayModal(key);
   document.getElementById("day-overlay").classList.add("active");
+  
+  // Agregar listener al botón de nuevo evento
+  const newEventBtn = document.getElementById("new-event-in-day-btn");
+  if(newEventBtn) {
+    newEventBtn.onclick = ()=>{
+      if(!selectedDay) return;
+      
+      editingEventId = null;
+      pendingImages = [];
+      
+      document.getElementById("event-modal-title").textContent = "Nuevo evento";
+      document.getElementById("ev-title").value = "";
+      document.getElementById("ev-date").value = selectedDay;
+      document.getElementById("ev-time").value = "";
+      document.getElementById("ev-notes").value = "";
+      document.getElementById("thumbs").innerHTML = "";
+      
+      // Cerrar modal de día y abrir modal de evento
+      document.getElementById("day-overlay").classList.remove("active");
+      document.getElementById("event-overlay").classList.add("active");
+      
+      console.log("📅 Crear evento para:", selectedDay);
+    };
+  }
 }
 
 document.getElementById("close-day-btn").addEventListener("click", ()=>{
@@ -1874,25 +1898,7 @@ document.getElementById("close-day-btn").addEventListener("click", ()=>{
   selectedDay = null;
 });
 
-document.getElementById("new-event-in-day-btn").addEventListener("click", ()=>{
-  if(!selectedDay) return;
-  
-  editingEventId = null;
-  pendingImages = [];
-  
-  document.getElementById("event-modal-title").textContent = "Nuevo evento";
-  document.getElementById("ev-title").value = "";
-  document.getElementById("ev-date").value = selectedDay;
-  document.getElementById("ev-time").value = "";
-  document.getElementById("ev-notes").value = "";
-  document.getElementById("thumbs").innerHTML = "";
-  
-  // Cerrar modal de día y abrir modal de evento
-  document.getElementById("day-overlay").classList.remove("active");
-  document.getElementById("event-overlay").classList.add("active");
-  
-  console.log("📅 Crear evento para:", selectedDay);
-});
+
 
 function renderDayModal(key){
   const list = document.getElementById("events-list");
