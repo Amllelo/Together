@@ -309,6 +309,13 @@ header.topbar {
   background: var(--surface-2);
 }
 
+.month-nav button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.month-header h2::first-letter { text-transform: uppercase; }
+
 .legend {
   display: flex;
   gap: 20px;
@@ -707,27 +714,22 @@ header.topbar {
 
 .thumb-remove {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 28px;
-  height: 28px;
+  top: 4px;
+  right: 4px;
+  z-index: 3;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: var(--accent-other);
+  background: rgba(0, 0, 0, 0.75);
   border: none;
   color: white;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: var(--transition);
-  opacity: 0;
   padding: 0;
-}
-
-.thumb:hover .thumb-remove {
-  opacity: 1;
-  transform: translate(-4px, 4px);
 }
 
 .form-actions {
@@ -843,7 +845,8 @@ header.topbar {
 
 .fc-carousel::-webkit-scrollbar { display: none; }
 
-.fc-carousel img {
+.fc-carousel img,
+.fc-carousel video {
   width: 140px;
   height: 140px;
   border-radius: var(--radius-sm);
@@ -853,7 +856,8 @@ header.topbar {
   transition: var(--transition);
 }
 
-.fc-carousel img:hover {
+.fc-carousel img:hover,
+.fc-carousel video:hover {
   transform: scale(1.05);
 }
 
@@ -1040,6 +1044,31 @@ header.topbar {
   to { transform: scale(1); opacity: 1; }
 }
 
+/* ===== BIOMETRIC LOCK ===== */
+#biometric-overlay {
+  background: var(--bg);
+  backdrop-filter: none;
+  align-items: center;
+  z-index: 200;
+}
+
+#biometric-overlay .modal-content {
+  width: calc(100% - 32px);
+  max-width: 400px;
+  border-radius: var(--radius-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+#biometric-overlay .modal-header h2 { text-transform: none; }
+
+#biometric-error {
+  color: var(--accent-other);
+  font-size: 0.9rem;
+  min-height: 1.3em;
+  margin: 0 0 12px 0;
+  text-align: center;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (min-width: 768px) {
   .modal-content {
@@ -1078,16 +1107,16 @@ header.topbar {
     </div>
     <div class="header-actions">
       <button class="icon-btn" id="settings-btn" title="Configuración">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="2.5"/>
-          <path d="M12 1v4m0 8v4M5.64 5.64l2.83 2.83m0 5.66l2.83 2.83M1 12h4m8 0h4m-16.36 6.36l2.83-2.83m5.66 0l2.83-2.83"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
         </svg>
       </button>
       <button class="icon-btn" id="logout-btn" title="Cerrar sesión">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10 3H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/>
-          <polyline points="17 9 21 12 17 15"/>
-          <line x1="9" y1="12" x2="21" y2="12"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
         </svg>
       </button>
     </div>
@@ -1098,8 +1127,8 @@ header.topbar {
     <div class="month-header">
       <h2 id="month-title">Septiembre 2024</h2>
       <div class="month-nav">
-        <button id="prev-month" title="Mes anterior">←</button>
-        <button id="next-month" title="Mes siguiente">→</button>
+        <button id="prev-month" title="Mes anterior" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <button id="next-month" title="Mes siguiente" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
       </div>
     </div>
     <div class="legend">
@@ -1253,28 +1282,37 @@ header.topbar {
     </div>
   </div>
 
-  <!-- BIOMETRIC AUTH MODAL -->
-  <div id="biometric-overlay" class="modal-overlay">
-    <div class="modal-content" style="max-width:400px;">
-      <div class="modal-header">
-        <h2>Verificación de seguridad</h2>
-      </div>
-      <div style="text-align:center; padding:24px 0;">
-        <svg viewBox="0 0 24 24" fill="currentColor" style="width:64px; height:64px; color:var(--accent-me); margin-bottom:20px;">
-          <path d="M12 1C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 7 15.5 7 14 7.67 14 8.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 7 8.5 7 7 7.67 7 8.5 7.67 10 8.5 10zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
-        </svg>
-        <p style="font-size:1rem; color:var(--text); margin:0 0 12px 0;">Usa tu huella dactilar para acceder</p>
-        <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Solo tú y tu pareja pueden ingresar a esta app</p>
-      </div>
-      <button id="biometric-btn" style="width:100%; padding:12px 16px; border-radius:var(--radius-sm); border:none; background:var(--accent-me); color:var(--bg); font-weight:600; cursor:pointer; font-size:1rem; margin-bottom:10px;">Verificar huella dactilar</button>
-      <button id="biometric-cancel-btn" style="width:100%; padding:12px 16px; border-radius:var(--radius-sm); border:1px solid var(--border); background:transparent; color:var(--text); font-weight:600; cursor:pointer; font-size:1rem;">Cerrar sesión</button>
-    </div>
-  </div>
-
   <!-- LIGHTBOX -->
   <div id="lightbox">
     <img id="lightbox-img" src="" alt="">
     <video id="lightbox-video" style="max-width:100%; max-height:100%; border-radius:var(--radius);" controls></video>
+  </div>
+</div>
+
+<!-- BIOMETRIC LOCK (fuera de #app para que sea visible mientras la app está oculta) -->
+<div id="biometric-overlay" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Verificación de seguridad</h2>
+    </div>
+    <div style="text-align:center; padding:16px 0 24px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:72px; height:72px; color:var(--accent-me); margin-bottom:20px;">
+        <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/>
+        <path d="M14 13.12c0 2.38 0 6.38-1 8.88"/>
+        <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/>
+        <path d="M2 12a10 10 0 0 1 18-6"/>
+        <path d="M2 16h.01"/>
+        <path d="M21.8 16c.2-2 .131-5.354 0-6"/>
+        <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/>
+        <path d="M8.65 22c.21-.66.45-1.32.57-2"/>
+        <path d="M9 6.8a6 6 0 0 1 9 5.2v2"/>
+      </svg>
+      <p style="font-size:1rem; color:var(--text); margin:0 0 12px 0;">Usa tu huella dactilar para acceder</p>
+      <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Solo tú y tu pareja pueden ingresar a esta app</p>
+    </div>
+    <div id="biometric-error"></div>
+    <button id="biometric-btn" style="width:100%; padding:12px 16px; border-radius:var(--radius-sm); border:none; background:var(--accent-me); color:var(--bg); font-weight:600; cursor:pointer; font-size:1rem; margin-bottom:10px;">Verificar huella dactilar</button>
+    <button id="biometric-cancel-btn" style="width:100%; padding:12px 16px; border-radius:var(--radius-sm); border:1px solid var(--border); background:transparent; color:var(--text); font-weight:600; cursor:pointer; font-size:1rem;">Cerrar sesión</button>
   </div>
 </div>
 
@@ -1361,171 +1399,229 @@ let selectedDay = null;
 let editingEventId = null;
 let pendingImages = [];
 let currentDate = new Date();
+let unsubEvents = null;
+let unsubUsers = null;
+let usersPollTimer = null;
+let appStarted = false;
 
-// ===== FUNCIONES DE BIOMETRÍA =====
-async function authenticateWithBiometric() {
-  return new Promise((resolve) => {
-    // Simular solicitud de biometría con un prompt del sistema
-    const result = window.confirm("🔐 Verifica con tu huella dactilar o toca Aceptar para continuar");
-    console.log("Resultado de biometría:", result);
-    resolve(result);
+const DEFAULT_ME = "#3FB950";
+const DEFAULT_OTHER = "#F85149";
+
+// ===== UTILIDADES =====
+function dateKey(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function mediaSrc(m) { return (m && typeof m === "object") ? m.data : m; }
+function isImageMedia(m) { return !(m && typeof m === "object" && m.type === "video"); }
+
+// ===== BIOMETRÍA (WebAuthn: huella / rostro del dispositivo) =====
+const bioEnabledKey = (uid) => "bioEnabled_" + uid;
+const bioCredKey = (uid) => "bioCred_" + uid;
+
+function bufToB64u(buf) {
+  let bin = "";
+  new Uint8Array(buf).forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function b64uToBuf(str) {
+  const b64 = str.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - str.length % 4) % 4);
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+async function isBiometricAvailable() {
+  try {
+    return !!(window.isSecureContext && window.PublicKeyCredential &&
+      await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+  } catch (e) {
+    return false;
+  }
+}
+
+async function registerBiometric() {
+  const cred = await navigator.credentials.create({
+    publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rp: { name: "Together" },
+      user: {
+        id: new TextEncoder().encode(currentUID),
+        name: currentUser.email,
+        displayName: currentUser.email
+      },
+      pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+      authenticatorSelection: {
+        authenticatorAttachment: "platform",
+        userVerification: "required",
+        residentKey: "discouraged"
+      },
+      attestation: "none",
+      timeout: 60000
+    }
+  });
+  localStorage.setItem(bioCredKey(currentUID), bufToB64u(cred.rawId));
+}
+
+async function verifyBiometric(uid) {
+  const id = localStorage.getItem(bioCredKey(uid));
+  if (!id) throw new Error("no-credential");
+  await navigator.credentials.get({
+    publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      allowCredentials: [{ type: "public-key", id: b64uToBuf(id) }],
+      userVerification: "required",
+      timeout: 60000
+    }
   });
 }
 
-function unlockAppWithBiometric() {
-  document.getElementById("biometric-overlay").classList.remove("active");
-  document.getElementById("app").style.display = "block";
-  
-  const initial = (currentUser.email[0] || "?").toUpperCase();
-  document.getElementById("avatar-display").textContent = initial;
-  document.getElementById("navbar").classList.add("visible");
-  
-  // Mostrar placeholder mientras carga
-  document.getElementById("user-name").textContent = "Cargando...";
-  document.getElementById("user-display-name").value = "";
-  
-  renderCalendar();
-  listenEvents();
-  listenUsers();
-  
-  console.log("✅ Acceso otorgado con biometría");
+function setBioError(msg) {
+  document.getElementById("biometric-error").textContent = msg || "";
 }
 
-// Load personal theme
+function showBiometricLock() {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("navbar").classList.remove("visible");
+  const btn = document.getElementById("biometric-btn");
+  btn.disabled = false;
+  btn.textContent = "Verificar huella dactilar";
+  setBioError("");
+  document.getElementById("biometric-overlay").classList.add("active");
+}
+
+// ===== TEMA =====
+function applyAccent(color) {
+  document.documentElement.style.setProperty("--accent-me", color);
+  document.querySelectorAll("#color-picker .color-option").forEach(o => {
+    o.classList.toggle("active", o.dataset.color === color);
+  });
+}
+
 function loadTheme() {
-  // Cargar color del usuario actual (si está autenticado)
-  let savedColor = null;
-  if(currentUID) {
-    savedColor = localStorage.getItem("accentColor_" + currentUID);
-  }
-  
-  if(savedColor) {
-    document.documentElement.style.setProperty("--accent-me", savedColor);
-  }
-  
-  const colorPicker = document.getElementById("color-picker");
-  if(colorPicker && savedColor) {
-    colorPicker.querySelectorAll(".color-option").forEach(opt => {
-      opt.classList.remove("active");
-      if(opt.dataset.color === savedColor) opt.classList.add("active");
-    });
-  }
+  const saved = currentUID ? localStorage.getItem("accentColor_" + currentUID) : null;
+  if (saved) applyAccent(saved);
 }
 
-// Llamar loadTheme() después de que currentUID esté disponible
-// (se llama en onAuthStateChanged)
-
-// Color picker - Cambio inmediato como guardar nombre
-document.getElementById("color-picker")?.querySelectorAll(".color-option").forEach(opt => {
-  opt.addEventListener("click", async ()=>{
+document.getElementById("color-picker").querySelectorAll(".color-option").forEach(opt => {
+  opt.addEventListener("click", async () => {
     const color = opt.dataset.color;
-    
-    if(currentUID) {
-      try {
-        // Guardar en localStorage
-        localStorage.setItem("accentColor_" + currentUID, color);
-        
-        // Actualizar datos locales inmediatamente
-        const userData = usersData[currentUID] || {};
-        userData.accentColor = color;
-        usersData[currentUID] = userData;
-        
-        // Aplicar color a la app
-        document.documentElement.style.setProperty("--accent-me", color);
-        
-        // Guardar en Firestore (se sincroniza en tiempo real)
-        await updateDoc(doc(db, "users", currentUID), {
-          accentColor: color,
-          updatedAt: serverTimestamp()
-        });
-        
-        console.log("✅ Color guardado:", color);
-        
-        // Actualizar leyenda y UI
-        updateUserLabels();
-        renderCalendar();
-        renderFeed();
-        
-      } catch(err) {
-        console.error("Error guardando color:", err);
-        alert("Error al guardar color");
-      }
+    if (!currentUID) return;
+
+    applyAccent(color);
+    localStorage.setItem("accentColor_" + currentUID, color);
+    usersData[currentUID] = { ...(usersData[currentUID] || {}), accentColor: color };
+    updateUserLabels();
+    renderCalendar();
+    renderFeed();
+
+    try {
+      await setDoc(doc(db, "users", currentUID), {
+        accentColor: color,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    } catch (err) {
+      console.error("Error guardando color:", err);
+      alert("Error al guardar color");
     }
-    
-    document.getElementById("color-picker").querySelectorAll(".color-option").forEach(o => o.classList.remove("active"));
-    opt.classList.add("active");
   });
 });
 
-onAuthStateChanged(auth, async (user)=>{
-  if(user){
+// ===== CICLO DE VIDA DE LA APP =====
+async function startApp(user) {
+  if (appStarted) return;
+  appStarted = true;
+
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("biometric-overlay").classList.remove("active");
+  document.getElementById("app").style.display = "block";
+  document.getElementById("navbar").classList.add("visible");
+  document.getElementById("avatar-display").textContent = (user.email[0] || "?").toUpperCase();
+  document.getElementById("user-name").textContent = "Cargando...";
+  document.getElementById("user-display-name").value = "";
+
+  const fallbackName = user.email.split("@")[0];
+  let name = fallbackName;
+  try {
+    const ref = doc(db, "users", user.uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const data = snap.data();
+      name = data.displayName || fallbackName;
+      usersData[user.uid] = data;
+      if (data.accentColor) applyAccent(data.accentColor);
+    } else {
+      const data = { displayName: fallbackName, email: user.email };
+      await setDoc(ref, { ...data, updatedAt: serverTimestamp() });
+      usersData[user.uid] = data;
+    }
+  } catch (err) {
+    console.error("❌ Error cargando usuario:", err);
+  }
+
+  // Si se cerró la sesión mientras cargaba, no seguir
+  if (!appStarted || currentUID !== user.uid) return;
+
+  document.getElementById("user-name").textContent = name;
+  document.getElementById("user-display-name").value = name;
+
+  renderCalendar();
+  listenEvents();
+  listenUsers();
+  document.getElementById("biometric-toggle").checked =
+    localStorage.getItem(bioEnabledKey(user.uid)) === "true" &&
+    !!localStorage.getItem(bioCredKey(user.uid));
+}
+
+function stopApp() {
+  appStarted = false;
+  if (unsubEvents) { unsubEvents(); unsubEvents = null; }
+  if (unsubUsers) { unsubUsers(); unsubUsers = null; }
+  if (usersPollTimer) { clearInterval(usersPollTimer); usersPollTimer = null; }
+  eventsCache = [];
+  usersData = {};
+  selectedDay = null;
+  editingEventId = null;
+  pendingImages = [];
+  ["day-overlay", "event-overlay", "settings-overlay", "biometric-overlay", "lightbox"].forEach(id => {
+    document.getElementById(id).classList.remove("active");
+  });
+  document.getElementById("user-name").textContent = "Usuario";
+  document.getElementById("user-display-name").value = "";
+  document.getElementById("avatar-display").textContent = "?";
+  applyAccent(DEFAULT_ME);
+  document.documentElement.style.setProperty("--accent-other", DEFAULT_OTHER);
+}
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // Evita re-bloquear / reiniciar si el evento se repite para la misma sesión
+    if (appStarted && currentUID === user.uid) return;
+
     currentUID = user.uid;
     currentUser = user;
-    console.log("✅ Usuario autenticado:", user.email);
-    
-    // Cargar tema de color del usuario
     loadTheme();
-    
-    // Verificar si biometría está habilitada
-    const bioEnabled = localStorage.getItem("bioEnabled_" + user.uid);
-    if(bioEnabled === "true") {
-      console.log("🔐 Biometría habilitada, pidiendo verificación...");
-      // Mostrar modal de biometría y no mostrar la app hasta que se autentique
-      document.getElementById("login-screen").style.display = "none";
-      document.getElementById("app").style.display = "none";
-      document.getElementById("biometric-overlay").classList.add("active");
-      return; // No continuar hasta que se verifique biometría
+
+    let bioOn = localStorage.getItem(bioEnabledKey(user.uid)) === "true";
+    const hasCred = !!localStorage.getItem(bioCredKey(user.uid));
+    if (bioOn && !hasCred) {
+      // Activada con la versión anterior (sin credencial real): se desactiva y se puede volver a activar en Configuración
+      localStorage.removeItem(bioEnabledKey(user.uid));
+      bioOn = false;
     }
-    
-    document.getElementById("login-screen").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    
-    const initial = (user.email[0] || "?").toUpperCase();
-    document.getElementById("avatar-display").textContent = initial;
-    document.getElementById("navbar").classList.add("visible");
-    
-    // Mostrar placeholder mientras carga
-    document.getElementById("user-name").textContent = "Cargando...";
-    document.getElementById("user-display-name").value = "";
-    
-    // Cargar nombre de usuario inmediatamente
-    try {
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      if(userDoc.exists()) {
-        const userData = userDoc.data();
-        const displayName = userData.displayName || user.email.split("@")[0];
-        document.getElementById("user-name").textContent = displayName;
-        document.getElementById("user-display-name").value = displayName;
-        usersData[user.uid] = userData;
-        console.log("✅ Nombre cargado:", displayName);
-      } else {
-        // Si no existe el documento, crear uno
-        const defaultName = user.email.split("@")[0];
-        await setDoc(doc(db, "users", user.uid), {
-          displayName: defaultName,
-          email: user.email,
-          updatedAt: serverTimestamp()
-        });
-        document.getElementById("user-name").textContent = defaultName;
-        document.getElementById("user-display-name").value = defaultName;
-        console.log("✅ Documento de usuario creado");
-      }
-    } catch(err) {
-      console.error("❌ Error cargando nombre:", err);
-      const fallback = user.email.split("@")[0];
-      document.getElementById("user-name").textContent = fallback;
-      document.getElementById("user-display-name").value = fallback;
+
+    if (bioOn) {
+      showBiometricLock();
+    } else {
+      startApp(user);
     }
-    
-    renderCalendar();
-    listenEvents();
-    listenUsers();
-    
-    // Inicializar toggle de biometría
-    setTimeout(() => initBiometricToggle(), 100);
   } else {
-    console.log("❌ Sin usuario autenticado");
+    stopApp();
     currentUID = null;
+    currentUser = null;
+    document.getElementById("password-input").value = "";
     document.getElementById("login-screen").style.display = "flex";
     document.getElementById("app").style.display = "none";
     document.getElementById("navbar").classList.remove("visible");
@@ -1533,66 +1629,63 @@ onAuthStateChanged(auth, async (user)=>{
 });
 
 function listenUsers() {
+  if (unsubUsers) unsubUsers();
+  if (usersPollTimer) clearInterval(usersPollTimer);
+
   const q = query(collection(db, "users"));
-  onSnapshot(q, (qs)=>{
+  unsubUsers = onSnapshot(q, (qs)=>{
     let colorChanged = false;
     qs.forEach(d=> {
       const newData = d.data();
       const oldData = usersData[d.id];
-      
-      // Detectar si cambió el color
+
       if(oldData && oldData.accentColor !== newData.accentColor) {
         colorChanged = true;
-        console.log("🎨 Cambio de color detectado en usuario:", d.id);
       }
-      
+
       usersData[d.id] = newData;
-      
-      // Si es el usuario actual, actualizar el nombre en UI
+
       if(d.id === currentUID) {
         const displayName = newData.displayName;
         if(displayName && document.getElementById("user-name").textContent !== displayName) {
           document.getElementById("user-name").textContent = displayName;
           document.getElementById("user-display-name").value = displayName;
-          console.log("✅ Nombre sincronizado desde Firestore:", displayName);
+        }
+        // Color elegido desde otro dispositivo
+        if(newData.accentColor && newData.accentColor !== document.documentElement.style.getPropertyValue("--accent-me").trim()) {
+          applyAccent(newData.accentColor);
+          localStorage.setItem("accentColor_" + currentUID, newData.accentColor);
         }
       }
     });
-    
-    // Actualizar leyenda (especialmente importante si cambió el color)
+
     updateUserLabels();
-    
-    if(colorChanged) {
-      console.log("🔄 Actualizando UI por cambio de color");
-      renderCalendar();
-    }
-    
+    if(colorChanged) renderCalendar();
+    renderFeed();
     if(selectedDay) renderDayModal(selectedDay);
-  });
-  
+  }, (err)=> console.error("Error en listener de usuarios:", err));
+
   // Polling adicional para móvil - sincronizar cada 5 segundos
-  setInterval(async () => {
+  usersPollTimer = setInterval(async () => {
     if(!currentUID) return;
-    
+
     try {
-      const q = query(collection(db, "users"));
-      const snap = await getDocs(q);
+      const snap = await getDocs(query(collection(db, "users")));
       let needsUpdate = false;
-      
+
       snap.forEach(d => {
         const newData = d.data();
         const oldData = usersData[d.id];
-        
-        if(!oldData || 
+
+        if(!oldData ||
            oldData.accentColor !== newData.accentColor ||
            oldData.displayName !== newData.displayName) {
           needsUpdate = true;
           usersData[d.id] = newData;
         }
       });
-      
-      if(needsUpdate) {
-        console.log("🔄 Sincronización desde polling");
+
+      if(needsUpdate && currentUID) {
         updateUserLabels();
         renderCalendar();
         if(selectedDay) renderDayModal(selectedDay);
@@ -1617,7 +1710,7 @@ function updateUserLabels() {
     }
     
     // Obtener color del otro usuario
-    let otherColor = "#FF7B72"; // Color default
+    let otherColor = DEFAULT_OTHER;
     if(otherUID) {
       // Intentar obtener de usersData (Firestore)
       if(usersData[otherUID]?.accentColor) {
@@ -1631,6 +1724,8 @@ function updateUserLabels() {
       }
     }
     
+    document.documentElement.style.setProperty("--accent-other", otherColor);
+
     // Actualizar leyenda
     const legendMe = document.getElementById("legend-me");
     const legendOther = document.getElementById("legend-other");
@@ -1644,7 +1739,6 @@ function updateUserLabels() {
       legendDots[1].style.backgroundColor = otherColor;
     }
     
-    console.log("✅ Leyenda actualizada - Mi color:", myColor, "- Otro usuario:", otherName, "color:", otherColor);
   } catch(err) {
     console.error("Error en updateUserLabels:", err);
   }
@@ -1670,37 +1764,24 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
   }
 });
 
-document.getElementById("logout-btn").addEventListener("click", async ()=>{
-  if(confirm("¿Cerrar sesión?")) {
-    try {
-      const uid = currentUID;
-      
-      // Limpiar datos de sesión
-      currentUID = null;
-      currentUser = null;
-      usersData = {};
-      eventsCache = [];
-      
-      // Limpiar localStorage (con UID específico)
-      localStorage.removeItem("bioEnabled_" + uid);
+async function doSignOut() {
+  const uid = currentUID;
+  try {
+    if (uid) {
+      localStorage.removeItem(bioEnabledKey(uid));
+      localStorage.removeItem(bioCredKey(uid));
       localStorage.removeItem("deviceKey_" + uid);
-      // NO eliminar accentColor - dejarlo guardado por usuario
-      
-      // Limpiar UI
-      document.getElementById("user-name").textContent = "Usuario";
-      document.getElementById("user-display-name").value = "";
-      document.getElementById("avatar-display").textContent = "?";
-      
-      // Reset color a default
-      document.documentElement.style.setProperty("--accent-me", "#3FB950");
-      
-      await signOut(auth);
-      console.log("✅ Sesión cerrada");
-    } catch(err) {
-      console.error("Error al cerrar sesión:", err);
-      alert("Error al cerrar sesión");
+      // accentColor se conserva por usuario
     }
+    await signOut(auth); // onAuthStateChanged limpia la UI y los listeners
+  } catch (err) {
+    console.error("Error al cerrar sesión:", err);
+    alert("Error al cerrar sesión");
   }
+}
+
+document.getElementById("logout-btn").addEventListener("click", async ()=>{
+  if (confirm("¿Cerrar sesión?")) await doSignOut();
 });
 
 // Settings
@@ -1718,66 +1799,68 @@ document.getElementById("settings-overlay").addEventListener("click", (e)=>{
   }
 });
 
-// Función para inicializar el toggle de biometría
-function initBiometricToggle() {
-  const bioToggle = document.getElementById("biometric-toggle");
-  if(!bioToggle || !currentUID) return;
-  
-  // Cargar estado guardado
-  const isEnabled = localStorage.getItem("bioEnabled_" + currentUID) === "true";
-  bioToggle.checked = isEnabled;
-  console.log("🔐 Estado de biometría cargado:", isEnabled);
-  
-  // Remover listeners antiguos para evitar duplicados
-  bioToggle.onchange = null;
-  
-  // Agregar nuevo listener
-  bioToggle.addEventListener("change", async ()=>{
-    if(bioToggle.checked) {
-      // Pedir verificación
-      const confirmed = await authenticateWithBiometric();
-      if(confirmed) {
-        localStorage.setItem("bioEnabled_" + currentUID, "true");
-        console.log("✅ Biometría habilitada");
-        alert("✅ Autenticación biométrica habilitada");
-      } else {
-        bioToggle.checked = false;
-        localStorage.removeItem("bioEnabled_" + currentUID);
-        console.log("❌ Verificación cancelada");
-      }
-    } else {
-      localStorage.removeItem("bioEnabled_" + currentUID);
-      console.log("❌ Biometría deshabilitada");
-      alert("Autenticación biométrica deshabilitada");
-    }
-  });
-}
+// Toggle de biometría (listener único)
+const bioToggle = document.getElementById("biometric-toggle");
+bioToggle.addEventListener("change", async ()=>{
+  if(!currentUID) return;
 
-// Botón de verificación en modal de biometría
-document.getElementById("biometric-btn")?.addEventListener("click", async ()=>{
-  const btn = document.getElementById("biometric-btn");
-  btn.textContent = "Verificando...";
-  btn.disabled = true;
-  
-  const success = await authenticateWithBiometric();
-  
-  if(success) {
-    unlockAppWithBiometric();
+  if(bioToggle.checked) {
+    bioToggle.disabled = true;
+    try {
+      if(!(await isBiometricAvailable())) {
+        const e = new Error("unavailable");
+        e.name = "Unavailable";
+        throw e;
+      }
+      await registerBiometric();
+      localStorage.setItem(bioEnabledKey(currentUID), "true");
+      alert("✅ Autenticación biométrica habilitada");
+    } catch(err) {
+      console.error("Error activando biometría:", err);
+      bioToggle.checked = false;
+      localStorage.removeItem(bioEnabledKey(currentUID));
+      localStorage.removeItem(bioCredKey(currentUID));
+      if(err.name === "Unavailable") {
+        alert("Este dispositivo o navegador no admite huella dactilar (requiere HTTPS y una huella o bloqueo de pantalla configurado).");
+      } else if(err.name === "NotAllowedError") {
+        alert("Verificación cancelada.");
+      } else {
+        alert("No se pudo activar la biometría.");
+      }
+    } finally {
+      bioToggle.disabled = false;
+    }
   } else {
-    btn.textContent = "Verificar huella dactilar";
-    btn.disabled = false;
-    alert("❌ Autenticación fallida. Intenta de nuevo.");
+    localStorage.removeItem(bioEnabledKey(currentUID));
+    localStorage.removeItem(bioCredKey(currentUID));
+    alert("Autenticación biométrica deshabilitada");
   }
 });
 
-// Botón de cancelar en modal de biometría
-document.getElementById("biometric-cancel-btn")?.addEventListener("click", async ()=>{
-  if(confirm("¿Cerrar sesión?")) {
-    if(currentUID) {
-      localStorage.removeItem("bioEnabled_" + currentUID);
-    }
-    await signOut(auth);
+// Botón de verificación en la pantalla de bloqueo
+document.getElementById("biometric-btn").addEventListener("click", async ()=>{
+  if(!currentUser) return;
+  const btn = document.getElementById("biometric-btn");
+  btn.textContent = "Verificando...";
+  btn.disabled = true;
+  setBioError("");
+
+  try {
+    await verifyBiometric(currentUser.uid);
+    startApp(currentUser);
+  } catch(err) {
+    console.error("Error verificando biometría:", err);
+    btn.textContent = "Verificar huella dactilar";
+    btn.disabled = false;
+    setBioError(err.name === "NotAllowedError"
+      ? "Verificación cancelada o fallida. Intenta de nuevo."
+      : "No se pudo verificar. Intenta de nuevo o cierra sesión.");
   }
+});
+
+// Cerrar sesión desde la pantalla de bloqueo
+document.getElementById("biometric-cancel-btn").addEventListener("click", async ()=>{
+  if(confirm("¿Cerrar sesión?")) await doSignOut();
 });
 
 document.getElementById("save-name-btn").addEventListener("click", async ()=>{
@@ -1791,12 +1874,13 @@ document.getElementById("save-name-btn").addEventListener("click", async ()=>{
       updatedAt: serverTimestamp()
     }, { merge: true });
     
-    usersData[currentUID].displayName = displayName;
+    usersData[currentUID] = { ...(usersData[currentUID] || {}), displayName };
     document.getElementById("user-name").textContent = displayName;
     updateUserLabels();
     alert("✅ Nombre actualizado");
   } catch(err) {
     console.error("Error guardando nombre:", err);
+    alert("Error al guardar el nombre");
   }
 });
 
@@ -1845,12 +1929,12 @@ document.querySelectorAll(".nav-item[data-view]").forEach(item=>{
 
 // Calendar navigation
 document.getElementById("prev-month").addEventListener("click", ()=>{
-  currentDate.setMonth(currentDate.getMonth() - 1);
+  currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
   renderCalendar();
 });
 
 document.getElementById("next-month").addEventListener("click", ()=>{
-  currentDate.setMonth(currentDate.getMonth() + 1);
+  currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
   renderCalendar();
 });
 
@@ -1859,7 +1943,7 @@ function renderCalendar(){
   const month = currentDate.getMonth();
   
   document.getElementById("month-title").textContent = 
-    currentDate.toLocaleDateString("es-ES", { month:"long", year:"numeric" });
+    currentDate.toLocaleDateString("es-419", { month:"long", year:"numeric" });
   
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -1896,20 +1980,20 @@ function renderCalendar(){
     let key;
     if(dayNum > 0 && dayNum <= daysInMonth){
       cellDate = new Date(year, month, dayNum);
-      key = cellDate.toISOString().split("T")[0];
+      key = dateKey(cellDate);
     } else {
       key = null;
     }
     
-    const today = new Date().toISOString().split("T")[0];
+    const today = dateKey(new Date());
     if(key === today) cell.classList.add("today");
     
     const dayEvents = eventsCache.filter(ev => ev.date === key);
-    const thumbEvent = dayEvents.find(ev => ev.images && ev.images.length);
+    const thumbEvent = dayEvents.find(ev => ev.images && ev.images.some(isImageMedia));
     if(thumbEvent){
       const thumb = document.createElement("div");
       thumb.className = "day-thumb";
-      thumb.style.backgroundImage = "url(" + thumbEvent.images[0] + ")";
+      thumb.style.backgroundImage = 'url("' + mediaSrc(thumbEvent.images.find(isImageMedia)) + '")';
       cell.appendChild(thumb);
     }
     
@@ -1936,9 +2020,10 @@ function renderCalendar(){
 
 function listenEvents(){
   try {
+    if(unsubEvents) unsubEvents();
     const q = query(collection(db, "events"), orderBy("date"));
     
-    onSnapshot(q, (qs)=>{
+    unsubEvents = onSnapshot(q, (qs)=>{
       eventsCache = [];
       qs.forEach(d=> eventsCache.push({ id: d.id, ...d.data() }));
       renderCalendar();
@@ -1955,7 +2040,7 @@ function listenEvents(){
 function openDay(key, dateObj){
   selectedDay = key;
   document.getElementById("day-modal-title").textContent =
-    dateObj.toLocaleDateString("es-ES", { weekday:"long", day:"numeric", month:"long" });
+    dateObj.toLocaleDateString("es-419", { weekday:"long", day:"numeric", month:"long" });
   renderDayModal(key);
   document.getElementById("day-overlay").classList.add("active");
   
@@ -2034,6 +2119,9 @@ function addThumb(src, idx, type = "image"){
     const video = document.createElement("video");
     video.src = src;
     video.controls = false;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "metadata";
     t.appendChild(video);
     
     const badge = document.createElement("div");
@@ -2068,12 +2156,12 @@ function buildEventCard(ev, feedStyle){
   
   const authorUID = ev.authorUID;
   const authorName = authorUID === currentUID ? (usersData[currentUID]?.displayName || "Vos") : (usersData[authorUID]?.displayName || "La otra persona");
-  const authorLabel = authorUID === currentUID ? authorName + " (yo)" : authorName;
+  const authorLabel = escapeHTML(authorUID === currentUID ? authorName + " (yo)" : authorName);
   
   let html = "";
   if(feedStyle){
     const dateObj = new Date(ev.date + "T00:00:00");
-    const label = dateObj.toLocaleDateString("es-ES", { day:"numeric", month:"long", year:"numeric" });
+    const label = dateObj.toLocaleDateString("es-419", { day:"numeric", month:"long", year:"numeric" });
     html += '<div class="fc-header">' +
       '<div class="fc-dot" style="background:' + (authorUID === currentUID ? 'var(--accent-me)' : 'var(--accent-other)') + '"></div>' +
       '<div class="fc-meta"><h3 class="fc-title">' + escapeHTML(ev.title) + '</h3><p class="fc-date">' + label + '</p></div></div>';
@@ -2115,6 +2203,9 @@ function buildEventCard(ev, feedStyle){
           el = document.createElement("video");
           el.src = media.data;
           el.controls = false;
+          el.muted = true;
+          el.playsInline = true;
+          el.preload = "metadata";
           el.style.cursor = "pointer";
         } else {
           el = document.createElement("img");
@@ -2185,7 +2276,10 @@ function openLightbox(media){
   document.getElementById("lightbox").classList.add("active");
 }
 
-document.getElementById("lightbox").addEventListener("click", ()=>{
+document.getElementById("lightbox").addEventListener("click", (e)=>{
+  const v = document.getElementById("lightbox-video");
+  if(e.target === v) return;
+  v.pause();
   document.getElementById("lightbox").classList.remove("active");
 });
 
@@ -2221,7 +2315,7 @@ document.getElementById("file-input").addEventListener("change", async (e)=>{
       addThumb(processed.data, pendingImages.length-1, processed.type);
     } catch(err) {
       console.error("Error procesando archivo:", err);
-      alert("Error al procesar: " + file.name);
+      alert("Error al procesar " + file.name + ": " + (err && err.message ? err.message : ""));
     }
   }
   
@@ -2238,15 +2332,15 @@ async function processMedia(file) {
   }
   
   if(isVideo) {
-    const maxVideoSize = 50 * 1024 * 1024;
+    const maxVideoSize = 650 * 1024; // el video se guarda dentro del documento (límite 1 MiB)
     if(file.size > maxVideoSize) {
-      throw new Error("Video muy grande (máx 50MB)");
+      throw new Error("Video muy pesado (máx ~650 KB)");
     }
     return await fileToDataURL(file, "video");
   }
   
   if(isImage) {
-    return await resizeImage(file, 1200, 0.8);
+    return await resizeImage(file, 1000, 0.7);
   }
 }
 
@@ -2289,22 +2383,37 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
   const notes = document.getElementById("ev-notes").value.trim();
   const time = document.getElementById("ev-time").value || null;
   
+  // Firestore limita cada documento a ~1 MiB
+  if(JSON.stringify(pendingImages).length > 900000){
+    alert("Las fotos/videos pesan demasiado para un solo evento (límite ~1 MB). Quita algunos archivos.");
+    return;
+  }
+
   const eventData = {
     title, notes, time,
     images: pendingImages,
     authorUID: currentUID
   };
-  
-  if(editingEventId){
-    await updateDoc(doc(db,"events", editingEventId), eventData);
-    editingEventId = null;
-  } else {
-    eventData.date = selectedDay;
-    eventData.createdAt = serverTimestamp();
-    await addDoc(collection(db,"events"), eventData);
+
+  const saveBtn = document.getElementById("save-event-btn");
+  saveBtn.disabled = true;
+  try {
+    if(editingEventId){
+      await updateDoc(doc(db,"events", editingEventId), eventData);
+      editingEventId = null;
+    } else {
+      if(!selectedDay){ alert("Selecciona un día del calendario."); return; }
+      eventData.date = selectedDay;
+      eventData.createdAt = serverTimestamp();
+      await addDoc(collection(db,"events"), eventData);
+    }
+    document.getElementById("event-overlay").classList.remove("active");
+  } catch(err) {
+    console.error("Error guardando evento:", err);
+    alert("No se pudo guardar el evento. Revisa tu conexión o reduce el tamaño de los archivos.");
+  } finally {
+    saveBtn.disabled = false;
   }
-  
-  document.getElementById("event-overlay").classList.remove("active");
 });
 
 renderCalendar();
