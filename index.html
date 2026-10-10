@@ -2178,7 +2178,7 @@ function buildEventCard(ev, feedStyle){
     if(ev.notes) html += '<div class="fc-notes">' + escapeHTML(ev.notes) + '</div>';
     html += '<div class="fc-footer"><span>' + authorLabel + '</span>' +
       '<div class="fc-actions">' +
-        (authorUID === currentUID ? `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` : '') +
+        `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` +
         (authorUID === currentUID ? `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` : '') +
       '</div></div></div>';
   } else {
@@ -2187,7 +2187,7 @@ function buildEventCard(ev, feedStyle){
       (ev.notes ? '<div class="event-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
       '<div class="event-footer"><span>' + authorLabel + '</span>' +
       '<div class="event-actions">' +
-        (authorUID === currentUID ? `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` : '') +
+        `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` +
         (authorUID === currentUID ? `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` : '') +
       '</div></div></div>';
   }
@@ -2391,19 +2391,22 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
 
   const eventData = {
     title, notes, time,
-    images: pendingImages,
-    authorUID: currentUID
+    images: pendingImages
   };
 
   const saveBtn = document.getElementById("save-event-btn");
   saveBtn.disabled = true;
   try {
     if(editingEventId){
+      // Cualquiera de los dos puede editar; el autor original no cambia
+      eventData.lastEditedBy = currentUID;
+      eventData.updatedAt = serverTimestamp();
       await updateDoc(doc(db,"events", editingEventId), eventData);
       editingEventId = null;
     } else {
       if(!selectedDay){ alert("Selecciona un día del calendario."); return; }
       eventData.date = selectedDay;
+      eventData.authorUID = currentUID;
       eventData.createdAt = serverTimestamp();
       await addDoc(collection(db,"events"), eventData);
     }
