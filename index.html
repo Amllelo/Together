@@ -2058,8 +2058,7 @@ function openDay(key, dateObj){
       document.getElementById("ev-notes").value = "";
       document.getElementById("thumbs").innerHTML = "";
       
-      // Cerrar modal de día y abrir modal de evento
-      document.getElementById("day-overlay").classList.remove("active");
+      // El modal del día queda debajo: al cerrar/volver se regresa a él
       document.getElementById("event-overlay").classList.add("active");
       
       console.log("✅ Crear nuevo evento para:", selectedDay);
@@ -2418,6 +2417,84 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     saveBtn.disabled = false;
   }
 });
+
+// ===== NAVEGACIÓN CON EL BOTÓN "ATRÁS" =====
+// Cada pantalla superpuesta (día, evento, ajustes, visor de fotos) y la vista "Recuerdos"
+// cuenta como un nivel. Al abrirse se agrega una entrada al historial; "Atrás" (botón del
+// teléfono o gesto) cierra el nivel superior en vez de salirse de la app.
+const NAV_LAYERS = {
+  "feed-view":        () => document.querySelector('.nav-item[data-view="month-view"]').click(),
+  "day-overlay":      () => document.getElementById("close-day-btn").click(),
+  "settings-overlay": () => document.getElementById("close-settings-btn").click(),
+  "event-overlay":    () => document.getElementById("cancel-event-btn").click(),
+  "lightbox":         () => document.getElementById("lightbox").click()
+};
+
+let navLayers = [];   // niveles abiertos, del más antiguo al más reciente
+let navDepth = 0;     // entradas de historial que la app ha agregado
+let navBusy = false;  // esperando el popstate de un history.go() hecho por la app
+let navDirty = false;
+let navTimer = null;
+
+const navIsOpen = (id) => document.getElementById(id).classList.contains("active");
+
+function navWaitForPop() {
+  navBusy = true;
+  clearTimeout(navTimer);
+  // Seguro: si el popstate no llega, no quedar bloqueados
+  navTimer = setTimeout(() => { if (navBusy) { navBusy = false; navReconcile(); } }, 700);
+}
+
+function navSync() {
+  if (navBusy) { navDirty = true; return; }
+  const want = navLayers.length;
+  if (want > navDepth) {
+    for (let d = navDepth + 1; d <= want; d++) history.pushState({ navDepth: d }, "");
+    navDepth = want;
+  } else if (want < navDepth) {
+    const delta = navDepth - want;
+    navDepth = want;
+    navWaitForPop();
+    history.go(-delta);
+  }
+}
+
+function navReconcile() {
+  navLayers = navLayers.filter(navIsOpen);
+  Object.keys(NAV_LAYERS).forEach((id) => {
+    if (navIsOpen(id) && !navLayers.includes(id)) navLayers.push(id);
+  });
+  navSync();
+}
+
+window.addEventListener("popstate", (e) => {
+  const depth = (e.state && e.state.navDepth) || 0;
+
+  if (navBusy) {                 // popstate causado por la propia app
+    navBusy = false;
+    clearTimeout(navTimer);
+    navDepth = depth;
+    if (navDirty) { navDirty = false; navReconcile(); }
+    return;
+  }
+
+  // El usuario pulsó "Atrás": cerrar el nivel superior
+  navDepth = depth;
+  while (navLayers.length > depth) NAV_LAYERS[navLayers.pop()]();
+  navReconcile();
+});
+
+const navObserver = new MutationObserver(navReconcile);
+Object.keys(NAV_LAYERS).forEach((id) => {
+  navObserver.observe(document.getElementById(id), { attributes: true, attributeFilter: ["class"] });
+});
+
+// Si la página se recargó con niveles abiertos, volver a la entrada base del historial
+if (history.state && history.state.navDepth) {
+  navDepth = history.state.navDepth;
+  navWaitForPop();
+  history.go(-navDepth);
+}
 
 renderCalendar();
 </script>
