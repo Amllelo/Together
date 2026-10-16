@@ -1,8 +1,8 @@
-const CACHE_NAME = "calendario-v12";
+const CACHE_NAME = "calendario-v13";
 const FIREBASE = "https://www.gstatic.com/firebasejs/10.8.0/";
 const LOCAL_ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 const CDN_ASSETS = [FIREBASE + "firebase-app.js", FIREBASE + "firebase-auth.js", FIREBASE + "firebase-firestore.js"];
-const NETWORK_TIMEOUT = 2500; // con mala señal, se usa lo guardado en vez de esperar
+const NETWORK_TIMEOUT = 1500; // con mala señal, se usa lo guardado en vez de esperar
 
 self.addEventListener("install", (event) => {
   // Cada recurso por separado: si falta uno (p. ej. un ícono) no se rompe la instalación
