@@ -44,7 +44,7 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { overscroll-behavior: none; margin: 0; } /* sin deslizamiento lateral ni rebote */
+html, body { overscroll-behavior: none; touch-action: pan-y; overflow-x: clip; margin: 0; } /* solo desplazamiento vertical: nada se desliza hacia los lados */
 
 body {
   min-height: 100vh;
@@ -435,8 +435,7 @@ header.topbar {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(3px);
+  background: rgba(0, 0, 0, 0.66);
   z-index: 50;
   justify-content: center;
   align-items: flex-end;
@@ -1045,8 +1044,10 @@ header.topbar {
 }
 
 /* ===== GESTOS / SCROLL ===== */
+.feed-card { content-visibility: auto; contain-intrinsic-size: auto 380px; }
 .modal-overlay, .modal-content, #lightbox { overscroll-behavior: contain; }
-.event-carousel, .fc-carousel { overscroll-behavior-x: contain; }
+.event-carousel, .fc-carousel { overscroll-behavior-x: contain; touch-action: pan-x pan-y; } /* los carruseles sí se deslizan */
+#lightbox, #lightbox * { touch-action: none; }
 
 /* ===== MINIATURAS DE VIDEO ===== */
 .vid-tile {
@@ -1396,6 +1397,9 @@ header.topbar {
             <button id="export-btn" style="width:100%; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-weight:600; cursor:pointer; font-size:0.9rem;">Descargar datos</button>
           </div>
           <div class="setting-item" style="margin-top:8px;">
+            <button id="perf-btn" style="width:100%; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-weight:600; cursor:pointer; font-size:0.9rem;">Copiar informe de rendimiento</button>
+          </div>
+          <div class="setting-item" style="margin-top:8px;">
             <button id="clear-btn" style="width:100%; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--accent-other); background:transparent; color:var(--accent-other); font-weight:600; cursor:pointer; font-size:0.9rem;">Eliminar todos los eventos</button>
           </div>
         </div>
@@ -1547,6 +1551,8 @@ let currentUser = null;
 let eventsCache = [];
 let eventsMap = new Map();
 let renderScheduled = false;
+let lastEventsSig = "";
+let lastUsersSig = "";
 let usersData = {};
 let selectedDay = null;
 let editingEventId = null;
@@ -1566,6 +1572,74 @@ function dateKey(d) {
 }
 function mediaSrc(m) { return (m && typeof m === "object") ? m.data : m; }
 function isImageMedia(m) { return !(m && typeof m === "object" && m.type === "video"); }
+
+// ===== INFORME DE RENDIMIENTO =====
+// Registra los momentos en que la app se queda "pegada" (≥150 ms) y qué se estaba haciendo,
+// para poder encontrar la causa exacta de un congelamiento.
+const perfLog = (() => { try { return JSON.parse(localStorage.getItem("perfLog") || "[]"); } catch (e) { return []; } })();
+let lastAction = { t: 0, what: "" };
+
+function describeTarget(el) {
+  if (!el || !el.tagName) return "";
+  const t = el.closest ? (el.closest("button, .day-cell, .nav-item, .thumb, .event-carousel img, .fc-carousel img, .vid-tile, [id]") || el) : el;
+  return t.tagName.toLowerCase() + (t.id ? "#" + t.id : "") + (t.className && typeof t.className === "string" ? "." + t.className.trim().split(/\s+/)[0] : "");
+}
+["click", "touchstart"].forEach((type) =>
+  document.addEventListener(type, (e) => { lastAction = { t: Date.now(), what: describeTarget(e.target) }; }, true));
+
+function recordPerf(kind, entry) {
+  const top = entry.scripts && entry.scripts.length
+    ? entry.scripts.slice().sort((a, b) => b.duration - a.duration)[0] : null;
+  perfLog.push({
+    at: new Date().toTimeString().slice(0, 8),
+    kind, ms: Math.round(entry.duration),
+    action: Date.now() - lastAction.t < 4000 ? lastAction.what : "",
+    layers: (typeof navLayers !== "undefined" ? navLayers : []).join(","),
+    script: top ? (top.sourceFunctionName || top.invoker || "?") + " " + Math.round(top.duration) + "ms" : ""
+  });
+  while (perfLog.length > 40) perfLog.shift();
+  try { localStorage.setItem("perfLog", JSON.stringify(perfLog)); } catch (e) {}
+}
+try {
+  new PerformanceObserver((list) => list.getEntries().forEach((en) => { if (en.duration >= 150) recordPerf("frame", en); }))
+    .observe({ type: "long-animation-frame", buffered: true });
+} catch (e) {
+  try {
+    new PerformanceObserver((list) => list.getEntries().forEach((en) => { if (en.duration >= 150) recordPerf("task", en); }))
+      .observe({ entryTypes: ["longtask"] });
+  } catch (e2) {}
+}
+
+function buildPerfReport() {
+  let photos = 0, bytes = 0;
+  eventsCache.forEach((e) => (e.images || []).forEach((m) => { photos++; bytes += (mediaSrc(m) || "").length; }));
+  const lines = [
+    "Together — informe de rendimiento",
+    "Fecha: " + new Date().toLocaleString("es-419"),
+    "Navegador: " + navigator.userAgent,
+    "Memoria (GB): " + (navigator.deviceMemory || "?") + " | Núcleos: " + (navigator.hardwareConcurrency || "?"),
+    "Pantalla: " + screen.width + "x" + screen.height + " @" + window.devicePixelRatio,
+    "Eventos: " + eventsCache.length + " | Fotos/videos: " + photos + " | Datos: " + (bytes / 1048576).toFixed(1) + " MB",
+    "Conexión: " + (navigator.onLine ? "sí" : "no") + (navigator.connection ? " (" + navigator.connection.effectiveType + ")" : ""),
+    "Modo: " + (matchMedia("(display-mode: standalone)").matches ? "app instalada" : "navegador"),
+    "",
+    "Bloqueos detectados (≥150 ms):"
+  ];
+  if (!perfLog.length) lines.push("(ninguno)");
+  perfLog.slice(-25).forEach((p) =>
+    lines.push(p.at + "  " + p.ms + " ms  " + p.kind + " | acción: " + (p.action || "-") + " | abierto: " + (p.layers || "-") + (p.script ? " | " + p.script : "")));
+  return lines.join("\n");
+}
+
+document.getElementById("perf-btn").addEventListener("click", async () => {
+  const report = buildPerfReport();
+  try {
+    await navigator.clipboard.writeText(report);
+    showToast("Informe copiado. Pégalo en un mensaje para revisarlo.");
+  } catch (e) {
+    await appAlert(report, { type: "info" });
+  }
+});
 
 // ===== AVISOS Y CONEXIÓN =====
 let toastTimer = null;
@@ -1656,13 +1730,24 @@ document.addEventListener("keydown", (e) => {
 
 // Espera la confirmación del servidor, pero sin bloquear la interfaz si no hay conexión:
 // Firestore guarda el cambio en el dispositivo y lo envía cuando vuelve Internet.
+function writeErrorMessage(err) {
+  if (err && err.code === "permission-denied") {
+    return "Firebase rechazó el cambio: tu cuenta no tiene permiso. Las reglas de Firestore deben permitir que ambos editen y eliminen los eventos (se configuran en la consola de Firebase).";
+  }
+  return "No se pudo guardar el cambio en el servidor. Se deshizo en este dispositivo.";
+}
+
 async function commitWrite(promise) {
-  promise.catch(() => {});                       // errores tardíos ya no importan a la UI
-  if (!navigator.onLine) return "queued";
-  return Promise.race([
+  let queued = false;
+  // Si el servidor rechaza el cambio después de haberlo dado por "guardado", avisar (no dejarlo en silencio)
+  promise.catch((err) => { if (queued) appAlert(writeErrorMessage(err), { type: "error" }); });
+  if (!navigator.onLine) { queued = true; return "queued"; }
+  const result = await Promise.race([
     promise.then(() => "ok"),
     new Promise((resolve) => setTimeout(() => resolve("queued"), 8000))
   ]);
+  if (result === "queued") queued = true;
+  return result;
 }
 
 // Agrupa varios cambios seguidos en un solo redibujado
@@ -1724,15 +1809,17 @@ const thumbDB = {
 
 // Máximo 2 miniaturas generándose a la vez
 let thumbActive = 0;
-const thumbQueue = [];
-function runThumbJob(job) {
-  return new Promise((resolve) => { thumbQueue.push({ job, resolve }); pumpThumbs(); });
+const thumbHigh = [];   // lo que el usuario está viendo
+const thumbLow = [];    // fondo (miniaturas del calendario): una a la vez y cuando el teléfono está libre
+function runThumbJob(job, low) {
+  return new Promise((resolve) => { (low ? thumbLow : thumbHigh).push({ job, resolve, low }); pumpThumbs(); });
 }
 function pumpThumbs() {
-  while (thumbActive < 2 && thumbQueue.length) {
-    const { job, resolve } = thumbQueue.shift();
+  while (thumbActive < 2 && (thumbHigh.length || (thumbLow.length && thumbActive === 0))) {
+    const t = thumbHigh.length ? thumbHigh.shift() : thumbLow.shift();
     thumbActive++;
-    job().then(resolve, () => resolve(null)).finally(() => { thumbActive--; pumpThumbs(); });
+    const start = () => t.job().then(t.resolve, () => t.resolve(null)).finally(() => { thumbActive--; pumpThumbs(); });
+    if (t.low && "requestIdleCallback" in window) requestIdleCallback(start, { timeout: 2000 }); else start();
   }
 }
 
@@ -1763,14 +1850,14 @@ async function makeThumbBlob(media) {
 
 function peekThumb(media) { return thumbMem.get(mediaKey(media)) || null; }
 
-function thumbFor(media) {
+function thumbFor(media, low = false) {
   const key = mediaKey(media);
   if (thumbMem.has(key)) return Promise.resolve(thumbMem.get(key));
   if (thumbInflight.has(key)) return thumbInflight.get(key);
   const p = (async () => {
     let blob = await thumbDB.get(key);
     if (!blob) {
-      blob = await runThumbJob(() => makeThumbBlob(media));
+      blob = await runThumbJob(() => makeThumbBlob(media), low);
       if (blob) thumbDB.put(key, blob);
     }
     const url = blob ? URL.createObjectURL(blob) : mediaSrc(media);
@@ -2001,6 +2088,8 @@ function stopApp() {
   if (usersPollTimer) { clearInterval(usersPollTimer); usersPollTimer = null; }
   eventsCache = [];
   eventsMap.clear();
+  lastEventsSig = "";
+  lastUsersSig = "";
   usersData = {};
   selectedDay = null;
   editingEventId = null;
@@ -2081,7 +2170,8 @@ function listenUsers() {
     });
 
     updateUserLabels();
-    scheduleRender();
+    const usig = JSON.stringify(Object.entries(usersData).map(([k,v])=>[k, v && v.displayName, v && v.accentColor]));
+    if(usig !== lastUsersSig){ lastUsersSig = usig; scheduleRender(); }
   }, (err)=> console.error("Error en listener de usuarios:", err));
 
   // Polling adicional para móvil - sincronizar cada 5 segundos
@@ -2322,14 +2412,17 @@ document.getElementById("export-btn").addEventListener("click", ()=>{
 document.getElementById("clear-btn").addEventListener("click", async ()=>{
   if(await appConfirm("⚠️ ¿Eliminar TODOS los eventos?", { confirmText: "Continuar", danger: true })) {
     if(await appConfirm("¿Estás seguro? Se borrarán " + eventsCache.length + " eventos.", { confirmText: "Eliminar todo", danger: true })) {
-      for(const ev of eventsCache) {
+      let failed = 0, lastErr = null;
+      for(const ev of eventsCache.slice()) {
         try {
-          await deleteDoc(doc(db, "events", ev.id));
+          await commitWrite(deleteDoc(doc(db, "events", ev.id)));
         } catch(err) {
           console.error("Error eliminando evento:", err);
+          failed++; lastErr = err;
         }
       }
-      await appAlert("✅ Eventos eliminados");
+      if(failed) await appAlert("No se pudieron eliminar " + failed + " evento(s). " + writeErrorMessage(lastErr), { type: "error" });
+      else await appAlert("✅ Eventos eliminados");
     }
   }
 });
@@ -2416,7 +2509,7 @@ function renderCalendar(){
       const setBg = (url) => { thumb.style.backgroundImage = 'url("' + url + '")'; };
       cell.appendChild(thumb);
       const cachedThumb = peekThumb(thumbMedia);
-      if(cachedThumb) setBg(cachedThumb); else thumbFor(thumbMedia).then(setBg);
+      if(cachedThumb) setBg(cachedThumb); else thumbFor(thumbMedia, true).then(setBg);
     }
     
     const num = document.createElement("div");
@@ -2444,6 +2537,7 @@ function listenEvents(){
   try {
     if(unsubEvents) unsubEvents();
     eventsMap.clear();
+    lastEventsSig = "";
     const q = query(collection(db, "events"), orderBy("date"));
 
     unsubEvents = onSnapshot(q, (qs)=>{
@@ -2454,6 +2548,11 @@ function listenEvents(){
       });
       eventsCache = Array.from(eventsMap.values()).sort((a,b)=>
         String(a.date).localeCompare(String(b.date)) || a.id.localeCompare(b.id));
+      // Si nada visible cambió (p. ej. la confirmación del servidor), no se redibuja
+      let sig = "";
+      for(const e of eventsCache) sig += e.id + "|" + e.date + "|" + (e.title||"") + "|" + (e.time||"") + "|" + (e.notes||"") + "|" + (e.lastEditedBy||"") + "|" + (e.images||[]).map(m=>(mediaSrc(m)||"").length).join(",") + ";";
+      if(sig === lastEventsSig) return;
+      lastEventsSig = sig;
       scheduleRender();
     }, (error)=>{
       console.error("Error en Firestore:", error);
@@ -2595,7 +2694,7 @@ function buildEventCard(ev, feedStyle){
     html += '<div class="fc-footer"><span>' + authorLabel + '</span>' +
       '<div class="fc-actions">' +
         `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` +
-        (authorUID === currentUID ? `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` : '') +
+        `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` +
       '</div></div></div>';
   } else {
     html += '<div class="event-body"><h3 class="event-title">' + escapeHTML(ev.title) + '</h3>' +
@@ -2604,7 +2703,7 @@ function buildEventCard(ev, feedStyle){
       '<div class="event-footer"><span>' + authorLabel + '</span>' +
       '<div class="event-actions">' +
         `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` +
-        (authorUID === currentUID ? `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` : '') +
+        `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` +
       '</div></div></div>';
   }
   
@@ -2631,8 +2730,13 @@ function buildEventCard(ev, feedStyle){
     btn.addEventListener("click", async ()=>{
       if(btn.dataset.action === "delete"){
         if(await appConfirm("¿Eliminar este evento?", { confirmText: "Eliminar", danger: true })) {
-          const r = await commitWrite(deleteDoc(doc(db,"events", ev.id)));
-          if(r === "queued") showToast("Se eliminará cuando haya conexión");
+          try {
+            const r = await commitWrite(deleteDoc(doc(db,"events", ev.id)));
+            if(r === "queued") showToast("Se eliminará cuando haya conexión");
+          } catch(err) {
+            console.error("Error eliminando evento:", err);
+            await appAlert(writeErrorMessage(err), { type: "error" });
+          }
         }
       } else {
         openEditEvent(ev);
@@ -2890,7 +2994,9 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     if(result === "queued") showToast("Guardado en tu dispositivo. Se sincronizará cuando haya conexión.");
   } catch(err) {
     console.error("Error guardando evento:", err);
-    await appAlert("No se pudo guardar el evento. Revisa tu conexión o reduce el tamaño de los archivos.");
+    await appAlert(err && err.code === "permission-denied"
+      ? writeErrorMessage(err)
+      : "No se pudo guardar el evento. Revisa tu conexión o reduce el tamaño de los archivos.", { type: "error" });
   } finally {
     saveBtn.disabled = false;
   }
@@ -2980,4 +3086,3 @@ renderCalendar();
 
 </body>
 </html>
-
