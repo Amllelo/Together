@@ -1,19 +1,17 @@
-const CACHE_NAME = "calendario-v11";
-const ASSETS = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png"
-];
+const CACHE_NAME = "calendario-v12";
+const FIREBASE = "https://www.gstatic.com/firebasejs/10.8.0/";
+const LOCAL_ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+const CDN_ASSETS = [FIREBASE + "firebase-app.js", FIREBASE + "firebase-auth.js", FIREBASE + "firebase-firestore.js"];
+const NETWORK_TIMEOUT = 2500; // con mala señal, se usa lo guardado en vez de esperar
 
 self.addEventListener("install", (event) => {
   // Cada recurso por separado: si falta uno (p. ej. un ícono) no se rompe la instalación
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
-      Promise.all(
-        ASSETS.map((url) => cache.add(new Request(url, { cache: "reload" })).catch(() => {}))
-      )
+      Promise.all([
+        ...LOCAL_ASSETS.map((url) => cache.add(new Request(url, { cache: "reload" })).catch(() => {})),
+        ...CDN_ASSETS.map((url) => cache.add(new Request(url, { mode: "cors" })).catch(() => {}))
+      ])
     )
   );
   self.skipWaiting();
@@ -31,28 +29,54 @@ self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
-// Network-first: siempre la versión más nueva; caché solo como respaldo sin conexión
+// Librerías de Firebase (versión fija) y fuentes: se guardan para que la app abra sin conexión
+async function cdnHandler(req, revalidate) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(req, { ignoreVary: true });
+  const update = fetch(req).then((res) => {
+    if (res && (res.ok || res.type === "opaque")) cache.put(req, res.clone());
+    return res;
+  });
+  if (cached) {
+    if (revalidate) update.catch(() => {});   // actualizar en segundo plano
+    return cached;
+  }
+  return update;
+}
+
+// Archivos de la app: red primero (siempre la versión nueva), pero sin esperar de más
+async function appHandler(req) {
+  const cache = await caches.open(CACHE_NAME);
+  const net = fetch(req).then((res) => {
+    if (res && res.status === 200) cache.put(req, res.clone());
+    return res;
+  });
+  net.catch(() => {});
+  const first = await Promise.race([
+    net.catch(() => null),
+    new Promise((resolve) => setTimeout(() => resolve(null), NETWORK_TIMEOUT))
+  ]);
+  if (first) return first;
+
+  const cached = await cache.match(req, { ignoreSearch: req.mode === "navigate" });
+  if (cached) return cached;
+  if (req.mode === "navigate") {
+    const shell = await cache.match("./index.html");
+    if (shell) return shell;
+  }
+  return net; // sin copia guardada: esperar a la red
+}
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;
 
-  event.respondWith(
-    fetch(req)
-      .then((res) => {
-        if (res && res.status === 200) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
-        }
-        return res;
-      })
-      .catch(() =>
-        caches.match(req).then((cached) => {
-          if (cached) return cached;
-          if (req.mode === "navigate") return caches.match("./index.html");
-          return Response.error();
-        })
-      )
-  );
+  if (url.hostname === "www.gstatic.com" && url.pathname.startsWith("/firebasejs/")) {
+    event.respondWith(cdnHandler(req, false));
+  } else if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
+    event.respondWith(cdnHandler(req, true));
+  } else if (url.origin === self.location.origin) {
+    event.respondWith(appHandler(req));
+  }
 });
