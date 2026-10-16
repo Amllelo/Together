@@ -1076,6 +1076,81 @@ header.topbar {
   border-radius: 4px;
 }
 
+/* ===== DIÁLOGOS ===== */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.66);
+  z-index: 400;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.18s ease, visibility 0s linear 0.18s;
+}
+.dialog-overlay.active {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.18s ease, visibility 0s;
+}
+.dialog-card {
+  width: 100%;
+  max-width: 340px;
+  padding: 24px 20px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  transform: translateY(8px) scale(0.96);
+  transition: transform 0.2s ease;
+}
+.dialog-overlay.active .dialog-card { transform: none; }
+.dialog-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--dlg-color) 16%, transparent);
+  color: var(--dlg-color);
+}
+.dialog-icon svg { width: 26px; height: 26px; }
+.dialog-icon.success  { --dlg-color: #3FB950; }
+.dialog-icon.error    { --dlg-color: #F85149; }
+.dialog-icon.warning  { --dlg-color: #D29922; }
+.dialog-icon.danger   { --dlg-color: #F85149; }
+.dialog-icon.info,
+.dialog-icon.question { --dlg-color: var(--accent-me); }
+.dialog-msg {
+  margin: 0 0 20px;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.dialog-actions { display: flex; gap: 10px; }
+.dialog-btn {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dialog-btn.primary { background: var(--accent-me); border-color: var(--accent-me); color: var(--bg); }
+.dialog-btn.primary.danger { background: #F85149; border-color: #F85149; color: #fff; }
+.dialog-btn:active { transform: scale(0.98); }
+
 /* ===== AVISOS ===== */
 #toast {
   position: fixed;
@@ -1372,6 +1447,18 @@ header.topbar {
 
 <div id="toast" role="status" aria-live="polite"></div>
 
+<!-- DIÁLOGO DE LA APP (reemplaza alert/confirm del navegador) -->
+<div id="app-dialog" class="dialog-overlay" role="alertdialog" aria-modal="true" aria-labelledby="app-dialog-msg">
+  <div class="dialog-card">
+    <div class="dialog-icon" id="app-dialog-icon"></div>
+    <p class="dialog-msg" id="app-dialog-msg"></p>
+    <div class="dialog-actions">
+      <button type="button" id="app-dialog-cancel" class="dialog-btn">Cancelar</button>
+      <button type="button" id="app-dialog-ok" class="dialog-btn primary">Aceptar</button>
+    </div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <div id="navbar">
   <div class="nav-item active" data-view="month-view">
@@ -1503,6 +1590,69 @@ function updateConnectionStatus(announce) {
 window.addEventListener("online", () => updateConnectionStatus(true));
 window.addEventListener("offline", () => updateConnectionStatus(true));
 updateConnectionStatus(false);
+
+// ===== DIÁLOGOS DE LA APP (reemplazan alert/confirm del navegador) =====
+const DIALOG_ICONS = {
+  success:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  error:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  warning:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  info:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+  question: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+};
+DIALOG_ICONS.danger = DIALOG_ICONS.warning;
+
+let dialogQueue = Promise.resolve();
+let dialogResolve = null;
+
+function appDialog(message, opts = {}) {
+  const run = () => new Promise((resolve) => {
+    let text = String(message);
+    let type = opts.type;
+    const m = text.match(/^(✅|⚠️?)\s*/u);       // el emoji inicial pasa a ser el ícono
+    if (m) { type = type || (m[1] === "✅" ? "success" : "warning"); text = text.slice(m[0].length); }
+    if (!type) {
+      if (opts.cancelText) type = opts.danger ? "danger" : "question";
+      else if (/^(Error|No se pudo)/.test(text)) type = "error";
+      else if (/^(Sin conexión|Las fotos|Este dispositivo)/.test(text)) type = "warning";
+      else type = "info";
+    }
+    if (opts.cancelText && opts.danger) type = "danger";
+
+    const overlay = document.getElementById("app-dialog");
+    const okBtn = document.getElementById("app-dialog-ok");
+    const cancelBtn = document.getElementById("app-dialog-cancel");
+    const icon = document.getElementById("app-dialog-icon");
+    icon.className = "dialog-icon " + type;
+    icon.innerHTML = DIALOG_ICONS[type];
+    document.getElementById("app-dialog-msg").textContent = text;
+    okBtn.textContent = opts.confirmText || "Aceptar";
+    okBtn.classList.toggle("danger", !!opts.danger);
+    cancelBtn.textContent = opts.cancelText || "Cancelar";
+    cancelBtn.style.display = opts.cancelText ? "" : "none";
+
+    dialogResolve = (value) => {
+      dialogResolve = null;
+      overlay.classList.remove("active");
+      resolve(value);
+    };
+    overlay.classList.add("active");
+    (opts.danger && opts.cancelText ? cancelBtn : okBtn).focus();
+  });
+  const p = dialogQueue.then(run);   // si hay otro abierto, este espera su turno
+  dialogQueue = p;
+  return p;
+}
+const appAlert = (message, opts = {}) => appDialog(message, opts).then(() => true);
+const appConfirm = (message, opts = {}) => appDialog(message, { cancelText: "Cancelar", ...opts });
+
+document.getElementById("app-dialog-ok").addEventListener("click", () => { if (dialogResolve) dialogResolve(true); });
+document.getElementById("app-dialog-cancel").addEventListener("click", () => { if (dialogResolve) dialogResolve(false); });
+document.getElementById("app-dialog").addEventListener("click", (e) => {
+  if (e.target.id === "app-dialog" && dialogResolve) dialogResolve(false);   // tocar fuera = cancelar
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && dialogResolve) { e.preventDefault(); dialogResolve(false); }
+});
 
 // Espera la confirmación del servidor, pero sin bloquear la interfaz si no hay conexión:
 // Firestore guarda el cambio en el dispositivo y lo envía cuando vuelve Internet.
@@ -1786,7 +1936,7 @@ document.getElementById("color-picker").querySelectorAll(".color-option").forEac
       }, { merge: true }));
     } catch (err) {
       console.error("Error guardando color:", err);
-      alert("Error al guardar color");
+      await appAlert("Error al guardar color");
     }
   });
 });
@@ -2044,12 +2194,12 @@ async function doSignOut() {
     await signOut(auth); // onAuthStateChanged limpia la UI y los listeners
   } catch (err) {
     console.error("Error al cerrar sesión:", err);
-    alert("Error al cerrar sesión");
+    await appAlert("Error al cerrar sesión");
   }
 }
 
 document.getElementById("logout-btn").addEventListener("click", async ()=>{
-  if (confirm("¿Cerrar sesión?")) await doSignOut();
+  if (await appConfirm("¿Cerrar sesión?", { confirmText: "Cerrar sesión" })) await doSignOut();
 });
 
 // Settings
@@ -2082,18 +2232,18 @@ bioToggle.addEventListener("change", async ()=>{
       }
       await registerBiometric();
       localStorage.setItem(bioEnabledKey(currentUID), "true");
-      alert("✅ Autenticación biométrica habilitada");
+      await appAlert("✅ Autenticación biométrica habilitada");
     } catch(err) {
       console.error("Error activando biometría:", err);
       bioToggle.checked = false;
       localStorage.removeItem(bioEnabledKey(currentUID));
       localStorage.removeItem(bioCredKey(currentUID));
       if(err.name === "Unavailable") {
-        alert("Este dispositivo o navegador no admite huella dactilar (requiere HTTPS y una huella o bloqueo de pantalla configurado).");
+        await appAlert("Este dispositivo o navegador no admite huella dactilar (requiere HTTPS y una huella o bloqueo de pantalla configurado).");
       } else if(err.name === "NotAllowedError") {
-        alert("Verificación cancelada.");
+        await appAlert("Verificación cancelada.");
       } else {
-        alert("No se pudo activar la biometría.");
+        await appAlert("No se pudo activar la biometría.");
       }
     } finally {
       bioToggle.disabled = false;
@@ -2101,7 +2251,7 @@ bioToggle.addEventListener("change", async ()=>{
   } else {
     localStorage.removeItem(bioEnabledKey(currentUID));
     localStorage.removeItem(bioCredKey(currentUID));
-    alert("Autenticación biométrica deshabilitada");
+    await appAlert("Autenticación biométrica deshabilitada");
   }
 });
 
@@ -2128,12 +2278,12 @@ document.getElementById("biometric-btn").addEventListener("click", async ()=>{
 
 // Cerrar sesión desde la pantalla de bloqueo
 document.getElementById("biometric-cancel-btn").addEventListener("click", async ()=>{
-  if(confirm("¿Cerrar sesión?")) await doSignOut();
+  if(await appConfirm("¿Cerrar sesión?", { confirmText: "Cerrar sesión" })) await doSignOut();
 });
 
 document.getElementById("save-name-btn").addEventListener("click", async ()=>{
   const displayName = document.getElementById("user-display-name").value.trim();
-  if(!displayName) { alert("Ingresa tu nombre"); return; }
+  if(!displayName) { await appAlert("Ingresa tu nombre"); return; }
   
   try {
     const r = await commitWrite(setDoc(doc(db, "users", currentUID), {
@@ -2146,10 +2296,10 @@ document.getElementById("save-name-btn").addEventListener("click", async ()=>{
     usersData[currentUID] = { ...(usersData[currentUID] || {}), displayName };
     document.getElementById("user-name").textContent = displayName;
     updateUserLabels();
-    alert(r === "queued" ? "✅ Nombre guardado. Se sincronizará cuando haya conexión." : "✅ Nombre actualizado");
+    await appAlert(r === "queued" ? "✅ Nombre guardado. Se sincronizará cuando haya conexión." : "✅ Nombre actualizado");
   } catch(err) {
     console.error("Error guardando nombre:", err);
-    alert("Error al guardar el nombre");
+    await appAlert("Error al guardar el nombre");
   }
 });
 
@@ -2170,8 +2320,8 @@ document.getElementById("export-btn").addEventListener("click", ()=>{
 });
 
 document.getElementById("clear-btn").addEventListener("click", async ()=>{
-  if(confirm("⚠️ ¿Eliminar TODOS los eventos?")) {
-    if(confirm("¿Estás seguro? Se borrarán " + eventsCache.length + " eventos.")) {
+  if(await appConfirm("⚠️ ¿Eliminar TODOS los eventos?", { confirmText: "Continuar", danger: true })) {
+    if(await appConfirm("¿Estás seguro? Se borrarán " + eventsCache.length + " eventos.", { confirmText: "Eliminar todo", danger: true })) {
       for(const ev of eventsCache) {
         try {
           await deleteDoc(doc(db, "events", ev.id));
@@ -2179,7 +2329,7 @@ document.getElementById("clear-btn").addEventListener("click", async ()=>{
           console.error("Error eliminando evento:", err);
         }
       }
-      alert("✅ Eventos eliminados");
+      await appAlert("✅ Eventos eliminados");
     }
   }
 });
@@ -2480,7 +2630,7 @@ function buildEventCard(ev, feedStyle){
   item.querySelectorAll(".btn-small").forEach(btn=>{
     btn.addEventListener("click", async ()=>{
       if(btn.dataset.action === "delete"){
-        if(confirm("¿Eliminar este evento?")) {
+        if(await appConfirm("¿Eliminar este evento?", { confirmText: "Eliminar", danger: true })) {
           const r = await commitWrite(deleteDoc(doc(db,"events", ev.id)));
           if(r === "queued") showToast("Se eliminará cuando haya conexión");
         }
@@ -2629,7 +2779,7 @@ document.getElementById("file-input").addEventListener("change", async (e)=>{
       addThumb(processed.data, pendingImages.length-1, processed.type);
     } catch(err) {
       console.error("Error procesando archivo:", err);
-      alert("Error al procesar " + file.name + ": " + (err && err.message ? err.message : ""));
+      await appAlert("Error al procesar " + file.name + ": " + (err && err.message ? err.message : ""));
     }
   }
   
@@ -2693,7 +2843,7 @@ function resizeImage(file, maxSize, quality) {
 
 document.getElementById("save-event-btn").addEventListener("click", async ()=>{
   const title = document.getElementById("ev-title").value.trim();
-  if(!title){ alert("Ponés al menos un título."); return; }
+  if(!title){ await appAlert("Ponés al menos un título."); return; }
   const notes = document.getElementById("ev-notes").value.trim();
   const time = document.getElementById("ev-time").value || null;
   
@@ -2706,13 +2856,13 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
 
   // Fotos y videos requieren conexión para guardarse
   if(imagesChanged && !navigator.onLine){
-    alert("Sin conexión: para guardar fotos o videos necesitas Internet. Puedes guardar el evento sin archivos o intentarlo cuando vuelvas a tener conexión.");
+    await appAlert("Sin conexión: para guardar fotos o videos necesitas Internet. Puedes guardar el evento sin archivos o intentarlo cuando vuelvas a tener conexión.");
     return;
   }
 
   // Firestore limita cada documento a ~1 MiB
   if(imagesChanged && JSON.stringify(pendingImages).length > 900000){
-    alert("Las fotos/videos pesan demasiado para un solo evento (límite ~1 MB). Quita algunos archivos.");
+    await appAlert("Las fotos/videos pesan demasiado para un solo evento (límite ~1 MB). Quita algunos archivos.");
     return;
   }
 
@@ -2730,7 +2880,7 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
       result = await commitWrite(updateDoc(doc(db,"events", editingEventId), eventData));
       editingEventId = null;
     } else {
-      if(!selectedDay){ alert("Selecciona un día del calendario."); return; }
+      if(!selectedDay){ await appAlert("Selecciona un día del calendario."); return; }
       eventData.date = selectedDay;
       eventData.authorUID = currentUID;
       eventData.createdAt = serverTimestamp();
@@ -2740,7 +2890,7 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     if(result === "queued") showToast("Guardado en tu dispositivo. Se sincronizará cuando haya conexión.");
   } catch(err) {
     console.error("Error guardando evento:", err);
-    alert("No se pudo guardar el evento. Revisa tu conexión o reduce el tamaño de los archivos.");
+    await appAlert("No se pudo guardar el evento. Revisa tu conexión o reduce el tamaño de los archivos.");
   } finally {
     saveBtn.disabled = false;
   }
@@ -2755,7 +2905,8 @@ const NAV_LAYERS = {
   "day-overlay":      () => document.getElementById("close-day-btn").click(),
   "settings-overlay": () => document.getElementById("close-settings-btn").click(),
   "event-overlay":    () => document.getElementById("cancel-event-btn").click(),
-  "lightbox":         () => document.getElementById("lightbox").click()
+  "lightbox":         () => document.getElementById("lightbox").click(),
+  "app-dialog":       () => { if (dialogResolve) dialogResolve(false); }
 };
 
 let navLayers = [];   // niveles abiertos, del más antiguo al más reciente
@@ -2829,3 +2980,4 @@ renderCalendar();
 
 </body>
 </html>
+
