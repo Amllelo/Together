@@ -44,7 +44,7 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { overscroll-behavior-y: none; margin: 0; }
+html, body { overscroll-behavior: none; margin: 0; } /* sin deslizamiento lateral ni rebote */
 
 body {
   min-height: 100vh;
@@ -1044,6 +1044,60 @@ header.topbar {
   to { transform: scale(1); opacity: 1; }
 }
 
+/* ===== GESTOS / SCROLL ===== */
+.modal-overlay, .modal-content, #lightbox { overscroll-behavior: contain; }
+.event-carousel, .fc-carousel { overscroll-behavior-x: contain; }
+
+/* ===== MINIATURAS DE VIDEO ===== */
+.vid-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  color: var(--text);
+  cursor: pointer;
+}
+.fc-carousel .vid-tile { width: 140px; height: 140px; }
+.vid-tile svg { width: 32px; height: 32px; }
+.vid-tile span {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+/* ===== AVISOS ===== */
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(90px + var(--safe-bottom));
+  transform: translate(-50%, 20px);
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.85rem;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 300;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+.sync-status.offline { color: var(--accent-other); }
+
 /* ===== BIOMETRIC LOCK ===== */
 #biometric-overlay {
   background: var(--bg);
@@ -1316,6 +1370,8 @@ header.topbar {
   </div>
 </div>
 
+<div id="toast" role="status" aria-live="polite"></div>
+
 <!-- BOTTOM NAV -->
 <div id="navbar">
   <div class="nav-item active" data-view="month-view">
@@ -1341,7 +1397,7 @@ header.topbar {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, setDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, setDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // ===== SERVICE WORKER CON ACTUALIZACIÓN AUTOMÁTICA =====
 if ("serviceWorker" in navigator) {
@@ -1363,10 +1419,10 @@ if ("serviceWorker" in navigator) {
       });
     });
     
-    // Chequear actualizaciones cada 10 segundos
+    // Chequear actualizaciones cada minuto (solo con la app visible y con conexión)
     setInterval(() => {
-      reg.update();
-    }, 10000);
+      if (!document.hidden && navigator.onLine) reg.update().catch(() => {});
+    }, 60000);
   }).catch((err) => {
     console.error("❌ Error registrando Service Worker:", err);
   });
@@ -1388,12 +1444,22 @@ console.log("✅ Firebase inicializado");
 const auth = getAuth(app);
 console.log("✅ Auth inicializado");
 
-const db = getFirestore(app);
+// Caché persistente (IndexedDB): los eventos quedan guardados en el dispositivo, se muestran al instante
+// y siguen disponibles sin conexión. Los cambios hechos sin conexión se sincronizan solos al reconectar.
+let db;
+try {
+  db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+} catch (err) {
+  console.warn("Caché persistente no disponible, usando memoria:", err);
+  db = getFirestore(app);
+}
 console.log("✅ Firestore inicializado");
 
 let currentUID = null;
 let currentUser = null;
 let eventsCache = [];
+let eventsMap = new Map();
+let renderScheduled = false;
 let usersData = {};
 let selectedDay = null;
 let editingEventId = null;
@@ -1413,6 +1479,202 @@ function dateKey(d) {
 }
 function mediaSrc(m) { return (m && typeof m === "object") ? m.data : m; }
 function isImageMedia(m) { return !(m && typeof m === "object" && m.type === "video"); }
+
+// ===== AVISOS Y CONEXIÓN =====
+let toastTimer = null;
+function showToast(msg, ms = 3500) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), ms);
+}
+
+function updateConnectionStatus(announce) {
+  const off = !navigator.onLine;
+  const el = document.querySelector(".sync-status");
+  el.textContent = off ? "Sin conexión" : "Sincronizado";
+  el.classList.toggle("offline", off);
+  if (announce) {
+    showToast(off ? "Sin conexión: puedes ver tus recuerdos, pero no agregar fotos ni videos"
+                  : "Conexión restablecida");
+  }
+}
+window.addEventListener("online", () => updateConnectionStatus(true));
+window.addEventListener("offline", () => updateConnectionStatus(true));
+updateConnectionStatus(false);
+
+// Espera la confirmación del servidor, pero sin bloquear la interfaz si no hay conexión:
+// Firestore guarda el cambio en el dispositivo y lo envía cuando vuelve Internet.
+async function commitWrite(promise) {
+  promise.catch(() => {});                       // errores tardíos ya no importan a la UI
+  if (!navigator.onLine) return "queued";
+  return Promise.race([
+    promise.then(() => "ok"),
+    new Promise((resolve) => setTimeout(() => resolve("queued"), 8000))
+  ]);
+}
+
+// Agrupa varios cambios seguidos en un solo redibujado
+function scheduleRender() {
+  if (renderScheduled) return;
+  renderScheduled = true;
+  requestAnimationFrame(() => {
+    renderScheduled = false;
+    renderCalendar();
+    renderFeed();
+    if (selectedDay) renderDayModal(selectedDay);
+  });
+}
+
+// ===== MEDIOS: miniaturas ligeras + caché =====
+// Las fotos se guardan completas dentro de cada evento (base64). Decodificarlas completas en cada
+// pantalla congelaba la app, así que las listas usan miniaturas pequeñas (generadas una sola vez,
+// fuera del hilo principal) y la foto completa solo se carga al abrirla.
+const THUMB_SIZE = 320;
+const thumbMem = new Map();        // clave -> URL de la miniatura
+const thumbInflight = new Map();
+const fullMem = new Map();         // clave -> URL de la foto/video completo (máx. 6)
+
+function mediaKey(m) {
+  const d = mediaSrc(m) || "";
+  const n = d.length, a = n >> 2;
+  return n + "|" + d.slice(a, a + 24) + d.slice(2 * a, 2 * a + 24) + d.slice(3 * a, 3 * a + 24);
+}
+
+const thumbDB = {
+  open() {
+    if (!this.p) this.p = new Promise((resolve) => {
+      try {
+        const r = indexedDB.open("together-cache", 1);
+        r.onupgradeneeded = () => r.result.createObjectStore("thumbs");
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => resolve(null);
+      } catch (e) { resolve(null); }
+    });
+    return this.p;
+  },
+  async get(key) {
+    const d = await this.open();
+    if (!d) return null;
+    return new Promise((resolve) => {
+      try {
+        const q = d.transaction("thumbs").objectStore("thumbs").get(key);
+        q.onsuccess = () => resolve(q.result || null);
+        q.onerror = () => resolve(null);
+      } catch (e) { resolve(null); }
+    });
+  },
+  async put(key, blob) {
+    const d = await this.open();
+    if (!d) return;
+    try { d.transaction("thumbs", "readwrite").objectStore("thumbs").put(blob, key); } catch (e) {}
+  }
+};
+
+// Máximo 2 miniaturas generándose a la vez
+let thumbActive = 0;
+const thumbQueue = [];
+function runThumbJob(job) {
+  return new Promise((resolve) => { thumbQueue.push({ job, resolve }); pumpThumbs(); });
+}
+function pumpThumbs() {
+  while (thumbActive < 2 && thumbQueue.length) {
+    const { job, resolve } = thumbQueue.shift();
+    thumbActive++;
+    job().then(resolve, () => resolve(null)).finally(() => { thumbActive--; pumpThumbs(); });
+  }
+}
+
+async function makeThumbBlob(media) {
+  const blob = await (await fetch(mediaSrc(media))).blob();
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  let bmp = null;
+  try {
+    bmp = await createImageBitmap(blob, { resizeWidth: THUMB_SIZE, resizeQuality: "medium" });
+  } catch (e) {}
+  if (bmp) {
+    canvas.width = bmp.width; canvas.height = bmp.height;
+    ctx.drawImage(bmp, 0, 0);
+    if (bmp.close) bmp.close();
+  } else {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const k = Math.min(1, THUMB_SIZE / img.naturalWidth);
+    canvas.width = Math.round(img.naturalWidth * k); canvas.height = Math.round(img.naturalHeight * k);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+  }
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.72));
+}
+
+function peekThumb(media) { return thumbMem.get(mediaKey(media)) || null; }
+
+function thumbFor(media) {
+  const key = mediaKey(media);
+  if (thumbMem.has(key)) return Promise.resolve(thumbMem.get(key));
+  if (thumbInflight.has(key)) return thumbInflight.get(key);
+  const p = (async () => {
+    let blob = await thumbDB.get(key);
+    if (!blob) {
+      blob = await runThumbJob(() => makeThumbBlob(media));
+      if (blob) thumbDB.put(key, blob);
+    }
+    const url = blob ? URL.createObjectURL(blob) : mediaSrc(media);
+    thumbMem.set(key, url);
+    return url;
+  })().finally(() => thumbInflight.delete(key));
+  thumbInflight.set(key, p);
+  return p;
+}
+
+// Solo se genera la miniatura de lo que está (o está por estar) en pantalla
+const thumbObserver = ("IntersectionObserver" in window) ? new IntersectionObserver((entries) => {
+  entries.forEach((en) => {
+    if (!en.isIntersecting) return;
+    const el = en.target;
+    thumbObserver.unobserve(el);
+    const m = el._media;
+    el._media = null;
+    if (m) thumbFor(m).then((url) => { if (el.isConnected) el.src = url; });
+  });
+}, { rootMargin: "400px" }) : null;
+
+function lazyThumb(img, media) {
+  const cached = peekThumb(media);
+  if (cached) { img.src = cached; return; }
+  if (!thumbObserver) { thumbFor(media).then((url) => { img.src = url; }); return; }
+  img._media = media;
+  thumbObserver.observe(img);
+}
+
+function makeVideoTile() {
+  const tile = document.createElement("div");
+  tile.className = "vid-tile";
+  tile.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>VIDEO</span>';
+  return tile;
+}
+
+async function fullUrlFor(media) {
+  const key = mediaKey(media);
+  if (fullMem.has(key)) {
+    const u = fullMem.get(key);
+    fullMem.delete(key); fullMem.set(key, u);   // más reciente
+    return u;
+  }
+  const blob = await (await fetch(mediaSrc(media))).blob();
+  const url = URL.createObjectURL(blob);
+  fullMem.set(key, url);
+  while (fullMem.size > 6) {
+    const [oldKey, oldUrl] = fullMem.entries().next().value;
+    fullMem.delete(oldKey);
+    URL.revokeObjectURL(oldUrl);
+  }
+  return url;
+}
 
 // ===== BIOMETRÍA (WebAuthn: huella / rostro del dispositivo) =====
 const bioEnabledKey = (uid) => "bioEnabled_" + uid;
@@ -1518,10 +1780,10 @@ document.getElementById("color-picker").querySelectorAll(".color-option").forEac
     renderFeed();
 
     try {
-      await setDoc(doc(db, "users", currentUID), {
+      await commitWrite(setDoc(doc(db, "users", currentUID), {
         accentColor: color,
         updatedAt: serverTimestamp()
-      }, { merge: true });
+      }, { merge: true }));
     } catch (err) {
       console.error("Error guardando color:", err);
       alert("Error al guardar color");
@@ -1534,45 +1796,52 @@ async function startApp(user) {
   if (appStarted) return;
   appStarted = true;
 
+  const fallbackName = user.email.split("@")[0];
+  const shownName = localStorage.getItem("displayName_" + user.uid) || fallbackName;
+
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("biometric-overlay").classList.remove("active");
   document.getElementById("app").style.display = "block";
   document.getElementById("navbar").classList.add("visible");
   document.getElementById("avatar-display").textContent = (user.email[0] || "?").toUpperCase();
-  document.getElementById("user-name").textContent = "Cargando...";
-  document.getElementById("user-display-name").value = "";
+  document.getElementById("user-name").textContent = shownName;
+  document.getElementById("user-display-name").value = shownName;
 
-  const fallbackName = user.email.split("@")[0];
-  let name = fallbackName;
-  try {
-    const ref = doc(db, "users", user.uid);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      const data = snap.data();
-      name = data.displayName || fallbackName;
-      usersData[user.uid] = data;
-      if (data.accentColor) applyAccent(data.accentColor);
-    } else {
-      const data = { displayName: fallbackName, email: user.email };
-      await setDoc(ref, { ...data, updatedAt: serverTimestamp() });
-      usersData[user.uid] = data;
-    }
-  } catch (err) {
-    console.error("❌ Error cargando usuario:", err);
-  }
-
-  // Si se cerró la sesión mientras cargaba, no seguir
-  if (!appStarted || currentUID !== user.uid) return;
-
-  document.getElementById("user-name").textContent = name;
-  document.getElementById("user-display-name").value = name;
-
+  // Los eventos salen de la caché local al instante; no se espera a la red
   renderCalendar();
   listenEvents();
   listenUsers();
   document.getElementById("biometric-toggle").checked =
     localStorage.getItem(bioEnabledKey(user.uid)) === "true" &&
     !!localStorage.getItem(bioCredKey(user.uid));
+
+  loadMyProfile(user, fallbackName); // en segundo plano
+}
+
+async function loadMyProfile(user, fallbackName) {
+  try {
+    const ref = doc(db, "users", user.uid);
+    const snap = await getDoc(ref);
+    if (!appStarted || currentUID !== user.uid) return; // la sesión cambió mientras cargaba
+
+    let name = fallbackName;
+    if (snap.exists()) {
+      const data = snap.data();
+      name = data.displayName || fallbackName;
+      usersData[user.uid] = { ...(usersData[user.uid] || {}), ...data };
+      if (data.accentColor) applyAccent(data.accentColor);
+    } else {
+      const data = { displayName: fallbackName, email: user.email };
+      await setDoc(ref, { ...data, updatedAt: serverTimestamp() });
+      usersData[user.uid] = data;
+    }
+    localStorage.setItem("displayName_" + user.uid, name);
+    document.getElementById("user-name").textContent = name;
+    document.getElementById("user-display-name").value = name;
+    updateUserLabels();
+  } catch (err) {
+    console.warn("No se pudo cargar el perfil (sin conexión):", err);
+  }
 }
 
 function stopApp() {
@@ -1581,6 +1850,7 @@ function stopApp() {
   if (unsubUsers) { unsubUsers(); unsubUsers = null; }
   if (usersPollTimer) { clearInterval(usersPollTimer); usersPollTimer = null; }
   eventsCache = [];
+  eventsMap.clear();
   usersData = {};
   selectedDay = null;
   editingEventId = null;
@@ -1647,6 +1917,7 @@ function listenUsers() {
 
       if(d.id === currentUID) {
         const displayName = newData.displayName;
+        if(displayName) localStorage.setItem("displayName_" + currentUID, displayName);
         if(displayName && document.getElementById("user-name").textContent !== displayName) {
           document.getElementById("user-name").textContent = displayName;
           document.getElementById("user-display-name").value = displayName;
@@ -1660,14 +1931,12 @@ function listenUsers() {
     });
 
     updateUserLabels();
-    if(colorChanged) renderCalendar();
-    renderFeed();
-    if(selectedDay) renderDayModal(selectedDay);
+    scheduleRender();
   }, (err)=> console.error("Error en listener de usuarios:", err));
 
   // Polling adicional para móvil - sincronizar cada 5 segundos
   usersPollTimer = setInterval(async () => {
-    if(!currentUID) return;
+    if(!currentUID || !navigator.onLine || document.hidden) return;
 
     try {
       const snap = await getDocs(query(collection(db, "users")));
@@ -1687,8 +1956,7 @@ function listenUsers() {
 
       if(needsUpdate && currentUID) {
         updateUserLabels();
-        renderCalendar();
-        if(selectedDay) renderDayModal(selectedDay);
+        scheduleRender();
       }
     } catch(err) {
       console.error("Error en polling de sincronización:", err);
@@ -1868,16 +2136,17 @@ document.getElementById("save-name-btn").addEventListener("click", async ()=>{
   if(!displayName) { alert("Ingresa tu nombre"); return; }
   
   try {
-    await setDoc(doc(db, "users", currentUID), {
+    const r = await commitWrite(setDoc(doc(db, "users", currentUID), {
       displayName: displayName,
       email: currentUser.email,
       updatedAt: serverTimestamp()
-    }, { merge: true });
+    }, { merge: true }));
     
+    localStorage.setItem("displayName_" + currentUID, displayName);
     usersData[currentUID] = { ...(usersData[currentUID] || {}), displayName };
     document.getElementById("user-name").textContent = displayName;
     updateUserLabels();
-    alert("✅ Nombre actualizado");
+    alert(r === "queued" ? "✅ Nombre guardado. Se sincronizará cuando haya conexión." : "✅ Nombre actualizado");
   } catch(err) {
     console.error("Error guardando nombre:", err);
     alert("Error al guardar el nombre");
@@ -1993,8 +2262,11 @@ function renderCalendar(){
     if(thumbEvent){
       const thumb = document.createElement("div");
       thumb.className = "day-thumb";
-      thumb.style.backgroundImage = 'url("' + mediaSrc(thumbEvent.images.find(isImageMedia)) + '")';
+      const thumbMedia = thumbEvent.images.find(isImageMedia);
+      const setBg = (url) => { thumb.style.backgroundImage = 'url("' + url + '")'; };
       cell.appendChild(thumb);
+      const cachedThumb = peekThumb(thumbMedia);
+      if(cachedThumb) setBg(cachedThumb); else thumbFor(thumbMedia).then(setBg);
     }
     
     const num = document.createElement("div");
@@ -2021,14 +2293,18 @@ function renderCalendar(){
 function listenEvents(){
   try {
     if(unsubEvents) unsubEvents();
+    eventsMap.clear();
     const q = query(collection(db, "events"), orderBy("date"));
-    
+
     unsubEvents = onSnapshot(q, (qs)=>{
-      eventsCache = [];
-      qs.forEach(d=> eventsCache.push({ id: d.id, ...d.data() }));
-      renderCalendar();
-      renderFeed();
-      if(selectedDay) renderDayModal(selectedDay);
+      // Solo se procesan los documentos nuevos/modificados/eliminados
+      qs.docChanges().forEach(ch => {
+        if(ch.type === "removed") eventsMap.delete(ch.doc.id);
+        else eventsMap.set(ch.doc.id, { id: ch.doc.id, ...ch.doc.data() });
+      });
+      eventsCache = Array.from(eventsMap.values()).sort((a,b)=>
+        String(a.date).localeCompare(String(b.date)) || a.id.localeCompare(b.id));
+      scheduleRender();
     }, (error)=>{
       console.error("Error en Firestore:", error);
     });
@@ -2115,21 +2391,12 @@ function addThumb(src, idx, type = "image"){
   });
   
   if(type === "video") {
-    const video = document.createElement("video");
-    video.src = src;
-    video.controls = false;
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = "metadata";
-    t.appendChild(video);
-    
-    const badge = document.createElement("div");
-    badge.className = "video-badge";
-    badge.textContent = "VIDEO";
-    t.appendChild(badge);
+    t.appendChild(makeVideoTile());
   } else {
     const img = document.createElement("img");
-    img.src = src;
+    img.decoding = "async";
+    img.alt = "";
+    lazyThumb(img, { data: src, type: "image" });
     t.appendChild(img);
   }
   
@@ -2197,22 +2464,13 @@ function buildEventCard(ev, feedStyle){
   if(carouselEl){
     (ev.images||[]).forEach(media=>{
       let el;
-      if(typeof media === "object" && media.data) {
-        if(media.type === "video") {
-          el = document.createElement("video");
-          el.src = media.data;
-          el.controls = false;
-          el.muted = true;
-          el.playsInline = true;
-          el.preload = "metadata";
-          el.style.cursor = "pointer";
-        } else {
-          el = document.createElement("img");
-          el.src = media.data;
-        }
-      } else {
+      if(isImageMedia(media)) {
         el = document.createElement("img");
-        el.src = media;
+        el.decoding = "async";
+        el.alt = "";
+        lazyThumb(el, media);
+      } else {
+        el = makeVideoTile();
       }
       el.addEventListener("click", ()=> openLightbox(media));
       carouselEl.appendChild(el);
@@ -2222,7 +2480,10 @@ function buildEventCard(ev, feedStyle){
   item.querySelectorAll(".btn-small").forEach(btn=>{
     btn.addEventListener("click", async ()=>{
       if(btn.dataset.action === "delete"){
-        if(confirm("¿Eliminar este evento?")) await deleteDoc(doc(db,"events", ev.id));
+        if(confirm("¿Eliminar este evento?")) {
+          const r = await commitWrite(deleteDoc(doc(db,"events", ev.id)));
+          if(r === "queued") showToast("Se eliminará cuando haya conexión");
+        }
       } else {
         openEditEvent(ev);
       }
@@ -2232,18 +2493,53 @@ function buildEventCard(ev, feedStyle){
   return item;
 }
 
+// El feed se dibuja por tandas (al hacer scroll aparecen más) para abrirse al instante
+const FEED_PAGE = 12;
+let feedItems = [];
+let feedShown = 0;
+let feedObserver = null;
+
 function renderFeed(){
+  if(!document.getElementById("feed-view").classList.contains("active")) return;
   const list = document.getElementById("feed-list");
+  if(feedObserver){ feedObserver.disconnect(); feedObserver = null; }
+  const keep = Math.max(feedShown, FEED_PAGE);   // al redibujar no se pierde lo ya mostrado
   list.innerHTML = "";
-  const withPhotos = eventsCache
+  feedItems = eventsCache
     .filter(ev => ev.images && ev.images.length)
     .sort((a,b)=> b.date.localeCompare(a.date));
+  feedShown = 0;
   
-  if(withPhotos.length === 0){
+  if(feedItems.length === 0){
     list.innerHTML = '<div class="feed-empty">No hay recuerdos con fotos<br><span>Agrega uno desde el calendario</span></div>';
     return;
   }
-  withPhotos.forEach(ev => list.appendChild(buildEventCard(ev, true)));
+  appendFeedItems(keep);
+}
+
+function appendFeedItems(count){
+  const list = document.getElementById("feed-list");
+  const old = document.getElementById("feed-sentinel");
+  if(old) old.remove();
+  const hasObserver = "IntersectionObserver" in window;
+  const end = hasObserver ? Math.min(feedShown + count, feedItems.length) : feedItems.length;
+  const frag = document.createDocumentFragment();
+  for(; feedShown < end; feedShown++) frag.appendChild(buildEventCard(feedItems[feedShown], true));
+  list.appendChild(frag);
+  
+  if(feedShown < feedItems.length){
+    const sentinel = document.createElement("div");
+    sentinel.id = "feed-sentinel";
+    sentinel.style.height = "1px";
+    list.appendChild(sentinel);
+    feedObserver = new IntersectionObserver((entries)=>{
+      if(entries[0].isIntersecting){
+        feedObserver.disconnect();
+        appendFeedItems(FEED_PAGE);
+      }
+    }, { rootMargin: "800px" });
+    feedObserver.observe(sentinel);
+  }
 }
 
 function escapeHTML(str){
@@ -2252,33 +2548,52 @@ function escapeHTML(str){
   return d.innerHTML;
 }
 
-function openLightbox(media){
+let lightboxToken = 0;
+async function openLightbox(media){
+  const token = ++lightboxToken;
   const lightboxImg = document.getElementById("lightbox-img");
   const lightboxVideo = document.getElementById("lightbox-video");
-  
-  if(typeof media === "object" && media.data) {
-    if(media.type === "video") {
-      lightboxImg.style.display = "none";
-      lightboxVideo.src = media.data;
-      lightboxVideo.style.display = "block";
-    } else {
-      lightboxVideo.style.display = "none";
-      lightboxImg.src = media.data;
-      lightboxImg.style.display = "block";
-    }
+  const isVideo = !isImageMedia(media);
+
+  lightboxVideo.pause();
+  if(isVideo) {
+    lightboxImg.style.display = "none";
+    lightboxImg.removeAttribute("src");
+    lightboxVideo.style.display = "block";
   } else {
     lightboxVideo.style.display = "none";
-    lightboxImg.src = media;
+    lightboxVideo.removeAttribute("src");
+    const t = peekThumb(media);
+    if(t) lightboxImg.src = t; else lightboxImg.removeAttribute("src");
     lightboxImg.style.display = "block";
   }
-  
   document.getElementById("lightbox").classList.add("active");
+
+  try {
+    const url = await fullUrlFor(media);
+    if(token !== lightboxToken) return;
+    if(isVideo) {
+      lightboxVideo.src = url;
+    } else {
+      const pre = new Image();
+      pre.src = url;
+      try { await pre.decode(); } catch(e) {}
+      if(token !== lightboxToken) return;
+      lightboxImg.src = url;
+    }
+  } catch(err) {
+    console.error("No se pudo abrir el archivo:", err);
+  }
 }
 
 document.getElementById("lightbox").addEventListener("click", (e)=>{
   const v = document.getElementById("lightbox-video");
   if(e.target === v) return;
+  lightboxToken++;
   v.pause();
+  v.removeAttribute("src");
+  v.load();
+  document.getElementById("lightbox-img").removeAttribute("src");
   document.getElementById("lightbox").classList.remove("active");
 });
 
@@ -2382,34 +2697,47 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
   const notes = document.getElementById("ev-notes").value.trim();
   const time = document.getElementById("ev-time").value || null;
   
+  // ¿Cambiaron los archivos? (en eventos existentes, solo entonces se vuelven a enviar)
+  const orig = editingEventId ? eventsCache.find(e => e.id === editingEventId) : null;
+  const origImages = (orig && orig.images) || [];
+  const imagesChanged = editingEventId
+    ? (origImages.length !== pendingImages.length || pendingImages.some((m, i) => m !== origImages[i]))
+    : pendingImages.length > 0;
+
+  // Fotos y videos requieren conexión para guardarse
+  if(imagesChanged && !navigator.onLine){
+    alert("Sin conexión: para guardar fotos o videos necesitas Internet. Puedes guardar el evento sin archivos o intentarlo cuando vuelvas a tener conexión.");
+    return;
+  }
+
   // Firestore limita cada documento a ~1 MiB
-  if(JSON.stringify(pendingImages).length > 900000){
+  if(imagesChanged && JSON.stringify(pendingImages).length > 900000){
     alert("Las fotos/videos pesan demasiado para un solo evento (límite ~1 MB). Quita algunos archivos.");
     return;
   }
 
-  const eventData = {
-    title, notes, time,
-    images: pendingImages
-  };
+  const eventData = { title, notes, time };
+  if(!editingEventId || imagesChanged) eventData.images = pendingImages;
 
   const saveBtn = document.getElementById("save-event-btn");
   saveBtn.disabled = true;
   try {
+    let result;
     if(editingEventId){
       // Cualquiera de los dos puede editar; el autor original no cambia
       eventData.lastEditedBy = currentUID;
       eventData.updatedAt = serverTimestamp();
-      await updateDoc(doc(db,"events", editingEventId), eventData);
+      result = await commitWrite(updateDoc(doc(db,"events", editingEventId), eventData));
       editingEventId = null;
     } else {
       if(!selectedDay){ alert("Selecciona un día del calendario."); return; }
       eventData.date = selectedDay;
       eventData.authorUID = currentUID;
       eventData.createdAt = serverTimestamp();
-      await addDoc(collection(db,"events"), eventData);
+      result = await commitWrite(addDoc(collection(db,"events"), eventData));
     }
     document.getElementById("event-overlay").classList.remove("active");
+    if(result === "queued") showToast("Guardado en tu dispositivo. Se sincronizará cuando haya conexión.");
   } catch(err) {
     console.error("Error guardando evento:", err);
     alert("No se pudo guardar el evento. Revisa tu conexión o reduce el tamaño de los archivos.");
