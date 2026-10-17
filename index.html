@@ -1043,6 +1043,56 @@ header.topbar {
   to { transform: scale(1); opacity: 1; }
 }
 
+/* ===== EVENTOS NUEVOS ===== */
+.new-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-other);
+  color: var(--bg);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+.event-item.is-new,
+.feed-card.is-new {
+  box-shadow: 0 0 0 1px var(--accent-other), 0 0 18px color-mix(in srgb, var(--accent-other) 28%, transparent);
+}
+.day-cell.has-new::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent-other);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 8px var(--accent-other);
+  z-index: 2;
+}
+.nav-item { position: relative; }
+.nav-badge {
+  display: none;
+  position: absolute;
+  top: 6px;
+  left: calc(50% + 8px);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent-other);
+  color: var(--bg);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+}
+.nav-badge.show { display: block; }
+
 /* ===== GESTOS / SCROLL ===== */
 .feed-card { content-visibility: auto; contain-intrinsic-size: auto 380px; }
 .modal-overlay, .modal-content, #lightbox { overscroll-behavior: contain; }
@@ -1482,6 +1532,7 @@ header.topbar {
       <rect x="14" y="14" width="7" height="7" rx="1"/>
     </svg>
     Recuerdos
+    <span class="nav-badge" id="feed-badge" aria-label="Recuerdos nuevos"></span>
   </div>
 </div>
 
@@ -1572,6 +1623,79 @@ function dateKey(d) {
 }
 function mediaSrc(m) { return (m && typeof m === "object") ? m.data : m; }
 function isImageMedia(m) { return !(m && typeof m === "object" && m.type === "video"); }
+
+// ===== EVENTOS "NUEVOS" =====
+// Un evento es nuevo para ti si lo creó la otra persona, se creó después de que empezaste a usar
+// esta función y todavía no lo has visto. "Visto" = cerraste el día donde aparecía, o lo viste en Recuerdos.
+// Se guarda en este dispositivo (funciona también sin conexión).
+const seenIdsKey = (uid) => "seenEvents_" + uid;
+const seenSinceKey = (uid) => "seenSince_" + uid;
+let seenIds = new Set();
+let seenSince = 0;
+const dayNewIds = new Set();          // nuevos mostrados en el día que está abierto
+const feedSeenCandidates = new Set(); // nuevos que realmente se vieron en pantalla en Recuerdos
+
+function loadSeenState(uid) {
+  try { seenIds = new Set(JSON.parse(localStorage.getItem(seenIdsKey(uid)) || "[]")); } catch (e) { seenIds = new Set(); }
+  let since = Number(localStorage.getItem(seenSinceKey(uid)));
+  if (!since) {                        // primera vez: lo que ya existía no cuenta como nuevo
+    since = Date.now();
+    try { localStorage.setItem(seenSinceKey(uid), String(since)); } catch (e) {}
+  }
+  seenSince = since;
+}
+
+function createdMs(ev) {
+  const c = ev.createdAt;
+  if (!c) return 0;
+  if (typeof c === "number") return c;
+  if (typeof c.toMillis === "function") return c.toMillis();
+  if (typeof c.seconds === "number") return c.seconds * 1000;
+  return 0;
+}
+
+function isNewEvent(ev) {
+  return !!currentUID && ev.authorUID !== currentUID && !seenIds.has(ev.id) && createdMs(ev) > seenSince;
+}
+
+function markSeen(ids) {
+  let changed = false;
+  ids.forEach((id) => { if (!seenIds.has(id)) { seenIds.add(id); changed = true; } });
+  if (!changed || !currentUID) return;
+  if (seenIds.size > 400 && eventsCache.length) {          // limpiar ids de eventos que ya no existen
+    const alive = new Set(eventsCache.map((e) => e.id));
+    seenIds = new Set([...seenIds].filter((id) => alive.has(id)));
+  }
+  try { localStorage.setItem(seenIdsKey(currentUID), JSON.stringify([...seenIds])); } catch (e) {}
+  scheduleRender();
+}
+
+function updateNewBadge() {
+  const badge = document.getElementById("feed-badge");
+  const n = eventsCache.filter((ev) => isNewEvent(ev) && ev.images && ev.images.length).length;
+  badge.textContent = n > 9 ? "9+" : String(n);
+  badge.classList.toggle("show", n > 0);
+}
+
+// Al cerrar el día se consideran vistos sus eventos nuevos
+new MutationObserver(() => {
+  if (!document.getElementById("day-overlay").classList.contains("active") && dayNewIds.size) {
+    markSeen([...dayNewIds]);
+    dayNewIds.clear();
+  }
+}).observe(document.getElementById("day-overlay"), { attributes: true, attributeFilter: ["class"] });
+
+// Al salir de Recuerdos se consideran vistos los que se mostraron en pantalla
+new MutationObserver(() => {
+  if (!document.getElementById("feed-view").classList.contains("active") && feedSeenCandidates.size) {
+    markSeen([...feedSeenCandidates]);
+    feedSeenCandidates.clear();
+  }
+}).observe(document.getElementById("feed-view"), { attributes: true, attributeFilter: ["class"] });
+
+const feedSeenObserver = ("IntersectionObserver" in window) ? new IntersectionObserver((entries) => {
+  entries.forEach((en) => { if (en.isIntersecting && en.target.dataset.eventId) feedSeenCandidates.add(en.target.dataset.eventId); });
+}, { threshold: 0.5 }) : null;
 
 // ===== INFORME DE RENDIMIENTO =====
 // Registra los momentos en que la app se queda "pegada" (≥150 ms) y qué se estaba haciendo,
@@ -1759,6 +1883,7 @@ function scheduleRender() {
     renderCalendar();
     renderFeed();
     if (selectedDay) renderDayModal(selectedDay);
+    updateNewBadge();
   });
 }
 
@@ -2035,6 +2160,7 @@ async function startApp(user) {
 
   const fallbackName = user.email.split("@")[0];
   const shownName = localStorage.getItem("displayName_" + user.uid) || fallbackName;
+  loadSeenState(user.uid);
 
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("biometric-overlay").classList.remove("active");
@@ -2094,6 +2220,10 @@ function stopApp() {
   selectedDay = null;
   editingEventId = null;
   pendingImages = [];
+  seenIds = new Set();
+  dayNewIds.clear();
+  feedSeenCandidates.clear();
+  document.getElementById("feed-badge").classList.remove("show");
   ["day-overlay", "event-overlay", "settings-overlay", "biometric-overlay", "lightbox"].forEach(id => {
     document.getElementById(id).classList.remove("active");
   });
@@ -2501,6 +2631,10 @@ function renderCalendar(){
     if(key === today) cell.classList.add("today");
     
     const dayEvents = eventsCache.filter(ev => ev.date === key);
+    if(dayEvents.some(isNewEvent)){
+      cell.classList.add("has-new");
+      cell.title = "Tiene eventos nuevos";
+    }
     const thumbEvent = dayEvents.find(ev => ev.images && ev.images.some(isImageMedia));
     if(thumbEvent){
       const thumb = document.createElement("div");
@@ -2670,6 +2804,12 @@ function buildEventCard(ev, feedStyle){
   if(!feedStyle && ev.authorUID !== currentUID) item.classList.add("by-other");
   
   const authorUID = ev.authorUID;
+  const fresh = isNewEvent(ev);
+  const newBadge = fresh ? '<span class="new-badge">Nuevo</span>' : '';
+  if(fresh){
+    item.classList.add("is-new");
+    if(feedStyle) item.dataset.eventId = ev.id; else dayNewIds.add(ev.id);
+  }
   const authorName = authorUID === currentUID ? (usersData[currentUID]?.displayName || "Vos") : (usersData[authorUID]?.displayName || "La otra persona");
   const authorLabel = escapeHTML(authorUID === currentUID ? authorName + " (yo)" : authorName);
   
@@ -2679,7 +2819,7 @@ function buildEventCard(ev, feedStyle){
     const label = dateObj.toLocaleDateString("es-419", { day:"numeric", month:"long", year:"numeric" });
     html += '<div class="fc-header">' +
       '<div class="fc-dot" style="background:' + (authorUID === currentUID ? 'var(--accent-me)' : 'var(--accent-other)') + '"></div>' +
-      '<div class="fc-meta"><h3 class="fc-title">' + escapeHTML(ev.title) + '</h3><p class="fc-date">' + label + '</p></div></div>';
+      '<div class="fc-meta"><h3 class="fc-title">' + escapeHTML(ev.title) + newBadge + '</h3><p class="fc-date">' + label + '</p></div></div>';
   }
   
   const carouselClass = feedStyle ? "fc-carousel" : "event-carousel";
@@ -2697,7 +2837,7 @@ function buildEventCard(ev, feedStyle){
         `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` +
       '</div></div></div>';
   } else {
-    html += '<div class="event-body"><h3 class="event-title">' + escapeHTML(ev.title) + '</h3>' +
+    html += '<div class="event-body"><h3 class="event-title">' + escapeHTML(ev.title) + newBadge + '</h3>' +
       (ev.time ? '<div class="event-time">🕐 ' + ev.time + '</div>' : '') +
       (ev.notes ? '<div class="event-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
       '<div class="event-footer"><span>' + authorLabel + '</span>' +
@@ -2757,6 +2897,7 @@ function renderFeed(){
   if(!document.getElementById("feed-view").classList.contains("active")) return;
   const list = document.getElementById("feed-list");
   if(feedObserver){ feedObserver.disconnect(); feedObserver = null; }
+  if(feedSeenObserver) feedSeenObserver.disconnect();
   const keep = Math.max(feedShown, FEED_PAGE);   // al redibujar no se pierde lo ya mostrado
   list.innerHTML = "";
   feedItems = eventsCache
@@ -2780,6 +2921,7 @@ function appendFeedItems(count){
   const frag = document.createDocumentFragment();
   for(; feedShown < end; feedShown++) frag.appendChild(buildEventCard(feedItems[feedShown], true));
   list.appendChild(frag);
+  if(feedSeenObserver) list.querySelectorAll(".feed-card.is-new:not([data-observed])").forEach(el=>{ el.dataset.observed = "1"; feedSeenObserver.observe(el); });
   
   if(feedShown < feedItems.length){
     const sentinel = document.createElement("div");
@@ -2970,119 +3112,4 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     return;
   }
 
-  const eventData = { title, notes, time };
-  if(!editingEventId || imagesChanged) eventData.images = pendingImages;
-
-  const saveBtn = document.getElementById("save-event-btn");
-  saveBtn.disabled = true;
-  try {
-    let result;
-    if(editingEventId){
-      // Cualquiera de los dos puede editar; el autor original no cambia
-      eventData.lastEditedBy = currentUID;
-      eventData.updatedAt = serverTimestamp();
-      result = await commitWrite(updateDoc(doc(db,"events", editingEventId), eventData));
-      editingEventId = null;
-    } else {
-      if(!selectedDay){ await appAlert("Selecciona un día del calendario."); return; }
-      eventData.date = selectedDay;
-      eventData.authorUID = currentUID;
-      eventData.createdAt = serverTimestamp();
-      result = await commitWrite(addDoc(collection(db,"events"), eventData));
-    }
-    document.getElementById("event-overlay").classList.remove("active");
-    if(result === "queued") showToast("Guardado en tu dispositivo. Se sincronizará cuando haya conexión.");
-  } catch(err) {
-    console.error("Error guardando evento:", err);
-    await appAlert(err && err.code === "permission-denied"
-      ? writeErrorMessage(err)
-      : "No se pudo guardar el evento. Revisa tu conexión o reduce el tamaño de los archivos.", { type: "error" });
-  } finally {
-    saveBtn.disabled = false;
-  }
-});
-
-// ===== NAVEGACIÓN CON EL BOTÓN "ATRÁS" =====
-// Cada pantalla superpuesta (día, evento, ajustes, visor de fotos) y la vista "Recuerdos"
-// cuenta como un nivel. Al abrirse se agrega una entrada al historial; "Atrás" (botón del
-// teléfono o gesto) cierra el nivel superior en vez de salirse de la app.
-const NAV_LAYERS = {
-  "feed-view":        () => document.querySelector('.nav-item[data-view="month-view"]').click(),
-  "day-overlay":      () => document.getElementById("close-day-btn").click(),
-  "settings-overlay": () => document.getElementById("close-settings-btn").click(),
-  "event-overlay":    () => document.getElementById("cancel-event-btn").click(),
-  "lightbox":         () => document.getElementById("lightbox").click(),
-  "app-dialog":       () => { if (dialogResolve) dialogResolve(false); }
-};
-
-let navLayers = [];   // niveles abiertos, del más antiguo al más reciente
-let navDepth = 0;     // entradas de historial que la app ha agregado
-let navBusy = false;  // esperando el popstate de un history.go() hecho por la app
-let navDirty = false;
-let navTimer = null;
-
-const navIsOpen = (id) => document.getElementById(id).classList.contains("active");
-
-function navWaitForPop() {
-  navBusy = true;
-  clearTimeout(navTimer);
-  // Seguro: si el popstate no llega, no quedar bloqueados
-  navTimer = setTimeout(() => { if (navBusy) { navBusy = false; navReconcile(); } }, 700);
-}
-
-function navSync() {
-  if (navBusy) { navDirty = true; return; }
-  const want = navLayers.length;
-  if (want > navDepth) {
-    for (let d = navDepth + 1; d <= want; d++) history.pushState({ navDepth: d }, "");
-    navDepth = want;
-  } else if (want < navDepth) {
-    const delta = navDepth - want;
-    navDepth = want;
-    navWaitForPop();
-    history.go(-delta);
-  }
-}
-
-function navReconcile() {
-  navLayers = navLayers.filter(navIsOpen);
-  Object.keys(NAV_LAYERS).forEach((id) => {
-    if (navIsOpen(id) && !navLayers.includes(id)) navLayers.push(id);
-  });
-  navSync();
-}
-
-window.addEventListener("popstate", (e) => {
-  const depth = (e.state && e.state.navDepth) || 0;
-
-  if (navBusy) {                 // popstate causado por la propia app
-    navBusy = false;
-    clearTimeout(navTimer);
-    navDepth = depth;
-    if (navDirty) { navDirty = false; navReconcile(); }
-    return;
-  }
-
-  // El usuario pulsó "Atrás": cerrar el nivel superior
-  navDepth = depth;
-  while (navLayers.length > depth) NAV_LAYERS[navLayers.pop()]();
-  navReconcile();
-});
-
-const navObserver = new MutationObserver(navReconcile);
-Object.keys(NAV_LAYERS).forEach((id) => {
-  navObserver.observe(document.getElementById(id), { attributes: true, attributeFilter: ["class"] });
-});
-
-// Si la página se recargó con niveles abiertos, volver a la entrada base del historial
-if (history.state && history.state.navDepth) {
-  navDepth = history.state.navDepth;
-  navWaitForPop();
-  history.go(-navDepth);
-}
-
-renderCalendar();
-</script>
-
-</body>
-</html>
+  const eventD
