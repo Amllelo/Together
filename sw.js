@@ -1,4 +1,4 @@
-const CACHE_NAME = "calendario-v14";
+const CACHE_NAME = "calendario-v15";
 const FIREBASE = "https://www.gstatic.com/firebasejs/10.8.0/";
 const LOCAL_ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 const CDN_ASSETS = [FIREBASE + "firebase-app.js", FIREBASE + "firebase-auth.js", FIREBASE + "firebase-firestore.js"];
@@ -33,13 +33,15 @@ self.addEventListener("message", (event) => {
 async function cdnHandler(req, revalidate) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(req, { ignoreVary: true });
+  // Una respuesta "opaque" guardada no sirve para un import de módulo (exige CORS): se ignora
+  const usable = cached && !(cached.type === "opaque" && req.mode === "cors") ? cached : null;
   const update = fetch(req).then((res) => {
     if (res && (res.ok || res.type === "opaque")) cache.put(req, res.clone());
     return res;
   });
-  if (cached) {
-    if (revalidate) update.catch(() => {});   // actualizar en segundo plano
-    return cached;
+  if (usable) {
+    update.catch(() => {});   // actualizar en segundo plano
+    return usable;
   }
   return update;
 }
