@@ -1536,7 +1536,19 @@ header.topbar {
   </div>
 </div>
 
+<script>
+// Respaldo: si el módulo principal (Firebase) no llegó a cargar, el formulario no debe recargar la página en silencio
+document.getElementById("login-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+  if (window.__togetherReady) return;
+  document.getElementById("login-error").textContent = navigator.onLine
+    ? "No se pudo cargar Firebase. Recarga la página; si sigue igual, borra los datos del sitio (caché) e inténtalo de nuevo."
+    : "Sin conexión: se necesita Internet para iniciar sesión por primera vez.";
+});
+</script>
+
 <script type="module">
+window.__togetherReady = true;
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, setDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -2398,7 +2410,20 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
     errorDiv.textContent = "";
   } catch(err){
     console.error("❌ Error de login:", err.code, err.message);
-    errorDiv.textContent = err.code + ": " + err.message;
+    const LOGIN_ERRORS = {
+      "auth/invalid-credential": "Email o contraseña incorrectos.",
+      "auth/wrong-password": "Email o contraseña incorrectos.",
+      "auth/user-not-found": "Email o contraseña incorrectos.",
+      "auth/invalid-email": "El email no es válido.",
+      "auth/user-disabled": "Esta cuenta está deshabilitada.",
+      "auth/too-many-requests": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+      "auth/network-request-failed": "Sin conexión o red bloqueada. Revisa tu Internet.",
+      "auth/operation-not-allowed": "El acceso con email/contraseña está desactivado en Firebase (Authentication > Método de acceso).",
+      "auth/unauthorized-domain": "Este dominio no está autorizado en Firebase (Authentication > Configuración > Dominios autorizados).",
+      "auth/api-key-not-valid.-please-pass-a-valid-api-key.": "La API key de Firebase no es válida.",
+      "auth/requests-from-referer-are-blocked": "La API key de Firebase tiene restricciones que bloquean este sitio (Google Cloud > Credenciales)."
+    };
+    errorDiv.textContent = (LOGIN_ERRORS[err.code] || "No se pudo iniciar sesión.") + " [" + (err.code || err.message) + "]";
   }
 });
 
@@ -3073,43 +3098,4 @@ function resizeImage(file, maxSize, quality) {
       img.onload = ()=>{
         let width = img.width, height = img.height;
         if(width > height && width > maxSize){ height *= maxSize/width; width = maxSize; }
-        else if(height > maxSize){ width *= maxSize/height; height = maxSize; }
-        const canvas = document.createElement("canvas");
-        canvas.width = width; canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        resolve({ data: canvas.toDataURL("image/jpeg", quality), type: "image" });
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-document.getElementById("save-event-btn").addEventListener("click", async ()=>{
-  const title = document.getElementById("ev-title").value.trim();
-  if(!title){ await appAlert("Ponés al menos un título."); return; }
-  const notes = document.getElementById("ev-notes").value.trim();
-  const time = document.getElementById("ev-time").value || null;
-  
-  // ¿Cambiaron los archivos? (en eventos existentes, solo entonces se vuelven a enviar)
-  const orig = editingEventId ? eventsCache.find(e => e.id === editingEventId) : null;
-  const origImages = (orig && orig.images) || [];
-  const imagesChanged = editingEventId
-    ? (origImages.length !== pendingImages.length || pendingImages.some((m, i) => m !== origImages[i]))
-    : pendingImages.length > 0;
-
-  // Fotos y videos requieren conexión para guardarse
-  if(imagesChanged && !navigator.onLine){
-    await appAlert("Sin conexión: para guardar fotos o videos necesitas Internet. Puedes guardar el evento sin archivos o intentarlo cuando vuelvas a tener conexión.");
-    return;
-  }
-
-  // Firestore limita cada documento a ~1 MiB
-  if(imagesChanged && JSON.stringify(pendingImages).length > 900000){
-    await appAlert("Las fotos/videos pesan demasiado para un solo evento (límite ~1 MB). Quita algunos archivos.");
-    return;
-  }
-
-  const eventD
+        else if(height > maxSize){ width *= maxSize/height; heigh
