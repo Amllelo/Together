@@ -1,8 +1,20 @@
-const CACHE_NAME = "calendario-v15";
+const CACHE_NAME = "calendario-v14";
 const FIREBASE = "https://www.gstatic.com/firebasejs/10.8.0/";
 const LOCAL_ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 const CDN_ASSETS = [FIREBASE + "firebase-app.js", FIREBASE + "firebase-auth.js", FIREBASE + "firebase-firestore.js"];
 const NETWORK_TIMEOUT = 1500; // con mala señal, se usa lo guardado en vez de esperar
+
+// Solo se guarda lo que de verdad sirve: un JS que no es JS (p. ej. la página de un wifi con login)
+// guardado por error dejaría la app sin poder iniciar hasta borrar la caché.
+function validCdn(res, url) {
+  if (!res) return false;
+  if (res.type === "opaque") return true;            // estilos/fuentes sin CORS: no se pueden inspeccionar
+  if (!res.ok) return false;
+  if (url.pathname.endsWith(".js")) {
+    return /javascript|ecmascript/i.test(res.headers.get("content-type") || "");
+  }
+  return true;
+}
 
 self.addEventListener("install", (event) => {
   // Cada recurso por separado: si falta uno (p. ej. un ícono) no se rompe la instalación
@@ -10,7 +22,11 @@ self.addEventListener("install", (event) => {
     caches.open(CACHE_NAME).then((cache) =>
       Promise.all([
         ...LOCAL_ASSETS.map((url) => cache.add(new Request(url, { cache: "reload" })).catch(() => {})),
-        ...CDN_ASSETS.map((url) => cache.add(new Request(url, { mode: "cors" })).catch(() => {}))
+        ...CDN_ASSETS.map((url) =>
+          fetch(new Request(url, { mode: "cors" }))
+            .then((res) => { if (validCdn(res, new URL(url))) return cache.put(url, res); })
+            .catch(() => {})
+        )
       ])
     )
   );
@@ -32,25 +48,27 @@ self.addEventListener("message", (event) => {
 // Librerías de Firebase (versión fija) y fuentes: se guardan para que la app abra sin conexión
 async function cdnHandler(req, revalidate) {
   const cache = await caches.open(CACHE_NAME);
+  const url = new URL(req.url);
   const cached = await cache.match(req, { ignoreVary: true });
-  // Una respuesta "opaque" guardada no sirve para un import de módulo (exige CORS): se ignora
-  const usable = cached && !(cached.type === "opaque" && req.mode === "cors") ? cached : null;
-  const update = fetch(req).then((res) => {
-    if (res && (res.ok || res.type === "opaque")) cache.put(req, res.clone());
-    return res;
-  });
-  if (usable) {
-    update.catch(() => {});   // actualizar en segundo plano
-    return usable;
+  if (cached && validCdn(cached, url)) {
+    if (revalidate) {
+      fetch(req).then((res) => { if (validCdn(res, url)) cache.put(req, res.clone()); }).catch(() => {});
+    }
+    return cached;
   }
-  return update;
+  if (cached) await cache.delete(req, { ignoreVary: true });   // copia inválida: descartarla
+  const res = await fetch(req);
+  if (validCdn(res, url)) cache.put(req, res.clone());
+  return res;
 }
 
 // Archivos de la app: red primero (siempre la versión nueva), pero sin esperar de más
 async function appHandler(req) {
   const cache = await caches.open(CACHE_NAME);
   const net = fetch(req).then((res) => {
-    if (res && res.status === 200) cache.put(req, res.clone());
+    const type = res && res.headers ? (res.headers.get("content-type") || "") : "";
+    const okToCache = res && res.status === 200 && (req.mode !== "navigate" || /text\/html/i.test(type));
+    if (okToCache) cache.put(req, res.clone());
     return res;
   });
   net.catch(() => {});
