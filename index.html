@@ -1273,6 +1273,7 @@ header.topbar {
     <button type="submit">Ingresar</button>
     <div id="login-error" style="color:#FF7B72; font-size:0.9rem; text-align:center; margin-top:8px;"></div>
   </form>
+  <a id="forgot-link" href="#" style="margin-top:14px; color:var(--text-muted); font-size:0.85rem; text-align:center; text-decoration:underline;">¿Olvidaste tu contraseña?</a>
   <a id="repair-link" href="#" onclick="window.repairApp(); return false;" style="display:none; margin-top:18px; color:var(--text-muted); font-size:0.85rem; text-align:center; text-decoration:underline;">¿No carga? Reparar app</a>
 </div>
 
@@ -1582,8 +1583,15 @@ header.topbar {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, setDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// Almacenamiento local a prueba de fallos (si el navegador lo bloquea o se llena, la app sigue funcionando)
+const LS = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  remove(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
 
 // ===== SERVICE WORKER CON ACTUALIZACIÓN AUTOMÁTICA =====
 if ("serviceWorker" in navigator) {
@@ -1650,6 +1658,8 @@ let currentUser = null;
 let eventsCache = [];
 let eventsMap = new Map();
 let renderScheduled = false;
+let loginWatch = null; // si inicias sesión pero la app no abre, se avisa
+let navLayers = [];   // niveles abiertos para el botón «Atrás» (se declara aquí, antes de cualquier uso)
 let lastEventsSig = "";
 let lastUsersSig = "";
 let usersData = {};
@@ -1684,11 +1694,11 @@ const dayNewIds = new Set();          // nuevos mostrados en el día que está a
 const feedSeenCandidates = new Set(); // nuevos que realmente se vieron en pantalla en Recuerdos
 
 function loadSeenState(uid) {
-  try { seenIds = new Set(JSON.parse(localStorage.getItem(seenIdsKey(uid)) || "[]")); } catch (e) { seenIds = new Set(); }
-  let since = Number(localStorage.getItem(seenSinceKey(uid)));
+  try { seenIds = new Set(JSON.parse(LS.get(seenIdsKey(uid)) || "[]")); } catch (e) { seenIds = new Set(); }
+  let since = Number(LS.get(seenSinceKey(uid)));
   if (!since) {                        // primera vez: lo que ya existía no cuenta como nuevo
     since = Date.now();
-    try { localStorage.setItem(seenSinceKey(uid), String(since)); } catch (e) {}
+    try { LS.set(seenSinceKey(uid), String(since)); } catch (e) {}
   }
   seenSince = since;
 }
@@ -1714,7 +1724,7 @@ function markSeen(ids) {
     const alive = new Set(eventsCache.map((e) => e.id));
     seenIds = new Set([...seenIds].filter((id) => alive.has(id)));
   }
-  try { localStorage.setItem(seenIdsKey(currentUID), JSON.stringify([...seenIds])); } catch (e) {}
+  try { LS.set(seenIdsKey(currentUID), JSON.stringify([...seenIds])); } catch (e) {}
   scheduleRender();
 }
 
@@ -1748,7 +1758,7 @@ const feedSeenObserver = ("IntersectionObserver" in window) ? new IntersectionOb
 // ===== INFORME DE RENDIMIENTO =====
 // Registra los momentos en que la app se queda "pegada" (≥150 ms) y qué se estaba haciendo,
 // para poder encontrar la causa exacta de un congelamiento.
-const perfLog = (() => { try { return JSON.parse(localStorage.getItem("perfLog") || "[]"); } catch (e) { return []; } })();
+const perfLog = (() => { try { return JSON.parse(LS.get("perfLog") || "[]"); } catch (e) { return []; } })();
 let lastAction = { t: 0, what: "" };
 
 function describeTarget(el) {
@@ -1766,11 +1776,11 @@ function recordPerf(kind, entry) {
     at: new Date().toTimeString().slice(0, 8),
     kind, ms: Math.round(entry.duration),
     action: Date.now() - lastAction.t < 4000 ? lastAction.what : "",
-    layers: (typeof navLayers !== "undefined" ? navLayers : []).join(","),
+    layers: navLayers.join(","),
     script: top ? (top.sourceFunctionName || top.invoker || "?") + " " + Math.round(top.duration) + "ms" : ""
   });
   while (perfLog.length > 40) perfLog.shift();
-  try { localStorage.setItem("perfLog", JSON.stringify(perfLog)); } catch (e) {}
+  try { LS.set("perfLog", JSON.stringify(perfLog)); } catch (e) {}
 }
 try {
   new PerformanceObserver((list) => list.getEntries().forEach((en) => { if (en.duration >= 150) recordPerf("frame", en); }))
@@ -2137,11 +2147,11 @@ async function registerBiometric() {
       timeout: 60000
     }
   });
-  localStorage.setItem(bioCredKey(currentUID), bufToB64u(cred.rawId));
+  LS.set(bioCredKey(currentUID), bufToB64u(cred.rawId));
 }
 
 async function verifyBiometric(uid) {
-  const id = localStorage.getItem(bioCredKey(uid));
+  const id = LS.get(bioCredKey(uid));
   if (!id) throw new Error("no-credential");
   await navigator.credentials.get({
     publicKey: {
@@ -2177,7 +2187,7 @@ function applyAccent(color) {
 }
 
 function loadTheme() {
-  const saved = currentUID ? localStorage.getItem("accentColor_" + currentUID) : null;
+  const saved = currentUID ? LS.get("accentColor_" + currentUID) : null;
   if (saved) applyAccent(saved);
 }
 
@@ -2187,7 +2197,7 @@ document.getElementById("color-picker").querySelectorAll(".color-option").forEac
     if (!currentUID) return;
 
     applyAccent(color);
-    localStorage.setItem("accentColor_" + currentUID, color);
+    LS.set("accentColor_" + currentUID, color);
     usersData[currentUID] = { ...(usersData[currentUID] || {}), accentColor: color };
     updateUserLabels();
     renderCalendar();
@@ -2211,7 +2221,7 @@ async function startApp(user) {
   appStarted = true;
 
   const fallbackName = user.email.split("@")[0];
-  const shownName = localStorage.getItem("displayName_" + user.uid) || fallbackName;
+  const shownName = LS.get("displayName_" + user.uid) || fallbackName;
 
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("biometric-overlay").classList.remove("active");
@@ -2229,8 +2239,8 @@ async function startApp(user) {
   step("eventos", listenEvents);
   step("usuarios", listenUsers);
   document.getElementById("biometric-toggle").checked =
-    localStorage.getItem(bioEnabledKey(user.uid)) === "true" &&
-    !!localStorage.getItem(bioCredKey(user.uid));
+    LS.get(bioEnabledKey(user.uid)) === "true" &&
+    !!LS.get(bioCredKey(user.uid));
 
   loadMyProfile(user, fallbackName); // en segundo plano
 }
@@ -2252,7 +2262,7 @@ async function loadMyProfile(user, fallbackName) {
       await setDoc(ref, { ...data, updatedAt: serverTimestamp() });
       usersData[user.uid] = data;
     }
-    localStorage.setItem("displayName_" + user.uid, name);
+    LS.set("displayName_" + user.uid, name);
     document.getElementById("user-name").textContent = name;
     document.getElementById("user-display-name").value = name;
     updateUserLabels();
@@ -2288,7 +2298,8 @@ function stopApp() {
   document.documentElement.style.setProperty("--accent-other", DEFAULT_OTHER);
 }
 
-onAuthStateChanged(auth, (user) => {
+function onAuthChange(user) {
+  clearTimeout(loginWatch);
   if (user) {
     // Evita re-bloquear / reiniciar si el evento se repite para la misma sesión
     if (appStarted && currentUID === user.uid) return;
@@ -2297,11 +2308,11 @@ onAuthStateChanged(auth, (user) => {
     currentUser = user;
     loadTheme();
 
-    let bioOn = localStorage.getItem(bioEnabledKey(user.uid)) === "true";
-    const hasCred = !!localStorage.getItem(bioCredKey(user.uid));
+    let bioOn = LS.get(bioEnabledKey(user.uid)) === "true";
+    const hasCred = !!LS.get(bioCredKey(user.uid));
     if (bioOn && !hasCred) {
       // Activada con la versión anterior (sin credencial real): se desactiva y se puede volver a activar en Configuración
-      localStorage.removeItem(bioEnabledKey(user.uid));
+      LS.remove(bioEnabledKey(user.uid));
       bioOn = false;
     }
 
@@ -2318,6 +2329,15 @@ onAuthStateChanged(auth, (user) => {
     document.getElementById("login-screen").style.display = "flex";
     document.getElementById("app").style.display = "none";
     document.getElementById("navbar").classList.remove("visible");
+  }
+}
+
+onAuthStateChanged(auth, (user) => {
+  try {
+    onAuthChange(user);
+  } catch (err) {
+    console.error("Error al procesar el estado de sesión:", err);
+    if (user) { try { startApp(user); } catch (e2) { console.error(e2); } }   // abrir la app de todos modos
   }
 });
 
@@ -2340,7 +2360,7 @@ function listenUsers() {
 
       if(d.id === currentUID) {
         const displayName = newData.displayName;
-        if(displayName) localStorage.setItem("displayName_" + currentUID, displayName);
+        if(displayName) LS.set("displayName_" + currentUID, displayName);
         if(displayName && document.getElementById("user-name").textContent !== displayName) {
           document.getElementById("user-name").textContent = displayName;
           document.getElementById("user-display-name").value = displayName;
@@ -2348,7 +2368,7 @@ function listenUsers() {
         // Color elegido desde otro dispositivo
         if(newData.accentColor && newData.accentColor !== document.documentElement.style.getPropertyValue("--accent-me").trim()) {
           applyAccent(newData.accentColor);
-          localStorage.setItem("accentColor_" + currentUID, newData.accentColor);
+          LS.set("accentColor_" + currentUID, newData.accentColor);
         }
       }
     });
@@ -2397,7 +2417,7 @@ function updateUserLabels() {
     // Obtener color actual del usuario (de app)
     let myColor = document.documentElement.style.getPropertyValue("--accent-me").trim();
     if(!myColor || myColor === "") {
-      myColor = localStorage.getItem("accentColor_" + currentUID) || "#3FB950";
+      myColor = LS.get("accentColor_" + currentUID) || "#3FB950";
       document.documentElement.style.setProperty("--accent-me", myColor);
     }
     
@@ -2409,7 +2429,7 @@ function updateUserLabels() {
         otherColor = usersData[otherUID].accentColor;
       } else {
         // Si no, intentar del localStorage
-        const savedOtherColor = localStorage.getItem("accentColor_" + otherUID);
+        const savedOtherColor = LS.get("accentColor_" + otherUID);
         if(savedOtherColor) {
           otherColor = savedOtherColor;
         }
@@ -2436,23 +2456,64 @@ function updateUserLabels() {
   }
 }
 
+function authErrorMessage(err) {
+  const code = (err && err.code) || "";
+  let msg;
+  if (/invalid-credential|wrong-password|user-not-found|invalid-login-credentials/.test(code)) msg = "Correo o contraseña incorrectos.";
+  else if (/invalid-email/.test(code)) msg = "El correo no es válido.";
+  else if (/too-many-requests/.test(code)) msg = "Demasiados intentos. Espera unos minutos o usa «¿Olvidaste tu contraseña?».";
+  else if (/network-request-failed/.test(code)) msg = "No hay conexión con Firebase. Revisa tu Internet e intenta de nuevo.";
+  else if (/user-disabled/.test(code)) msg = "Esta cuenta está deshabilitada en Firebase.";
+  else if (/operation-not-allowed/.test(code)) msg = "El acceso con correo y contraseña está desactivado en Firebase (Authentication → Método de acceso).";
+  else if (/api-key|unauthorized-domain|app-not-authorized|requests-from-referer|app-check/.test(code)) msg = "Firebase rechazó esta app (clave de API o dominio no autorizado). Revisa Authentication → Configuración → Dominios autorizados y las restricciones de la clave de API.";
+  else msg = (err && err.message) || "No se pudo iniciar sesión.";
+  return msg + (code ? " (" + code + ")" : "");
+}
+
 document.getElementById("login-form").addEventListener("submit", async (e)=>{
   e.preventDefault();
-  const email = document.getElementById("email-input").value;
+  const email = document.getElementById("email-input").value.trim();
   const password = document.getElementById("password-input").value;
   const errorDiv = document.getElementById("login-error");
+  const submitBtn = document.querySelector("#login-form button[type=submit]");
   
   console.log("🔍 Intentando login con:", email);
   errorDiv.textContent = "Ingresando...";
+  submitBtn.disabled = true;
+  const slow = setTimeout(() => { errorDiv.textContent = "Está tardando más de lo normal… revisa tu conexión a Internet."; }, 12000);
   
   try {
     console.log("🔄 Conectando a Firebase...");
     const result = await signInWithEmailAndPassword(auth, email, password);
     console.log("✅ Login exitoso:", result.user.email);
     errorDiv.textContent = "";
+    clearTimeout(loginWatch);
+    loginWatch = setTimeout(() => {
+      const lockShown = document.getElementById("biometric-overlay").classList.contains("active");
+      if (!appStarted && !lockShown && document.getElementById("login-screen").style.display !== "none") {
+        errorDiv.textContent = "Iniciaste sesión, pero la app no pudo abrirse. Pulsa «Reparar app».";
+        document.getElementById("repair-link").style.display = "block";
+      }
+    }, 10000);
   } catch(err){
     console.error("❌ Error de login:", err.code, err.message);
-    errorDiv.textContent = err.code + ": " + err.message;
+    errorDiv.textContent = authErrorMessage(err);
+  } finally {
+    clearTimeout(slow);
+    submitBtn.disabled = false;
+  }
+});
+
+document.getElementById("forgot-link").addEventListener("click", async (e)=>{
+  e.preventDefault();
+  const email = document.getElementById("email-input").value.trim();
+  if (!email) { await appAlert("Escribe tu correo en el campo de arriba y vuelve a pulsar «¿Olvidaste tu contraseña?»."); return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    await appAlert("✅ Te enviamos un correo a " + email + " para restablecer tu contraseña. Revisa también la carpeta de spam.");
+  } catch (err) {
+    console.error("Error enviando correo de recuperación:", err);
+    await appAlert(authErrorMessage(err), { type: "error" });
   }
 });
 
@@ -2462,9 +2523,9 @@ async function doSignOut() {
   const uid = currentUID;
   try {
     if (uid) {
-      localStorage.removeItem(bioEnabledKey(uid));
-      localStorage.removeItem(bioCredKey(uid));
-      localStorage.removeItem("deviceKey_" + uid);
+      LS.remove(bioEnabledKey(uid));
+      LS.remove(bioCredKey(uid));
+      LS.remove("deviceKey_" + uid);
       // accentColor se conserva por usuario
     }
     await signOut(auth); // onAuthStateChanged limpia la UI y los listeners
@@ -2507,13 +2568,13 @@ bioToggle.addEventListener("change", async ()=>{
         throw e;
       }
       await registerBiometric();
-      localStorage.setItem(bioEnabledKey(currentUID), "true");
+      LS.set(bioEnabledKey(currentUID), "true");
       await appAlert("✅ Autenticación biométrica habilitada");
     } catch(err) {
       console.error("Error activando biometría:", err);
       bioToggle.checked = false;
-      localStorage.removeItem(bioEnabledKey(currentUID));
-      localStorage.removeItem(bioCredKey(currentUID));
+      LS.remove(bioEnabledKey(currentUID));
+      LS.remove(bioCredKey(currentUID));
       if(err.name === "Unavailable") {
         await appAlert("Este dispositivo o navegador no admite huella dactilar (requiere HTTPS y una huella o bloqueo de pantalla configurado).");
       } else if(err.name === "NotAllowedError") {
@@ -2525,8 +2586,8 @@ bioToggle.addEventListener("change", async ()=>{
       bioToggle.disabled = false;
     }
   } else {
-    localStorage.removeItem(bioEnabledKey(currentUID));
-    localStorage.removeItem(bioCredKey(currentUID));
+    LS.remove(bioEnabledKey(currentUID));
+    LS.remove(bioCredKey(currentUID));
     await appAlert("Autenticación biométrica deshabilitada");
   }
 });
@@ -2568,7 +2629,7 @@ document.getElementById("save-name-btn").addEventListener("click", async ()=>{
       updatedAt: serverTimestamp()
     }, { merge: true }));
     
-    localStorage.setItem("displayName_" + currentUID, displayName);
+    LS.set("displayName_" + currentUID, displayName);
     usersData[currentUID] = { ...(usersData[currentUID] || {}), displayName };
     document.getElementById("user-name").textContent = displayName;
     updateUserLabels();
@@ -2975,99 +3036,4 @@ function appendFeedItems(count){
   const hasObserver = "IntersectionObserver" in window;
   const end = hasObserver ? Math.min(feedShown + count, feedItems.length) : feedItems.length;
   const frag = document.createDocumentFragment();
-  for(; feedShown < end; feedShown++) frag.appendChild(buildEventCard(feedItems[feedShown], true));
-  list.appendChild(frag);
-  if(feedSeenObserver) list.querySelectorAll(".feed-card.is-new:not([data-observed])").forEach(el=>{ el.dataset.observed = "1"; feedSeenObserver.observe(el); });
-  
-  if(feedShown < feedItems.length){
-    const sentinel = document.createElement("div");
-    sentinel.id = "feed-sentinel";
-    sentinel.style.height = "1px";
-    list.appendChild(sentinel);
-    feedObserver = new IntersectionObserver((entries)=>{
-      if(entries[0].isIntersecting){
-        feedObserver.disconnect();
-        appendFeedItems(FEED_PAGE);
-      }
-    }, { rootMargin: "800px" });
-    feedObserver.observe(sentinel);
-  }
-}
-
-function escapeHTML(str){
-  const d = document.createElement("div");
-  d.textContent = str || "";
-  return d.innerHTML;
-}
-
-let lightboxToken = 0;
-async function openLightbox(media){
-  const token = ++lightboxToken;
-  const lightboxImg = document.getElementById("lightbox-img");
-  const lightboxVideo = document.getElementById("lightbox-video");
-  const isVideo = !isImageMedia(media);
-
-  lightboxVideo.pause();
-  if(isVideo) {
-    lightboxImg.style.display = "none";
-    lightboxImg.removeAttribute("src");
-    lightboxVideo.style.display = "block";
-  } else {
-    lightboxVideo.style.display = "none";
-    lightboxVideo.removeAttribute("src");
-    const t = peekThumb(media);
-    if(t) lightboxImg.src = t; else lightboxImg.removeAttribute("src");
-    lightboxImg.style.display = "block";
-  }
-  document.getElementById("lightbox").classList.add("active");
-
-  try {
-    const url = await fullUrlFor(media);
-    if(token !== lightboxToken) return;
-    if(isVideo) {
-      lightboxVideo.src = url;
-    } else {
-      const pre = new Image();
-      pre.src = url;
-      try { await pre.decode(); } catch(e) {}
-      if(token !== lightboxToken) return;
-      lightboxImg.src = url;
-    }
-  } catch(err) {
-    console.error("No se pudo abrir el archivo:", err);
-  }
-}
-
-document.getElementById("lightbox").addEventListener("click", (e)=>{
-  const v = document.getElementById("lightbox-video");
-  if(e.target === v) return;
-  lightboxToken++;
-  v.pause();
-  v.removeAttribute("src");
-  v.load();
-  document.getElementById("lightbox-img").removeAttribute("src");
-  document.getElementById("lightbox").classList.remove("active");
-});
-
-document.getElementById("close-event-btn").addEventListener("click", ()=>{
-  editingEventId = null;
-  document.getElementById("event-overlay").classList.remove("active");
-});
-
-document.getElementById("cancel-event-btn").addEventListener("click", ()=>{
-  editingEventId = null;
-  document.getElementById("event-overlay").classList.remove("active");
-});
-
-document.getElementById("file-drop").addEventListener("click", ()=>{
-  document.getElementById("file-input").click();
-});
-
-document.getElementById("file-input").addEventListener("change", async (e)=>{
-  const files = Array.from(e.target.files);
-  const progressDiv = document.getElementById("upload-progress");
-  const progressBar = document.getElementById("progress-bar");
-  progressDiv.style.display = "block";
-  progressBar.style.width = "0%";
-  
-  for(let i = 0; i < 
+  for(; feedShown < 
