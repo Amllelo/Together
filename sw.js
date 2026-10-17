@@ -1,4 +1,4 @@
-const CACHE_NAME = "calendario-v14";
+const CACHE_NAME = "calendario-v15";
 const FIREBASE = "https://www.gstatic.com/firebasejs/10.8.0/";
 const LOCAL_ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 const CDN_ASSETS = [FIREBASE + "firebase-app.js", FIREBASE + "firebase-auth.js", FIREBASE + "firebase-firestore.js"];
