@@ -1,7 +1,7 @@
 const CACHE_NAME = "calendario-v15";
 const FIREBASE = "https://www.gstatic.com/firebasejs/10.8.0/";
-const LOCAL_ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
-const CDN_ASSETS = [FIREBASE + "firebase-app.js", FIREBASE + "firebase-auth.js", FIREBASE + "firebase-firestore.js"];
+const LOCAL_ASSETS = ["./", "./index.html", "./manifest.json", "./firebase-bundle.js", "./icon-192.png", "./icon-512.png"];
+const CDN_ASSETS = [];   // la CDN de Google solo es respaldo: se guarda al usarse
 const NETWORK_TIMEOUT = 1500; // con mala señal, se usa lo guardado en vez de esperar
 
 // Solo se guarda lo que de verdad sirve: un JS que no es JS (p. ej. la página de un wifi con login)
