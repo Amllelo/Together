@@ -1,4 +1,4 @@
-const CACHE_NAME = "calendario-v15";
+const CACHE_NAME = "calendario-v16";
 const FIREBASE = "https://www.gstatic.com/firebasejs/10.8.0/";
 const LOCAL_ASSETS = ["./", "./index.html", "./manifest.json", "./firebase-bundle.js", "./icon-192.png", "./icon-512.png"];
 const CDN_ASSETS = [];   // la CDN de Google solo es respaldo: se guarda al usarse
@@ -63,9 +63,20 @@ async function cdnHandler(req, revalidate) {
 }
 
 // Archivos de la app: red primero (siempre la versión nueva), pero sin esperar de más
+// "no-cache": siempre pregunta al servidor si hay versión nueva (GitHub Pages guarda 10 min en la caché HTTP
+// y sin esto el teléfono podía seguir con un index.html viejo después de publicar uno nuevo).
+function freshRequest(req) {
+  try {
+    if (req.mode === "navigate") return new Request(req.url, { cache: "no-cache", credentials: "same-origin" });
+    return new Request(req, { cache: "no-cache" });
+  } catch (e) {
+    return req;
+  }
+}
+
 async function appHandler(req) {
   const cache = await caches.open(CACHE_NAME);
-  const net = fetch(req).then((res) => {
+  const net = fetch(freshRequest(req)).then((res) => {
     const type = res && res.headers ? (res.headers.get("content-type") || "") : "";
     const okToCache = res && res.status === 200 && (req.mode !== "navigate" || /text\/html/i.test(type));
     if (okToCache) cache.put(req, res.clone());
