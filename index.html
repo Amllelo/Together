@@ -1562,6 +1562,9 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
             <button id="perf-btn" style="width:100%; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-weight:600; cursor:pointer; font-size:0.9rem;">Copiar informe de rendimiento</button>
           </div>
           <div class="setting-item" style="margin-top:8px;">
+            <button id="photos-diag-btn" style="width:100%; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-weight:600; cursor:pointer; font-size:0.9rem;">Copiar diagnóstico de fotos</button>
+          </div>
+          <div class="setting-item" style="margin-top:8px;">
             <button id="repair-btn" style="width:100%; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-weight:600; cursor:pointer; font-size:0.9rem;">Reparar app (limpiar caché)</button>
           </div>
           <div class="setting-item" style="margin-top:8px;">
@@ -1668,7 +1671,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.8.1";
+window.APP_VERSION = "2.8.2";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2214,6 +2217,29 @@ function buildPerfReport() {
 
 document.getElementById("repair-btn").addEventListener("click", async () => {
   if (await appConfirm("Se borrará la caché de la app y se recargará. Tus eventos y tu sesión no se pierden.", { confirmText: "Reparar" })) window.repairApp();
+});
+
+document.getElementById("photos-diag-btn").addEventListener("click", async () => {
+  const lines = ["Together — diagnóstico de fotos", "Eventos: " + eventsCache.length, ""];
+  const seen = new Map();
+  eventsCache.forEach((ev) => {
+    (ev.images || []).forEach((m, i) => {
+      const big = !!(m && m.big);
+      const src = mediaSrc(m) || "";
+      const h = src ? hashStr(src) : "(sin datos)";
+      const kb = big ? "~" + Math.round((m.n || 0) * 500) + " KB en trozos" : Math.round(src.length * 0.75 / 1024) + " KB";
+      const tag = ev.date + " · " + String(ev.title || "").slice(0, 24) + " [" + ev.id.slice(0, 5) + "] #" + (i + 1);
+      const kind = typeof m === "string" ? "texto" : (m && m.type) || "?";
+      lines.push(tag + " | " + kind + (big ? " grande" : " en el evento") + " | " + kb + " | huella " + h);
+      if (src) { if (!seen.has(h)) seen.set(h, []); seen.get(h).push(tag); }
+    });
+  });
+  const dup = [...seen.entries()].filter(([, v]) => v.length > 1);
+  lines.push("", "Fotos idénticas en varios lugares: " + (dup.length || "ninguna"));
+  dup.forEach(([h, v]) => lines.push("huella " + h + ": " + v.join("  ||  ")));
+  const report = lines.join("\n");
+  try { await navigator.clipboard.writeText(report); showToast("Diagnóstico copiado. Pégalo en un mensaje."); }
+  catch (e) { await appAlert(report, { type: "info" }); }
 });
 
 document.getElementById("perf-btn").addEventListener("click", async () => {
