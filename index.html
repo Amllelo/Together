@@ -401,7 +401,7 @@ header.topbar {
   bottom: 0;
   background-size: cover;
   background-position: center;
-  opacity: 0.08;
+  opacity: 0.18;
   z-index: 0;
 }
 
@@ -1270,6 +1270,17 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 .sync-status.offline { color: var(--accent-other); }
 
+/* ===== RECORDATORIOS ===== */
+.form-group select{padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:1rem;font-family:inherit}
+#reminders-list{display:flex;flex-direction:column;gap:10px}
+.rem-item{display:flex;gap:12px;align-items:center;padding:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer}
+.rem-item:active{transform:scale(0.98)}
+.rem-icon{font-size:1.6rem;flex-shrink:0}
+.rem-text{flex:1;min-width:0}
+.rem-title{font-weight:600;font-size:0.98rem;overflow-wrap:anywhere}
+.rem-sub{font-size:0.82rem;color:var(--text-muted);margin-top:2px}
+.rem-when{font-size:0.72rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--accent-me);flex-shrink:0}
+
 /* ===== BIOMETRIC LOCK ===== */
 #biometric-overlay {
   background: var(--bg);
@@ -1322,6 +1333,10 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
   <div id="boot-info" aria-hidden="true" style="margin-top:22px; font-size:0.72rem; color:var(--text-muted); opacity:0.65; text-align:center;"></div>
   <a id="forgot-link" href="#" style="margin-top:14px; color:var(--text-muted); font-size:0.85rem; text-align:center; text-decoration:underline;">¿Olvidaste tu contraseña?</a>
   <a id="repair-link" href="#" onclick="window.repairApp(); return false;" style="display:none; margin-top:18px; color:var(--text-muted); font-size:0.85rem; text-align:center; text-decoration:underline;">¿No carga? Reparar app</a>
+</div>
+
+<div id="boot-splash" style="display:none; min-height:100vh; align-items:center; justify-content:center;">
+  <div class="brand"><h1>Together</h1></div>
 </div>
 
 <!-- APP -->
@@ -1402,6 +1417,14 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
         <div class="form-group">
           <label for="ev-title">Título *</label>
           <input type="text" id="ev-title" placeholder="¿Qué evento?">
+        </div>
+        <div class="form-group">
+          <label for="ev-type">Tipo</label>
+          <select id="ev-type">
+            <option value="event">Evento</option>
+            <option value="birthday">🎂 Cumpleaños (se repite cada año)</option>
+            <option value="anniversary">💞 Aniversario (se repite cada año)</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="ev-time">Hora (opcional)</label>
@@ -1518,6 +1541,17 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
     </div>
   </div>
 
+  <!-- RECORDATORIOS -->
+  <div id="reminders-overlay" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 style="text-transform:none">Recordatorios</h2>
+        <button id="close-reminders-btn" class="modal-close" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      </div>
+      <div id="reminders-list"></div>
+    </div>
+  </div>
+
   <!-- LIGHTBOX -->
   <div id="lightbox">
     <img id="lightbox-img" alt="">
@@ -1593,7 +1627,20 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.4.0";
+window.APP_VERSION = "2.7.0";
+// Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
+try {
+  if (localStorage.getItem("lastSession")) {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("boot-splash").style.display = "flex";
+    setTimeout(function () {
+      if (!window.__splashDone) {
+        document.getElementById("boot-splash").style.display = "none";
+        document.getElementById("login-screen").style.display = "flex";
+      }
+    }, 9000);
+  }
+} catch (e) {}
 (function () {
   var info = document.getElementById("boot-info");
   function paint() { if (info) info.textContent = "v" + window.APP_VERSION + " · " + (window.__appBooted ? "lista" : (window.__bootStage || "cargando…")); }
@@ -1675,6 +1722,12 @@ window.__bootStage = "iniciando la app";
 const { initializeApp } = fb;
 const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } = fb;
 const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, setDoc, getDoc, getDocs } = fb;
+
+function hideSplash() {
+  window.__splashDone = true;
+  const sp = document.getElementById("boot-splash");
+  if (sp) sp.style.display = "none";
+}
 
 // Almacenamiento local a prueba de fallos (si el navegador lo bloquea o se llena, la app sigue funcionando)
 const LS = {
@@ -1771,7 +1824,7 @@ const DEFAULT_OTHER = "#F85149";
 function dateKey(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
-function mediaSrc(m) { return (m && typeof m === "object") ? m.data : m; }
+function mediaSrc(m) { return (m && typeof m === "object") ? (m.big ? (m.thumb || "") : m.data) : m; }
 function isImageMedia(m) { return !(m && typeof m === "object" && m.type === "video"); }
 
 // ===== EVENTOS "NUEVOS" =====
@@ -1846,6 +1899,69 @@ new MutationObserver(() => {
 const feedSeenObserver = ("IntersectionObserver" in window) ? new IntersectionObserver((entries) => {
   entries.forEach((en) => { if (en.isIntersecting && en.target.dataset.eventId) feedSeenCandidates.add(en.target.dataset.eventId); });
 }, { threshold: 0.5 }) : null;
+
+// ===== RECORDATORIOS =====
+let remindersShown = false;
+const isYearly = (ev) => ev.type === "birthday" || ev.type === "anniversary";
+const typeIcon = (ev) => ev.type === "birthday" ? "🎂 " : ev.type === "anniversary" ? "💞 " : "";
+
+function eventsOnDay(key) {
+  return eventsCache.filter(ev => ev.date === key || (isYearly(ev) && ev.date && ev.date < key && ev.date.slice(5) === key.slice(5)));
+}
+
+function computeReminders() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const DAYS = 7, out = [];
+  eventsCache.forEach(ev => {
+    if (!ev.date) return;
+    const [y, m, d] = ev.date.split("-").map(Number);
+    const hasMedia = !!(ev.images && ev.images.length);
+    if (isYearly(ev)) {
+      let next = new Date(today.getFullYear(), m - 1, d);
+      if (next < today) next = new Date(today.getFullYear() + 1, m - 1, d);
+      const diff = Math.round((next - today) / 864e5), years = next.getFullYear() - y;
+      if (diff <= DAYS && years >= 0) out.push({ ev, diff, kind: ev.type, years });
+    } else {
+      const diff = Math.round((new Date(y, m - 1, d) - today) / 864e5);
+      if (diff >= 0 && diff <= DAYS) out.push({ ev, diff, kind: "upcoming", pending: diff === 0 && !hasMedia });
+      else if (diff < 0 && m - 1 === today.getMonth() && d === today.getDate()) out.push({ ev, diff: 0, kind: "memory", years: today.getFullYear() - y });
+    }
+  });
+  return out.sort((a, b) => a.diff - b.diff);
+}
+
+function maybeShowReminders(fromCache) {
+  if (!currentUID || (fromCache && !eventsCache.length)) return;
+  const items = computeReminders();
+  if (!items.length) { if (!fromCache) remindersShown = true; return; }
+  remindersShown = true;
+  const list = document.getElementById("reminders-list");
+  list.innerHTML = "";
+  items.forEach(it => {
+    const { ev, diff, kind, years, pending } = it;
+    const when = diff === 0 ? "Hoy" : diff === 1 ? "Mañana" : "En " + diff + " días";
+    let icon = "📅", sub = "";
+    if (kind === "birthday") { icon = "🎂"; sub = years > 0 ? "Cumple " + years + (years === 1 ? " año" : " años") : "Cumpleaños"; }
+    else if (kind === "anniversary") { icon = "💞"; sub = years > 0 ? years + (years === 1 ? " año juntos" : " años juntos") : "Aniversario"; }
+    else if (kind === "memory") { icon = "📸"; sub = "Hace " + years + (years === 1 ? " año" : " años") + " en este día"; }
+    else { sub = pending ? "Agrega las fotos de hoy" : (ev.time ? "🕐 " + ev.time : "Próximo evento"); }
+    const row = document.createElement("div");
+    row.className = "rem-item";
+    row.innerHTML = '<div class="rem-icon">' + icon + '</div><div class="rem-text"><div class="rem-title">' + escapeHTML(ev.title) + '</div><div class="rem-sub">' + escapeHTML(sub) + '</div></div>' +
+      (kind === "memory" ? "" : '<div class="rem-when">' + when + '</div>');
+    row.addEventListener("click", () => {
+      document.getElementById("reminders-overlay").classList.remove("active");
+      const dt = new Date(ev.date + "T00:00:00");
+      if (isYearly(ev) || kind === "memory") { const n = new Date(); const t = new Date(n.getFullYear(), dt.getMonth(), dt.getDate()); if (kind === "memory" || diff === 0 || t >= new Date(n.getFullYear(), n.getMonth(), n.getDate())) { openDay(dateKey(t), t); return; } openDay(dateKey(new Date(n.getFullYear() + 1, dt.getMonth(), dt.getDate())), new Date(n.getFullYear() + 1, dt.getMonth(), dt.getDate())); return; }
+      openDay(ev.date, dt);
+    });
+    list.appendChild(row);
+  });
+  document.getElementById("reminders-overlay").classList.add("active");
+}
+document.getElementById("close-reminders-btn").addEventListener("click", () => document.getElementById("reminders-overlay").classList.remove("active"));
+document.getElementById("reminders-overlay").addEventListener("click", (e) => { if (e.target.id === "reminders-overlay") e.target.classList.remove("active"); });
 
 // ===== INFORME DE RENDIMIENTO =====
 // Registra los momentos en que la app se queda "pegada" (≥150 ms) y qué se estaba haciendo,
@@ -2063,12 +2179,13 @@ function scheduleRender() {
 // Las fotos se guardan completas dentro de cada evento (base64). Decodificarlas completas en cada
 // pantalla congelaba la app, así que las listas usan miniaturas pequeñas (generadas una sola vez,
 // fuera del hilo principal) y la foto completa solo se carga al abrirla.
-const THUMB_SIZE = 320;
+const THUMB_SIZE = 560;
 const thumbMem = new Map();        // clave -> URL de la miniatura
 const thumbInflight = new Map();
 const fullMem = new Map();         // clave -> URL de la foto/video completo (máx. 6)
 
 function mediaKey(m) {
+  if (m && m.big) return "big|" + m.id;
   const d = mediaSrc(m) || "";
   const n = d.length, a = n >> 2;
   return n + "|" + d.slice(a, a + 24) + d.slice(2 * a, 2 * a + 24) + d.slice(3 * a, 3 * a + 24);
@@ -2078,7 +2195,7 @@ const thumbDB = {
   open() {
     if (!this.p) this.p = new Promise((resolve) => {
       try {
-        const r = indexedDB.open("together-cache", 1);
+        const r = indexedDB.open("together-cache-v2", 1);
         r.onupgradeneeded = () => r.result.createObjectStore("thumbs");
         r.onsuccess = () => resolve(r.result);
         r.onerror = () => resolve(null);
@@ -2126,7 +2243,7 @@ async function makeThumbBlob(media) {
   const ctx = canvas.getContext("2d");
   let bmp = null;
   try {
-    bmp = await createImageBitmap(blob, { resizeWidth: THUMB_SIZE, resizeQuality: "medium" });
+    bmp = await createImageBitmap(blob, { resizeWidth: THUMB_SIZE, resizeQuality: "high" });
   } catch (e) {}
   if (bmp) {
     canvas.width = bmp.width; canvas.height = bmp.height;
@@ -2142,7 +2259,7 @@ async function makeThumbBlob(media) {
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     URL.revokeObjectURL(url);
   }
-  return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.72));
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
 }
 
 function peekThumb(media) { return thumbMem.get(mediaKey(media)) || null; }
@@ -2192,6 +2309,66 @@ function makeVideoTile() {
   return tile;
 }
 
+// ===== ARCHIVOS GRANDES =====
+// Fotos/videos que no caben en un documento (1 MiB) se parten en trozos de ~500 KB y se guardan como
+// documentos aparte (mc_<id>_<n>) en "events". No tienen campo "date", así que la lista de eventos los ignora.
+const MEDIA_CHUNK = 512000;
+const INLINE_MAX = 120000;               // fotos pequeñas siguen dentro del evento
+const MAX_VIDEO_BYTES = 60 * 1024 * 1024;
+const chunkId = (id, i) => "mc_" + id + "_" + i;
+const newMediaId = () => "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+function blobChunkB64(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(",")[1] || "");
+    r.onerror = rej;
+    r.readAsDataURL(blob);
+  });
+}
+
+async function uploadBig(item, onStep) {
+  const n = Math.ceil(item.blob.size / MEDIA_CHUNK);
+  for (let start = 0; start < n; start += 3) {
+    await Promise.all(Array.from({ length: Math.min(3, n - start) }, async (_, k) => {
+      const i = start + k;
+      const d = await blobChunkB64(item.blob.slice(i * MEDIA_CHUNK, (i + 1) * MEDIA_CHUNK));
+      await setDoc(doc(db, "events", chunkId(item.id, i)), { d, m: item.id, i, authorUID: currentUID });
+      if (onStep) onStep();
+    }));
+  }
+  const ref = { type: item.type, big: true, id: item.id, n, mime: item.mime };
+  if (item.thumb) ref.thumb = item.thumb;
+  return ref;
+}
+
+async function loadBigBlob(m) {
+  const parts = new Array(m.n);
+  for (let s = 0; s < m.n; s += 6) {
+    await Promise.all(Array.from({ length: Math.min(6, m.n - s) }, async (_, k) => {
+      const i = s + k;
+      const snap = await getDoc(doc(db, "events", chunkId(m.id, i)));
+      if (!snap.exists()) throw new Error("archivo incompleto");
+      const bin = atob(snap.data().d);
+      const u = new Uint8Array(bin.length);
+      for (let j = 0; j < bin.length; j++) u[j] = bin.charCodeAt(j);
+      parts[i] = u;
+    }));
+  }
+  return new Blob(parts, { type: m.mime });
+}
+
+function deleteBigMedia(list) {
+  (list || []).forEach((m) => {
+    if (!m || !m.big) return;
+    for (let i = 0; i < m.n; i++) deleteDoc(doc(db, "events", chunkId(m.id, i))).catch(() => {});
+  });
+}
+function cleanupRemovedBig(oldList, newList) {
+  const keep = new Set((newList || []).filter((m) => m && m.big).map((m) => m.id));
+  deleteBigMedia((oldList || []).filter((m) => m && m.big && !keep.has(m.id)));
+}
+
 async function fullUrlFor(media) {
   const key = mediaKey(media);
   if (fullMem.has(key)) {
@@ -2199,7 +2376,8 @@ async function fullUrlFor(media) {
     fullMem.delete(key); fullMem.set(key, u);   // más reciente
     return u;
   }
-  const blob = await (await fetch(mediaSrc(media))).blob();
+  if (media.big) showToast("Cargando archivo…", 2500);
+  const blob = media.big ? await loadBigBlob(media) : await (await fetch(mediaSrc(media))).blob();
   const url = URL.createObjectURL(blob);
   fullMem.set(key, url);
   while (fullMem.size > 6) {
@@ -2278,6 +2456,7 @@ function setBioError(msg) {
 }
 
 function showBiometricLock() {
+  hideSplash();
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("app").style.display = "none";
   document.getElementById("navbar").classList.remove("visible");
@@ -2329,6 +2508,7 @@ document.getElementById("color-picker").querySelectorAll(".color-option").forEac
 async function startApp(user) {
   if (appStarted) return;
   appStarted = true;
+  hideSplash();
 
   const fallbackName = user.email.split("@")[0];
   const shownName = LS.get("displayName_" + user.uid) || fallbackName;
@@ -2390,6 +2570,7 @@ function stopApp() {
   eventsCache = [];
   eventsMap.clear();
   eventsReady = false;
+  remindersShown = false;
   lastEventsSig = "";
   lastUsersSig = "";
   usersData = {};
@@ -2400,7 +2581,7 @@ function stopApp() {
   dayNewIds.clear();
   feedSeenCandidates.clear();
   document.getElementById("feed-badge").classList.remove("show");
-  ["day-overlay", "event-overlay", "settings-overlay", "biometric-overlay", "lightbox"].forEach(id => {
+  ["day-overlay", "event-overlay", "settings-overlay", "reminders-overlay", "biometric-overlay", "lightbox"].forEach(id => {
     document.getElementById(id).classList.remove("active");
   });
   document.getElementById("user-name").textContent = "Usuario";
@@ -2412,9 +2593,14 @@ function stopApp() {
 
 function onAuthChange(user) {
   clearTimeout(loginWatch);
+  hideSplash();
   if (user) {
+    LS.set("lastSession", JSON.stringify({ uid: user.uid, email: user.email }));
     // Evita re-bloquear / reiniciar si el evento se repite para la misma sesión
-    if (appStarted && currentUID === user.uid) return;
+    // (o si la app ya se abrió / bloqueó al instante con la sesión guardada)
+    if (appStarted && currentUID === user.uid) { currentUser = user; return; }
+    if (currentUID === user.uid && document.getElementById("biometric-overlay").classList.contains("active")) { currentUser = user; return; }
+    if (appStarted) stopApp();
 
     currentUID = user.uid;
     currentUser = user;
@@ -2434,6 +2620,7 @@ function onAuthChange(user) {
       startApp(user);
     }
   } else {
+    LS.remove("lastSession");
     stopApp();
     currentUID = null;
     currentUser = null;
@@ -2589,6 +2776,7 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
   const errorDiv = document.getElementById("login-error");
   const submitBtn = document.querySelector("#login-form button[type=submit]");
   
+  if (!navigator.onLine) { errorDiv.textContent = "Sin conexión: la primera vez que inicias sesión en este dispositivo necesitas Internet."; return; }
   console.log("🔍 Intentando login con:", email);
   errorDiv.textContent = "Ingresando...";
   submitBtn.disabled = true;
@@ -2640,6 +2828,7 @@ async function doSignOut() {
       LS.remove(bioEnabledKey(uid));
       LS.remove(bioCredKey(uid));
       LS.remove("deviceKey_" + uid);
+      LS.remove("lastSession");
       // accentColor se conserva por usuario
     }
     await signOut(auth); // onAuthStateChanged limpia la UI y los listeners
@@ -2777,6 +2966,7 @@ document.getElementById("clear-btn").addEventListener("click", async ()=>{
       for(const ev of eventsCache.slice()) {
         try {
           await commitWrite(deleteDoc(doc(db, "events", ev.id)));
+          deleteBigMedia(ev.images);
         } catch(err) {
           console.error("Error eliminando evento:", err);
           failed++; lastErr = err;
@@ -2884,7 +3074,7 @@ function renderCalendar(){
     const today = dateKey(new Date());
     if(key === today) cell.classList.add("today");
     
-    const dayEvents = eventsCache.filter(ev => ev.date === key);
+    const dayEvents = eventsOnDay(key);
     if(dayEvents.some(isNewEvent)){
       cell.classList.add("has-new");
       cell.title = "Tiene eventos nuevos";
@@ -2937,9 +3127,10 @@ function listenEvents(){
       });
       eventsCache = Array.from(eventsMap.values()).sort((a,b)=>
         String(a.date).localeCompare(String(b.date)) || a.id.localeCompare(b.id));
+      if(!remindersShown) maybeShowReminders(qs.metadata.fromCache);
       // Si nada visible cambió (p. ej. la confirmación del servidor), no se redibuja
       let sig = "";
-      for(const e of eventsCache) sig += e.id + "|" + e.date + "|" + (e.title||"") + "|" + (e.time||"") + "|" + (e.notes||"") + "|" + (e.lastEditedBy||"") + "|" + (e.images||[]).map(m=>(mediaSrc(m)||"").length).join(",") + ";";
+      for(const e of eventsCache) sig += e.id + "|" + e.date + "|" + (e.title||"") + "|" + (e.time||"") + "|" + (e.type||"") + "|" + (e.notes||"") + "|" + (e.lastEditedBy||"") + "|" + (e.images||[]).map(m=>(mediaSrc(m)||"").length).join(",") + ";";
       if(sig === lastEventsSig) return;
       lastEventsSig = sig;
       scheduleRender();
@@ -2975,6 +3166,7 @@ function openDay(key, dateObj){
       document.getElementById("ev-title").value = "";
       document.getElementById("ev-time").value = "";
       document.getElementById("ev-notes").value = "";
+      document.getElementById("ev-type").value = "event";
       document.getElementById("thumbs").innerHTML = "";
       
       // El modal del día queda debajo: al cerrar/volver se regresa a él
@@ -2995,7 +3187,7 @@ document.getElementById("close-day-btn").addEventListener("click", ()=>{
 function renderDayModal(key){
   const list = document.getElementById("events-list");
   list.innerHTML = "";
-  const dayEvents = eventsCache.filter(ev => ev.date === key);
+  const dayEvents = eventsOnDay(key);
   if(dayEvents.length === 0){
     list.innerHTML = '<div style="color:var(--text-muted); font-size:.9rem; text-align:center; padding:40px 24px;">Sin eventos en este día</div>';
   }
@@ -3009,10 +3201,11 @@ function openEditEvent(ev){
   document.getElementById("ev-title").value = ev.title || "";
   document.getElementById("ev-time").value = ev.time || "";
   document.getElementById("ev-notes").value = ev.notes || "";
+  document.getElementById("ev-type").value = ev.type || "event";
   document.getElementById("thumbs").innerHTML = "";
   pendingImages.forEach((media, i)=> {
-    if(typeof media === "object" && media.data) {
-      addThumb(media.data, i, media.type);
+    if(typeof media === "object" && (media.data || media.big)) {
+      addThumb(media.big ? (media.thumb || "") : media.data, i, media.type);
     } else {
       addThumb(media, i, "image");
     }
@@ -3051,8 +3244,8 @@ function addThumb(src, idx, type = "image"){
 function refreshThumbs(){
   document.getElementById("thumbs").innerHTML = "";
   pendingImages.forEach((media,i)=> {
-    if(typeof media === "object" && media.data) {
-      addThumb(media.data, i, media.type);
+    if(typeof media === "object" && (media.data || media.big)) {
+      addThumb(media.big ? (media.thumb || "") : media.data, i, media.type);
     } else {
       addThumb(media, i, "image");
     }
@@ -3080,7 +3273,7 @@ function buildEventCard(ev, feedStyle){
     const label = dateObj.toLocaleDateString("es-419", { day:"numeric", month:"long", year:"numeric" });
     html += '<div class="fc-header">' +
       '<div class="fc-dot" style="background:' + (authorUID === currentUID ? 'var(--accent-me)' : 'var(--accent-other)') + '"></div>' +
-      '<div class="fc-meta"><h3 class="fc-title">' + escapeHTML(ev.title) + newBadge + '</h3><p class="fc-date">' + label + '</p></div></div>';
+      '<div class="fc-meta"><h3 class="fc-title">' + typeIcon(ev) + escapeHTML(ev.title) + newBadge + '</h3><p class="fc-date">' + label + '</p></div></div>';
   }
   
   const carouselClass = feedStyle ? "fc-carousel" : "event-carousel";
@@ -3098,7 +3291,7 @@ function buildEventCard(ev, feedStyle){
         `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` +
       '</div></div></div>';
   } else {
-    html += '<div class="event-body"><h3 class="event-title">' + escapeHTML(ev.title) + newBadge + '</h3>' +
+    html += '<div class="event-body"><h3 class="event-title">' + typeIcon(ev) + escapeHTML(ev.title) + newBadge + '</h3>' +
       (ev.time ? '<div class="event-time">🕐 ' + ev.time + '</div>' : '') +
       (ev.notes ? '<div class="event-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
       '<div class="event-footer"><span>' + authorLabel + '</span>' +
@@ -3134,6 +3327,7 @@ function buildEventCard(ev, feedStyle){
           try {
             const r = await commitWrite(deleteDoc(doc(db,"events", ev.id)));
             if(r === "queued") showToast("Se eliminará cuando haya conexión");
+            deleteBigMedia(ev.images);
           } catch(err) {
             console.error("Error eliminando evento:", err);
             await appAlert(writeErrorMessage(err), { type: "error" });
@@ -3348,7 +3542,7 @@ document.getElementById("file-input").addEventListener("change", async (e)=>{
     try {
       const processed = await processMedia(file);
       pendingImages.push(processed);
-      addThumb(processed.data, pendingImages.length-1, processed.type);
+      addThumb(processed.big ? (processed.thumb || "") : processed.data, pendingImages.length-1, processed.type);
     } catch(err) {
       console.error("Error procesando archivo:", err);
       await appAlert("Error al procesar " + file.name + ": " + (err && err.message ? err.message : ""));
@@ -3362,55 +3556,47 @@ document.getElementById("file-input").addEventListener("change", async (e)=>{
 async function processMedia(file) {
   const isVideo = file.type.startsWith("video/");
   const isImage = file.type.startsWith("image/");
-  
-  if(!isVideo && !isImage) {
-    throw new Error("Solo se aceptan fotos y videos");
-  }
-  
+  if(!isVideo && !isImage) throw new Error("Solo se aceptan fotos y videos");
+
   if(isVideo) {
-    const maxVideoSize = 650 * 1024; // el video se guarda dentro del documento (límite 1 MiB)
-    if(file.size > maxVideoSize) {
-      throw new Error("Video muy pesado (máx ~650 KB)");
-    }
-    return await fileToDataURL(file, "video");
+    if(file.size > MAX_VIDEO_BYTES) throw new Error("Video muy pesado (máx 60 MB)");
+    if(file.size <= 90 * 1024) return await fileToDataURL(file, "video");
+    return { type: "video", big: true, id: newMediaId(), blob: file, mime: file.type || "video/mp4" };
   }
-  
-  if(isImage) {
-    return await resizeImage(file, 1000, 0.7);
-  }
+  return await resizeImage(file, 2400, 0.85);
 }
 
 function fileToDataURL(file, type) {
   return new Promise((resolve, reject)=>{
     const reader = new FileReader();
-    reader.onload = (e)=> {
-      resolve({ data: e.target.result, type: type });
-    };
+    reader.onload = (e)=> resolve({ data: e.target.result, type: type });
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
-function resizeImage(file, maxSize, quality) {
-  return new Promise((resolve, reject)=>{
-    const reader = new FileReader();
-    reader.onload = (e)=>{
-      const img = new Image();
-      img.onload = ()=>{
-        let width = img.width, height = img.height;
-        if(width > height && width > maxSize){ height *= maxSize/width; width = maxSize; }
-        else if(height > maxSize){ width *= maxSize/height; height = maxSize; }
-        const canvas = document.createElement("canvas");
-        canvas.width = width; canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        resolve({ data: canvas.toDataURL("image/jpeg", quality), type: "image" });
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
+async function resizeImage(file, maxSize, quality) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const draw = (max, q) => {
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      return c;
     };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+    const canvas = draw(maxSize, quality);
+    const data = canvas.toDataURL("image/jpeg", quality);
+    if(data.length <= INLINE_MAX) return { data, type: "image" };
+    const blob = await new Promise((r)=> canvas.toBlob(r, "image/jpeg", quality));
+    const thumb = draw(THUMB_SIZE, 0.8).toDataURL("image/jpeg", 0.8);
+    return { type: "image", big: true, id: newMediaId(), blob, mime: "image/jpeg", thumb };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 document.getElementById("save-event-btn").addEventListener("click", async ()=>{
@@ -3438,12 +3624,21 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     return;
   }
 
-  const eventData = { title, notes, time };
-  if(!editingEventId || imagesChanged) eventData.images = pendingImages;
+  const eventData = { title, notes, time, type: document.getElementById("ev-type").value || "event" };
 
   const saveBtn = document.getElementById("save-event-btn");
   saveBtn.disabled = true;
   try {
+    if(!editingEventId || imagesChanged){
+      const totalSteps = Math.max(1, pendingImages.reduce((a, m) => a + (m && m.blob ? Math.ceil(m.blob.size / MEDIA_CHUNK) : 0), 0));
+      let done = 0;
+      const finals = [];
+      for(const m of pendingImages){
+        if(m && m.blob) finals.push(await uploadBig(m, ()=>{ done++; saveBtn.textContent = "Subiendo " + Math.min(99, Math.round(done / totalSteps * 100)) + "%"; }));
+        else finals.push(m);
+      }
+      eventData.images = finals;
+    }
     let result;
     if(editingEventId){
       // Cualquiera de los dos puede editar; el autor original no cambia
@@ -3458,6 +3653,7 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
       eventData.createdAt = serverTimestamp();
       result = await commitWrite(addDoc(collection(db,"events"), eventData));
     }
+    if(eventData.images) cleanupRemovedBig(origImages, eventData.images);
     document.getElementById("event-overlay").classList.remove("active");
     if(result === "queued") showToast("Guardado en tu dispositivo. Se sincronizará cuando haya conexión.");
   } catch(err) {
@@ -3467,6 +3663,7 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
       : "No se pudo guardar el evento. Revisa tu conexión o reduce el tamaño de los archivos.", { type: "error" });
   } finally {
     saveBtn.disabled = false;
+    saveBtn.textContent = "Guardar";
   }
 });
 
@@ -3477,6 +3674,7 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
 const NAV_LAYERS = {
   "feed-view":        () => document.querySelector('.nav-item[data-view="month-view"]').click(),
   "day-overlay":      () => document.getElementById("close-day-btn").click(),
+  "reminders-overlay": () => document.getElementById("close-reminders-btn").click(),
   "settings-overlay": () => document.getElementById("close-settings-btn").click(),
   "event-overlay":    () => document.getElementById("cancel-event-btn").click(),
   "lightbox":         () => document.getElementById("lightbox").click(),
@@ -3549,6 +3747,21 @@ if (history.state && history.state.navDepth) {
 }
 
 renderCalendar();
+
+// Arranque inmediato con la sesión guardada: abre (o pide la huella) sin esperar a Firebase Auth ni a la red.
+// Cuando Auth confirma la sesión se usa el usuario real; si ya no es válida, vuelve al inicio de sesión.
+(function earlyStart() {
+  let sess = null;
+  try { sess = JSON.parse(LS.get("lastSession") || "null"); } catch (e) {}
+  if (!sess || !sess.uid || !sess.email) return;
+  currentUID = sess.uid;
+  currentUser = { uid: sess.uid, email: sess.email };
+  try {
+    loadTheme();
+    const bioOn = LS.get(bioEnabledKey(sess.uid)) === "true" && !!LS.get(bioCredKey(sess.uid));
+    if (bioOn) showBiometricLock(); else startApp(currentUser);
+  } catch (err) { console.error("Error en arranque inmediato:", err); }
+})();
 </script>
 
 </body>
