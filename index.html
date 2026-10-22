@@ -1270,6 +1270,18 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 .sync-status.offline { color: var(--accent-other); }
 
+/* ===== COLOR DE LA PAREJA EN LOS RECUERDOS ===== */
+.event-item.by-me, .feed-card.by-me { border-left: 3px solid var(--accent-me); background: color-mix(in srgb, var(--accent-me) 6%, var(--surface-2)); }
+.event-item.by-other, .feed-card.by-other { border-left: 3px solid var(--accent-other); background: color-mix(in srgb, var(--accent-other) 9%, var(--surface-2)); }
+.event-item.by-me .event-title, .feed-card.by-me .fc-title { color: var(--accent-me); }
+.event-item.by-other .event-title, .feed-card.by-other .fc-title { color: var(--accent-other); }
+.event-actions, .fc-actions { flex-wrap: wrap; justify-content: flex-end; }
+#lb-share { position:absolute; top:calc(14px + env(safe-area-inset-top, 0px)); right:14px; width:42px; height:42px; border-radius:50%; border:none; background:rgba(0,0,0,0.6); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5; padding:0; }
+#lb-share svg { width:20px; height:20px; }
+.set-row { display:flex; align-items:center; gap:12px; cursor:pointer; user-select:none; padding:6px 0; font-size:0.92rem; }
+.set-row input[type=checkbox] { width:18px; height:18px; accent-color: var(--accent-me); flex-shrink:0; }
+.type-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); font-size:0.92rem; }
+
 /* ===== RECORDATORIOS ===== */
 .form-group select{padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:1rem;font-family:inherit}
 #reminders-list{display:flex;flex-direction:column;gap:10px}
@@ -1420,11 +1432,18 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
         </div>
         <div class="form-group">
           <label for="ev-type">Tipo</label>
-          <select id="ev-type">
-            <option value="event">Evento</option>
-            <option value="birthday">🎂 Cumpleaños (se repite cada año)</option>
-            <option value="anniversary">💞 Aniversario (se repite cada año)</option>
-          </select>
+          <select id="ev-type"></select>
+        </div>
+        <div class="form-group" id="new-type-box" style="display:none">
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="nt-emoji" placeholder="🎉" maxlength="4" style="width:64px; text-align:center;">
+            <input type="text" id="nt-name" placeholder="Nombre del tipo" maxlength="30" style="flex:1; min-width:0;">
+          </div>
+          <label class="set-row" style="font-weight:400;"><input type="checkbox" id="nt-yearly" style="padding:0;"> Se repite cada año</label>
+          <div style="display:flex; gap:8px;">
+            <button type="button" id="nt-cancel" class="btn-small" style="flex:1; padding:10px;">Cancelar</button>
+            <button type="button" id="nt-create" class="btn-small" style="flex:1; padding:10px; background:var(--accent-me); color:var(--bg); border:none;">Crear tipo</button>
+          </div>
         </div>
         <div class="form-group">
           <label for="ev-time">Hora (opcional)</label>
@@ -1514,6 +1533,27 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
         </div>
 
         <div class="settings-section" style="border-top:1px solid var(--border); padding-top:16px;">
+          <h3 style="font-size:0.95rem; margin-bottom:10px; color:var(--text);">Recordatorios</h3>
+          <label class="set-row"><input type="checkbox" id="rem-enabled"><span>Mostrar recordatorios al abrir la app</span></label>
+          <label class="set-row"><input type="checkbox" id="rem-yearly"><span>Cumpleaños, aniversarios y fechas anuales</span></label>
+          <label class="set-row"><input type="checkbox" id="rem-upcoming"><span>Próximos eventos</span></label>
+          <label class="set-row"><input type="checkbox" id="rem-memories"><span>Recuerdos de años anteriores</span></label>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 0; font-size:0.92rem;">
+            <span>Avisar con anticipación de</span>
+            <select id="rem-days" style="padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-family:inherit;">
+              <option value="1">1 día</option><option value="3">3 días</option><option value="7">7 días</option><option value="14">14 días</option><option value="30">30 días</option>
+            </select>
+          </div>
+          <button id="rem-now-btn" style="width:100%; margin-top:6px; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-weight:600; cursor:pointer; font-size:0.9rem;">Ver recordatorios ahora</button>
+        </div>
+
+        <div class="settings-section" style="border-top:1px solid var(--border); padding-top:16px;">
+          <h3 style="font-size:0.95rem; margin-bottom:10px; color:var(--text);">Tipos de evento</h3>
+          <div id="types-list"></div>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin:10px 0 0;">Para crear uno nuevo, elige «➕ Nuevo tipo…» al crear o editar un evento.</p>
+        </div>
+
+        <div class="settings-section" style="border-top:1px solid var(--border); padding-top:16px;">
           <h3 style="font-size:0.95rem; margin-bottom:14px; color:var(--text);">Datos</h3>
           <div class="setting-item">
             <button id="export-btn" style="width:100%; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-weight:600; cursor:pointer; font-size:0.9rem;">Descargar datos</button>
@@ -1557,6 +1597,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
     <img id="lightbox-img" alt="">
     <video id="lightbox-video" style="max-width:100%; max-height:100%; border-radius:var(--radius);" controls></video>
     <div id="lb-dots" class="lb-dots"></div>
+    <button id="lb-share" aria-label="Compartir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg></button>
   </div>
 </div>
 
@@ -1627,7 +1668,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.7.0";
+window.APP_VERSION = "2.8.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -1900,60 +1941,210 @@ const feedSeenObserver = ("IntersectionObserver" in window) ? new IntersectionOb
   entries.forEach((en) => { if (en.isIntersecting && en.target.dataset.eventId) feedSeenCandidates.add(en.target.dataset.eventId); });
 }, { threshold: 0.5 }) : null;
 
-// ===== RECORDATORIOS =====
-let remindersShown = false;
-const isYearly = (ev) => ev.type === "birthday" || ev.type === "anniversary";
-const typeIcon = (ev) => ev.type === "birthday" ? "🎂 " : ev.type === "anniversary" ? "💞 " : "";
+// ===== TIPOS DE EVENTO =====
+// Los tipos personalizados se guardan en el perfil de quien los crea (users/<uid>.eventTypes) y ambos los ven.
+const BUILTIN_TYPES = [
+  { id: "event", name: "Evento", emoji: "", yearly: false },
+  { id: "birthday", name: "Cumpleaños", emoji: "🎂", yearly: true },
+  { id: "anniversary", name: "Aniversario", emoji: "💞", yearly: true }
+];
+const ownTypes = () => (usersData[currentUID] && usersData[currentUID].eventTypes) || [];
+function allTypes() {
+  const out = BUILTIN_TYPES.slice(), seen = new Set(out.map((t) => t.id));
+  Object.keys(usersData).forEach((uid) => {
+    ((usersData[uid] && usersData[uid].eventTypes) || []).forEach((t) => {
+      if (t && t.id && !seen.has(t.id)) { seen.add(t.id); out.push({ ...t, owner: uid }); }
+    });
+  });
+  return out;
+}
+const typeOf = (id) => allTypes().find((t) => t.id === (id || "event")) || BUILTIN_TYPES[0];
+const isYearly = (ev) => !!typeOf(ev.type).yearly;
+const typeIcon = (ev) => { const t = typeOf(ev.type); return t.emoji ? t.emoji + " " : ""; };
 
 function eventsOnDay(key) {
   return eventsCache.filter(ev => ev.date === key || (isYearly(ev) && ev.date && ev.date < key && ev.date.slice(5) === key.slice(5)));
 }
 
+let ntPrev = "event";
+function refreshTypeSelect(sel) {
+  const el = document.getElementById("ev-type");
+  el.innerHTML = "";
+  allTypes().forEach((t) => {
+    const o = document.createElement("option");
+    o.value = t.id;
+    o.textContent = (t.emoji ? t.emoji + " " : "") + t.name + (t.yearly ? " (cada año)" : "");
+    el.appendChild(o);
+  });
+  const n = document.createElement("option");
+  n.value = "__new"; n.textContent = "➕ Nuevo tipo…";
+  el.appendChild(n);
+  el.value = allTypes().some((t) => t.id === sel) ? sel : "event";
+  ntPrev = el.value;
+  document.getElementById("new-type-box").style.display = "none";
+}
+const currentTypeValue = () => { const v = document.getElementById("ev-type").value; return (!v || v === "__new") ? "event" : v; };
+
+document.getElementById("ev-type").addEventListener("change", (e) => {
+  if (e.target.value === "__new") {
+    document.getElementById("new-type-box").style.display = "flex";
+    document.getElementById("nt-emoji").value = "";
+    document.getElementById("nt-name").value = "";
+    document.getElementById("nt-yearly").checked = false;
+    document.getElementById("nt-name").focus();
+  } else {
+    ntPrev = e.target.value;
+    document.getElementById("new-type-box").style.display = "none";
+  }
+});
+document.getElementById("nt-cancel").addEventListener("click", () => {
+  document.getElementById("new-type-box").style.display = "none";
+  document.getElementById("ev-type").value = ntPrev;
+});
+document.getElementById("nt-create").addEventListener("click", async () => {
+  const name = document.getElementById("nt-name").value.trim();
+  if (!name) { await appAlert("Escribe un nombre para el tipo."); return; }
+  const emoji = Array.from(document.getElementById("nt-emoji").value.trim()).slice(0, 2).join("") || "🏷️";
+  const t = { id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, emoji, yearly: document.getElementById("nt-yearly").checked };
+  const mine = [...ownTypes(), t];
+  usersData[currentUID] = { ...(usersData[currentUID] || {}), eventTypes: mine };
+  refreshTypeSelect(t.id);
+  try {
+    await commitWrite(setDoc(doc(db, "users", currentUID), { eventTypes: mine, updatedAt: serverTimestamp() }, { merge: true }));
+  } catch (err) {
+    console.error("Error guardando tipo:", err);
+    await appAlert(writeErrorMessage(err), { type: "error" });
+  }
+});
+
+function renderTypesList() {
+  const box = document.getElementById("types-list");
+  box.innerHTML = "";
+  const custom = allTypes().filter((t) => t.owner);
+  if (!custom.length) { box.innerHTML = '<div style="font-size:0.85rem; color:var(--text-muted);">Aún no hay tipos personalizados.</div>'; return; }
+  custom.forEach((t) => {
+    const row = document.createElement("div");
+    row.className = "type-row";
+    const mineT = t.owner === currentUID;
+    row.innerHTML = '<span>' + escapeHTML(t.emoji + " " + t.name) + (t.yearly ? ' <span style="color:var(--text-muted); font-size:0.78rem;">· cada año</span>' : '') + '</span>';
+    if (mineT) {
+      const btn = document.createElement("button");
+      btn.className = "btn-small"; btn.textContent = "Eliminar";
+      btn.addEventListener("click", async () => {
+        if (!(await appConfirm("¿Eliminar el tipo «" + t.name + "»? Los eventos que lo usan se mostrarán como evento normal.", { confirmText: "Eliminar", danger: true }))) return;
+        const mine = ownTypes().filter((x) => x.id !== t.id);
+        usersData[currentUID] = { ...(usersData[currentUID] || {}), eventTypes: mine };
+        renderTypesList(); scheduleRender();
+        try { await commitWrite(setDoc(doc(db, "users", currentUID), { eventTypes: mine, updatedAt: serverTimestamp() }, { merge: true })); }
+        catch (err) { await appAlert(writeErrorMessage(err), { type: "error" }); }
+      });
+      row.appendChild(btn);
+    } else {
+      const who = document.createElement("span");
+      who.style.cssText = "font-size:0.78rem; color:var(--text-muted);";
+      who.textContent = "de tu pareja";
+      row.appendChild(who);
+    }
+    box.appendChild(row);
+  });
+}
+
+// ===== RECORDATORIOS =====
+let remindersShown = false;
+const remCfgKey = (uid) => "remCfg_" + uid;
+function getRemCfg() {
+  let c = {};
+  try { c = JSON.parse(LS.get(remCfgKey(currentUID)) || "{}"); } catch (e) {}
+  return { enabled: true, days: 7, yearly: true, upcoming: true, memories: true, ...c };
+}
+function loadRemCfgUI() {
+  const c = getRemCfg();
+  document.getElementById("rem-enabled").checked = c.enabled;
+  document.getElementById("rem-yearly").checked = c.yearly;
+  document.getElementById("rem-upcoming").checked = c.upcoming;
+  document.getElementById("rem-memories").checked = c.memories;
+  document.getElementById("rem-days").value = String(c.days);
+}
+function saveRemCfgFromUI() {
+  if (!currentUID) return;
+  LS.set(remCfgKey(currentUID), JSON.stringify({
+    enabled: document.getElementById("rem-enabled").checked,
+    yearly: document.getElementById("rem-yearly").checked,
+    upcoming: document.getElementById("rem-upcoming").checked,
+    memories: document.getElementById("rem-memories").checked,
+    days: Number(document.getElementById("rem-days").value) || 7
+  }));
+}
+["rem-enabled", "rem-yearly", "rem-upcoming", "rem-memories", "rem-days"].forEach((id) =>
+  document.getElementById(id).addEventListener("change", saveRemCfgFromUI));
+document.getElementById("rem-now-btn").addEventListener("click", () => {
+  document.getElementById("settings-overlay").classList.remove("active");
+  maybeShowReminders(false, true);
+});
+
 function computeReminders() {
+  const cfg = getRemCfg();
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const DAYS = 7, out = [];
+  const DAYS = cfg.days, out = [];
   eventsCache.forEach(ev => {
     if (!ev.date) return;
     const [y, m, d] = ev.date.split("-").map(Number);
     const hasMedia = !!(ev.images && ev.images.length);
     if (isYearly(ev)) {
+      if (!cfg.yearly) return;
       let next = new Date(today.getFullYear(), m - 1, d);
       if (next < today) next = new Date(today.getFullYear() + 1, m - 1, d);
       const diff = Math.round((next - today) / 864e5), years = next.getFullYear() - y;
-      if (diff <= DAYS && years >= 0) out.push({ ev, diff, kind: ev.type, years });
+      if (diff <= DAYS && years >= 0) out.push({ ev, diff, kind: "yearly", years });
     } else {
       const diff = Math.round((new Date(y, m - 1, d) - today) / 864e5);
-      if (diff >= 0 && diff <= DAYS) out.push({ ev, diff, kind: "upcoming", pending: diff === 0 && !hasMedia });
-      else if (diff < 0 && m - 1 === today.getMonth() && d === today.getDate()) out.push({ ev, diff: 0, kind: "memory", years: today.getFullYear() - y });
+      if (diff >= 0 && diff <= DAYS) { if (cfg.upcoming) out.push({ ev, diff, kind: "upcoming", pending: diff === 0 && !hasMedia }); }
+      else if (diff < 0 && cfg.memories && m - 1 === today.getMonth() && d === today.getDate()) out.push({ ev, diff: 0, kind: "memory", years: today.getFullYear() - y });
     }
   });
   return out.sort((a, b) => a.diff - b.diff);
 }
 
-function maybeShowReminders(fromCache) {
-  if (!currentUID || (fromCache && !eventsCache.length)) return;
+function maybeShowReminders(fromCache, force) {
+  if (!currentUID || (!force && fromCache && !eventsCache.length)) return;
+  if (!force && !getRemCfg().enabled) { remindersShown = true; return; }
   const items = computeReminders();
-  if (!items.length) { if (!fromCache) remindersShown = true; return; }
+  if (!items.length) {
+    if (force) showToast("No hay recordatorios en los próximos " + getRemCfg().days + " días");
+    else if (!fromCache) remindersShown = true;
+    return;
+  }
   remindersShown = true;
   const list = document.getElementById("reminders-list");
   list.innerHTML = "";
   items.forEach(it => {
     const { ev, diff, kind, years, pending } = it;
+    const t = typeOf(ev.type);
     const when = diff === 0 ? "Hoy" : diff === 1 ? "Mañana" : "En " + diff + " días";
+    const yrs = years + (years === 1 ? " año" : " años");
     let icon = "📅", sub = "";
-    if (kind === "birthday") { icon = "🎂"; sub = years > 0 ? "Cumple " + years + (years === 1 ? " año" : " años") : "Cumpleaños"; }
-    else if (kind === "anniversary") { icon = "💞"; sub = years > 0 ? years + (years === 1 ? " año juntos" : " años juntos") : "Aniversario"; }
-    else if (kind === "memory") { icon = "📸"; sub = "Hace " + years + (years === 1 ? " año" : " años") + " en este día"; }
-    else { sub = pending ? "Agrega las fotos de hoy" : (ev.time ? "🕐 " + ev.time : "Próximo evento"); }
+    if (kind === "yearly") {
+      icon = t.emoji || "📅";
+      if (t.id === "birthday") sub = years > 0 ? "Cumple " + yrs : "Cumpleaños";
+      else if (t.id === "anniversary") sub = years > 0 ? yrs + " juntos" : "Aniversario";
+      else sub = t.name + (years > 0 ? " · " + yrs : "");
+    }
+    else if (kind === "memory") { icon = "📸"; sub = "Hace " + yrs + " en este día"; }
+    else { icon = t.emoji || "📅"; sub = pending ? "Agrega las fotos de hoy" : (ev.time ? "🕐 " + ev.time : t.id === "event" ? "Próximo evento" : t.name); }
     const row = document.createElement("div");
     row.className = "rem-item";
-    row.innerHTML = '<div class="rem-icon">' + icon + '</div><div class="rem-text"><div class="rem-title">' + escapeHTML(ev.title) + '</div><div class="rem-sub">' + escapeHTML(sub) + '</div></div>' +
+    row.innerHTML = '<div class="rem-icon">' + escapeHTML(icon) + '</div><div class="rem-text"><div class="rem-title">' + escapeHTML(ev.title) + '</div><div class="rem-sub">' + escapeHTML(sub) + '</div></div>' +
       (kind === "memory" ? "" : '<div class="rem-when">' + when + '</div>');
     row.addEventListener("click", () => {
       document.getElementById("reminders-overlay").classList.remove("active");
       const dt = new Date(ev.date + "T00:00:00");
-      if (isYearly(ev) || kind === "memory") { const n = new Date(); const t = new Date(n.getFullYear(), dt.getMonth(), dt.getDate()); if (kind === "memory" || diff === 0 || t >= new Date(n.getFullYear(), n.getMonth(), n.getDate())) { openDay(dateKey(t), t); return; } openDay(dateKey(new Date(n.getFullYear() + 1, dt.getMonth(), dt.getDate())), new Date(n.getFullYear() + 1, dt.getMonth(), dt.getDate())); return; }
+      if (isYearly(ev) || kind === "memory") {
+        const n = new Date(), td = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+        let t2 = new Date(n.getFullYear(), dt.getMonth(), dt.getDate());
+        if (t2 < td) t2 = new Date(n.getFullYear() + 1, dt.getMonth(), dt.getDate());
+        openDay(dateKey(t2), t2); return;
+      }
       openDay(ev.date, dt);
     });
     list.appendChild(row);
@@ -2673,7 +2864,7 @@ function listenUsers() {
     });
 
     updateUserLabels();
-    const usig = JSON.stringify(Object.entries(usersData).map(([k,v])=>[k, v && v.displayName, v && v.accentColor]));
+    const usig = JSON.stringify(Object.entries(usersData).map(([k,v])=>[k, v && v.displayName, v && v.accentColor, JSON.stringify((v && v.eventTypes) || [])]));
     if(usig !== lastUsersSig){ lastUsersSig = usig; scheduleRender(); }
   }, (err)=> console.error("Error en listener de usuarios:", err));
 
@@ -2691,7 +2882,8 @@ function listenUsers() {
 
         if(!oldData ||
            oldData.accentColor !== newData.accentColor ||
-           oldData.displayName !== newData.displayName) {
+           oldData.displayName !== newData.displayName ||
+           JSON.stringify(oldData.eventTypes || []) !== JSON.stringify(newData.eventTypes || [])) {
           needsUpdate = true;
           usersData[d.id] = newData;
         }
@@ -2844,6 +3036,7 @@ document.getElementById("logout-btn").addEventListener("click", async ()=>{
 
 // Settings
 document.getElementById("settings-btn").addEventListener("click", ()=>{
+  loadRemCfgUI(); renderTypesList();
   document.getElementById("settings-overlay").classList.add("active");
 });
 
@@ -3166,7 +3359,7 @@ function openDay(key, dateObj){
       document.getElementById("ev-title").value = "";
       document.getElementById("ev-time").value = "";
       document.getElementById("ev-notes").value = "";
-      document.getElementById("ev-type").value = "event";
+      refreshTypeSelect("event");
       document.getElementById("thumbs").innerHTML = "";
       
       // El modal del día queda debajo: al cerrar/volver se regresa a él
@@ -3201,7 +3394,7 @@ function openEditEvent(ev){
   document.getElementById("ev-title").value = ev.title || "";
   document.getElementById("ev-time").value = ev.time || "";
   document.getElementById("ev-notes").value = ev.notes || "";
-  document.getElementById("ev-type").value = ev.type || "event";
+  refreshTypeSelect(ev.type || "event");
   document.getElementById("thumbs").innerHTML = "";
   pendingImages.forEach((media, i)=> {
     if(typeof media === "object" && (media.data || media.big)) {
@@ -3255,7 +3448,7 @@ function refreshThumbs(){
 function buildEventCard(ev, feedStyle){
   const item = document.createElement("div");
   item.className = feedStyle ? "feed-card" : "event-item";
-  if(!feedStyle && ev.authorUID !== currentUID) item.classList.add("by-other");
+  item.classList.add(ev.authorUID === currentUID ? "by-me" : "by-other");
   
   const authorUID = ev.authorUID;
   const fresh = isNewEvent(ev);
@@ -3287,7 +3480,7 @@ function buildEventCard(ev, feedStyle){
     if(ev.notes) html += '<div class="fc-notes">' + escapeHTML(ev.notes) + '</div>';
     html += '<div class="fc-footer"><span>' + authorLabel + '</span>' +
       '<div class="fc-actions">' +
-        `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` +
+        `<button class="btn-small" data-id="${ev.id}" data-action="share">Compartir</button><button class="btn-small edit" data-id="${ev.id}">Editar</button>` +
         `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` +
       '</div></div></div>';
   } else {
@@ -3296,7 +3489,7 @@ function buildEventCard(ev, feedStyle){
       (ev.notes ? '<div class="event-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
       '<div class="event-footer"><span>' + authorLabel + '</span>' +
       '<div class="event-actions">' +
-        `<button class="btn-small edit" data-id="${ev.id}">Editar</button>` +
+        `<button class="btn-small" data-id="${ev.id}" data-action="share">Compartir</button><button class="btn-small edit" data-id="${ev.id}">Editar</button>` +
         `<button class="btn-small" data-id="${ev.id}" data-action="delete">Eliminar</button>` +
       '</div></div></div>';
   }
@@ -3322,6 +3515,7 @@ function buildEventCard(ev, feedStyle){
   
   item.querySelectorAll(".btn-small").forEach(btn=>{
     btn.addEventListener("click", async ()=>{
+      if(btn.dataset.action === "share"){ shareEventCard(ev); return; }
       if(btn.dataset.action === "delete"){
         if(await appConfirm("¿Eliminar este evento? No se puede deshacer. Escribe ELIMINAR para confirmar.", { requireWord: "ELIMINAR", confirmText: "Eliminar", danger: true })) {
           try {
@@ -3624,7 +3818,7 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     return;
   }
 
-  const eventData = { title, notes, time, type: document.getElementById("ev-type").value || "event" };
+  const eventData = { title, notes, time, type: currentTypeValue() };
 
   const saveBtn = document.getElementById("save-event-btn");
   saveBtn.disabled = true;
@@ -3664,6 +3858,136 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = "Guardar";
+  }
+});
+
+// ===== COMPARTIR =====
+async function shareFile(file, title) {
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title }); return; }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url; a.download = file.name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  showToast("Imagen descargada");
+}
+
+function wrapLines(g, text, maxW, maxLines) {
+  const words = String(text || "").split(/\s+/).filter(Boolean), lines = [];
+  let cur = "", i = 0;
+  for (; i < words.length; i++) {
+    const t = cur ? cur + " " + words[i] : words[i];
+    if (g.measureText(t).width > maxW && cur) {
+      lines.push(cur); cur = words[i];
+      if (lines.length === maxLines) { cur = ""; break; }
+    } else cur = t;
+  }
+  if (cur && lines.length < maxLines) { lines.push(cur); i = words.length; }
+  if (i < words.length && lines.length) {
+    let last = lines[lines.length - 1];
+    while (last.length > 1 && g.measureText(last + "…").width > maxW) last = last.slice(0, -1);
+    lines[lines.length - 1] = last.trimEnd() + "…";
+  }
+  return lines;
+}
+
+function rrect(g, x, y, w, h, r) {
+  g.beginPath();
+  if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
+}
+
+async function makeCardBlob(ev) {
+  try { await document.fonts.load("700 64px Fraunces"); } catch (e) {}
+  const W = 1080, H = 1350, P = 60;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const g = c.getContext("2d");
+  const mine = ev.authorUID === currentUID;
+  const css = getComputedStyle(document.documentElement);
+  const accent = (css.getPropertyValue(mine ? "--accent-me" : "--accent-other") || "#3FB950").trim();
+  const t = typeOf(ev.type);
+  const serif = "'Fraunces', Georgia, serif", sans = "'Inter', -apple-system, sans-serif";
+
+  g.fillStyle = "#0F1117"; g.fillRect(0, 0, W, H);
+  g.fillStyle = accent; g.fillRect(0, 0, W, 10);
+
+  const PH = 800;
+  rrect(g, P, P, W - 2 * P, PH, 36);
+  g.save(); g.clip();
+  let drawn = false;
+  const media = (ev.images || []).find(isImageMedia);
+  if (media) {
+    try {
+      const img = new Image();
+      img.src = await fullUrlFor(media);
+      await img.decode();
+      const w = W - 2 * P, r = Math.max(w / img.naturalWidth, PH / img.naturalHeight);
+      const sw = w / r, sh = PH / r;
+      g.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, P, P, w, PH);
+      drawn = true;
+    } catch (e) { console.warn("Tarjeta sin foto:", e); }
+  }
+  if (!drawn) {
+    const gr = g.createLinearGradient(P, P, W - P, P + PH);
+    gr.addColorStop(0, accent); gr.addColorStop(1, "#161B22");
+    g.fillStyle = gr; g.fillRect(P, P, W - 2 * P, PH);
+    g.font = "300px serif"; g.textAlign = "center"; g.fillStyle = "#fff";
+    g.fillText(t.emoji || "📸", W / 2, P + PH / 2 + 100);
+    g.textAlign = "left";
+  }
+  g.restore();
+
+  let y = P + PH + 70;
+  const maxW = W - 2 * P;
+  if (t.id !== "event") {
+    g.font = "600 34px " + sans; g.fillStyle = accent;
+    g.fillText((t.emoji ? t.emoji + " " : "") + t.name.toUpperCase(), P, y);
+    y += 30;
+  }
+  g.font = "700 66px " + serif; g.fillStyle = "#F0F6FC";
+  y += 56;
+  wrapLines(g, ev.title, maxW, 2).forEach((ln) => { g.fillText(ln, P, y); y += 78; });
+  y -= 8;
+  g.font = "400 34px " + sans; g.fillStyle = "#8B949E";
+  const dt = new Date(ev.date + "T00:00:00").toLocaleDateString("es-419", { day: "numeric", month: "long", year: "numeric" });
+  g.fillText(dt + (ev.time ? "  ·  " + ev.time : ""), P, y);
+  if (ev.notes) {
+    y += 30;
+    g.font = "400 36px " + sans; g.fillStyle = "#C9D1D9";
+    wrapLines(g, ev.notes, maxW, 3).forEach((ln) => { y += 52; g.fillText(ln, P, y); });
+  }
+
+  g.font = "700 44px " + serif; g.fillStyle = accent;
+  g.fillText("Together", P, H - 60);
+  const author = usersData[ev.authorUID] && usersData[ev.authorUID].displayName;
+  if (author) { g.font = "400 32px " + sans; g.fillStyle = "#8B949E"; g.textAlign = "right"; g.fillText(author, W - P, H - 62); g.textAlign = "left"; }
+
+  return new Promise((resolve, reject) => c.toBlob((b) => b ? resolve(b) : reject(new Error("sin imagen")), "image/jpeg", 0.92));
+}
+
+async function shareEventCard(ev) {
+  try {
+    showToast("Creando tarjeta…", 2500);
+    const blob = await makeCardBlob(ev);
+    await shareFile(new File([blob], "together-" + ev.date + ".jpg", { type: "image/jpeg" }), ev.title);
+  } catch (err) {
+    if (err && err.name === "AbortError") return;
+    console.error("Error compartiendo:", err);
+    await appAlert("No se pudo crear la tarjeta.", { type: "error" });
+  }
+}
+
+document.getElementById("lb-share").addEventListener("click", async (e) => {
+  e.stopPropagation();
+  const m = lbList[lbIndex];
+  if (!m) return;
+  try {
+    const blob = await (await fetch(await fullUrlFor(m))).blob();
+    const ext = blob.type === "video/webm" ? "webm" : blob.type.startsWith("video/") ? "mp4" : "jpg";
+    await shareFile(new File([blob], "together-" + Date.now() + "." + ext, { type: blob.type || (isImageMedia(m) ? "image/jpeg" : "video/mp4") }), "Together");
+  } catch (err) {
+    if (err && err.name === "AbortError") return;
+    console.error("Error compartiendo:", err);
+    showToast("No se pudo compartir");
   }
 });
 
