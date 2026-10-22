@@ -1668,7 +1668,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.8.0";
+window.APP_VERSION = "2.8.1";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2375,18 +2375,33 @@ const thumbMem = new Map();        // clave -> URL de la miniatura
 const thumbInflight = new Map();
 const fullMem = new Map();         // clave -> URL de la foto/video completo (máx. 6)
 
+function hashStr(str) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+const keyCache = new WeakMap();
 function mediaKey(m) {
   if (m && m.big) return "big|" + m.id;
-  const d = mediaSrc(m) || "";
-  const n = d.length, a = n >> 2;
-  return n + "|" + d.slice(a, a + 24) + d.slice(2 * a, 2 * a + 24) + d.slice(3 * a, 3 * a + 24);
+  if (m && typeof m === "object") {
+    let k = keyCache.get(m);
+    if (!k) { const d = mediaSrc(m) || ""; k = d.length + "|" + hashStr(d); keyCache.set(m, k); }
+    return k;
+  }
+  const d = m || "";
+  return d.length + "|" + hashStr(d);
 }
 
 const thumbDB = {
   open() {
     if (!this.p) this.p = new Promise((resolve) => {
       try {
-        const r = indexedDB.open("together-cache-v2", 1);
+        const r = indexedDB.open("together-cache-v3", 1);
         r.onupgradeneeded = () => r.result.createObjectStore("thumbs");
         r.onsuccess = () => resolve(r.result);
         r.onerror = () => resolve(null);
@@ -3709,11 +3724,15 @@ document.getElementById("lightbox").addEventListener("click", (e)=>{
 
 document.getElementById("close-event-btn").addEventListener("click", ()=>{
   editingEventId = null;
+  pendingImages = [];
+  document.getElementById("thumbs").innerHTML = "";
   document.getElementById("event-overlay").classList.remove("active");
 });
 
 document.getElementById("cancel-event-btn").addEventListener("click", ()=>{
   editingEventId = null;
+  pendingImages = [];
+  document.getElementById("thumbs").innerHTML = "";
   document.getElementById("event-overlay").classList.remove("active");
 });
 
@@ -3848,6 +3867,8 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
       result = await commitWrite(addDoc(collection(db,"events"), eventData));
     }
     if(eventData.images) cleanupRemovedBig(origImages, eventData.images);
+    pendingImages = [];
+    document.getElementById("thumbs").innerHTML = "";
     document.getElementById("event-overlay").classList.remove("active");
     if(result === "queued") showToast("Guardado en tu dispositivo. Se sincronizará cuando haya conexión.");
   } catch(err) {
