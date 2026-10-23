@@ -1,4 +1,4 @@
-const CACHE_NAME = "calendario-v27";
+const CACHE_NAME = "calendario-v28";
 const FIREBASE = "https://www.gstatic.com/firebasejs/10.8.0/";
 const LOCAL_ASSETS = ["./", "./index.html", "./manifest.json", "./firebase-bundle.js", "./icon-192.png", "./icon-512.png"];
 const CDN_ASSETS = [];   // la CDN de Google solo es respaldo: se guarda al usarse

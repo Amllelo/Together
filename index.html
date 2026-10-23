@@ -1771,7 +1771,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.9.1";
+window.APP_VERSION = "2.9.2";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2088,7 +2088,7 @@ const typeIcon = (ev) => { if (ev.icon) return ev.icon + " "; const t = typeOf(e
 const keyDate = (k) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
 const daysBetween = (a, b) => Math.round((b - a) / 864e5);
 function occursOn(ev, key) {
-  if (!ev.date || key < ev.date) return false;
+  if (!key || !ev.date || key < ev.date) return false;
   if (key === ev.date) return true;
   const rp = repeatOf(ev);
   if (!rp) return false;
@@ -2101,7 +2101,7 @@ function occursOn(ev, key) {
   if (rp.unit === "year") return a.getMonth() === b.getMonth() && months % 12 === 0 && (months / 12) % n === 0;
   return false;
 }
-function eventsOnDay(key) { return eventsCache.filter((ev) => occursOn(ev, key)); }
+function eventsOnDay(key) { if (!key) return []; return eventsCache.filter((ev) => { try { return occursOn(ev, key); } catch (e) { console.error("Evento con error:", ev.id, e); return false; } }); }
 
 // ----- selección del tipo en el formulario -----
 function refreshTypeSelect(sel) {
@@ -2571,10 +2571,8 @@ function scheduleRender() {
   renderScheduled = true;
   requestAnimationFrame(() => {
     renderScheduled = false;
-    renderCalendar();
-    renderFeed();
-    if (selectedDay) renderDayModal(selectedDay);
-    updateNewBadge();
+    [renderCalendar, renderFeed, () => { if (selectedDay) renderDayModal(selectedDay); }, updateNewBadge]
+      .forEach((fn) => { try { fn(); } catch (err) { console.error("Error al dibujar:", err); } });
   });
 }
 
