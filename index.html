@@ -1491,6 +1491,13 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
           <div id="ev-type-hint" class="type-hint"></div>
         </div>
         <div class="form-group">
+          <label for="ev-icon">Icono de este evento (opcional)</label>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <input type="text" id="ev-icon" class="field" maxlength="16" placeholder="😀" autocomplete="off" style="width:86px; flex-shrink:0; text-align:center; font-size:1.5rem; padding:8px;">
+            <span style="font-size:0.82rem; color:var(--text-muted); line-height:1.4;">Escribe o pega cualquier emoji. Si lo dejas vacío, se usa el del tipo.</span>
+          </div>
+        </div>
+        <div class="form-group">
           <label for="ev-time">Hora (opcional)</label>
           <input type="time" id="ev-time">
         </div>
@@ -1662,6 +1669,10 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
       </div>
       <input type="text" id="nt-name" class="field" placeholder="Ej. Salida semanal, Pago de renta" maxlength="30" autocomplete="off">
       <div class="sec-label">Icono</div>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+        <input type="text" id="nt-emoji" class="field" maxlength="16" placeholder="🎉" autocomplete="off" style="width:96px; flex-shrink:0; text-align:center; font-size:1.8rem; padding:8px;">
+        <span style="font-size:0.82rem; color:var(--text-muted); line-height:1.4;">Escribe o pega cualquier emoji, o elige una sugerencia.</span>
+      </div>
       <div class="emo-grid" id="nt-emojis"></div>
       <div class="sec-label">Se repite</div>
       <div class="seg" id="nt-units">
@@ -1760,7 +1771,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.9.0";
+window.APP_VERSION = "2.9.1";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2034,6 +2045,15 @@ const feedSeenObserver = ("IntersectionObserver" in window) ? new IntersectionOb
   entries.forEach((en) => { if (en.isIntersecting && en.target.dataset.eventId) feedSeenCandidates.add(en.target.dataset.eventId); });
 }, { threshold: 0.5 }) : null;
 
+// Un solo emoji (acepta cualquiera del teclado del teléfono)
+function firstEmoji(v) {
+  v = String(v || "").trim();
+  if (!v) return "";
+  try { return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(v)][0].segment; }
+  catch (e) { return Array.from(v)[0]; }
+}
+document.getElementById("ev-icon").addEventListener("input", (e) => { e.target.value = firstEmoji(e.target.value); });
+
 // ===== TIPOS DE EVENTO =====
 // Cada tipo tiene una repetición: null (una sola vez) o { unit: "day"|"week"|"month"|"year", every: N }.
 // Los tipos personalizados se guardan en el perfil de quien los crea (users/<uid>.eventTypes).
@@ -2062,7 +2082,7 @@ function repeatLabel(rp) {
   const n = rp.every || 1;
   return n === 1 ? UNIT_EVERY[rp.unit] : "Cada " + n + " " + UNIT_WORDS[rp.unit][1];
 }
-const typeIcon = (ev) => { const t = typeOf(ev.type); return t.emoji && t.id !== "event" ? t.emoji + " " : ""; };
+const typeIcon = (ev) => { if (ev.icon) return ev.icon + " "; const t = typeOf(ev.type); return t.emoji && t.id !== "event" ? t.emoji + " " : ""; };
 
 // ----- fechas: un evento "ocurre" en un día si cae en su fecha o en una repetición -----
 const keyDate = (k) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
@@ -2134,12 +2154,20 @@ NT_EMOJIS.forEach((em) => {
   b.addEventListener("click", () => { nt.emoji = em; ntRender(); });
   document.getElementById("nt-emojis").appendChild(b);
 });
+document.getElementById("nt-emoji").addEventListener("input", (e) => {
+  const f = firstEmoji(e.target.value);
+  e.target.value = f;
+  if (f) nt.emoji = f;
+  document.querySelectorAll("#nt-emojis .emo").forEach((b) => b.classList.toggle("sel", b.dataset.e === nt.emoji));
+});
 document.querySelectorAll("#nt-units button").forEach((b) =>
   b.addEventListener("click", () => { nt.unit = b.dataset.u; ntRender(); }));
 document.getElementById("nt-minus").addEventListener("click", () => { nt.every = Math.max(1, nt.every - 1); ntRender(); });
 document.getElementById("nt-plus").addEventListener("click", () => { nt.every = Math.min(99, nt.every + 1); ntRender(); });
 function ntRender() {
   document.querySelectorAll("#nt-emojis .emo").forEach((b) => b.classList.toggle("sel", b.dataset.e === nt.emoji));
+  const ni = document.getElementById("nt-emoji");
+  if (document.activeElement !== ni) ni.value = nt.emoji;
   document.querySelectorAll("#nt-units button").forEach((b) => b.classList.toggle("sel", b.dataset.u === nt.unit));
   document.getElementById("nt-every-wrap").style.display = nt.unit === "none" ? "none" : "block";
   document.getElementById("nt-every").textContent = String(nt.every);
@@ -2149,6 +2177,7 @@ function ntRender() {
 function openTypeCreate() {
   nt.emoji = "🎉"; nt.unit = "year"; nt.every = 1;
   document.getElementById("nt-name").value = "";
+  document.getElementById("nt-emoji").value = "🎉";
   ntRender();
   openSheet("type-create-sheet");
 }
@@ -2157,7 +2186,7 @@ document.getElementById("nt-create").addEventListener("click", async () => {
   if (!name) { await appAlert("Escribe un nombre para el tipo."); return; }
   const t = {
     id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
-    name, emoji: nt.emoji,
+    name, emoji: nt.emoji || "🏷️",
     repeat: nt.unit === "none" ? null : { unit: nt.unit, every: nt.every }
   };
   const mine = [...ownTypes(), t];
@@ -2290,14 +2319,14 @@ function maybeShowReminders(fromCache, force) {
     const yrs = years + (years === 1 ? " año" : " años");
     let icon = "📅", sub = "";
     if (kind === "yearly") {
-      icon = t.emoji || "📅";
+      icon = ev.icon || t.emoji || "📅";
       if (t.id === "birthday") sub = years > 0 ? "Cumple " + yrs : "Cumpleaños";
       else if (t.id === "anniversary") sub = years > 0 ? yrs + " juntos" : "Aniversario";
       else sub = t.name + (years > 0 ? " · " + yrs : "");
     }
     else if (kind === "recurring") { icon = t.emoji || "🔁"; sub = repeatLabel(t.repeat); }
     else if (kind === "memory") { icon = "📸"; sub = "Hace " + yrs + " en este día"; }
-    else { icon = t.emoji || "📅"; sub = pending ? "Agrega las fotos de hoy" : (ev.time ? "🕐 " + ev.time : t.id === "event" ? "Próximo evento" : t.name); }
+    else { icon = ev.icon || t.emoji || "📅"; sub = pending ? "Agrega las fotos de hoy" : (ev.time ? "🕐 " + ev.time : t.id === "event" ? "Próximo evento" : t.name); }
     const row = document.createElement("div");
     row.className = "rem-item";
     row.innerHTML = '<div class="rem-icon">' + escapeHTML(icon) + '</div><div class="rem-text"><div class="rem-title">' + escapeHTML(ev.title) + '</div><div class="rem-sub">' + escapeHTML(sub) + '</div></div>' +
@@ -3558,6 +3587,7 @@ function openDay(key, dateObj){
       document.getElementById("ev-time").value = "";
       document.getElementById("ev-notes").value = "";
       refreshTypeSelect("event");
+      document.getElementById("ev-icon").value = "";
       document.getElementById("thumbs").innerHTML = "";
       
       // El modal del día queda debajo: al cerrar/volver se regresa a él
@@ -3593,6 +3623,7 @@ function openEditEvent(ev){
   document.getElementById("ev-time").value = ev.time || "";
   document.getElementById("ev-notes").value = ev.notes || "";
   refreshTypeSelect(ev.type || "event");
+  document.getElementById("ev-icon").value = ev.icon || "";
   document.getElementById("thumbs").innerHTML = "";
   pendingImages.forEach((media, i)=> {
     if(typeof media === "object" && (media.data || isBig(media))) {
@@ -4020,7 +4051,7 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     return;
   }
 
-  const eventData = { title, notes, time, type: currentTypeValue() };
+  const eventData = { title, notes, time, type: currentTypeValue(), icon: firstEmoji(document.getElementById("ev-icon").value) || null };
 
   const saveBtn = document.getElementById("save-event-btn");
   saveBtn.disabled = true;
@@ -4135,7 +4166,7 @@ async function makeCardBlob(ev) {
     gr.addColorStop(0, accent); gr.addColorStop(1, "#161B22");
     g.fillStyle = gr; g.fillRect(P, P, W - 2 * P, PH);
     g.font = "300px serif"; g.textAlign = "center"; g.fillStyle = "#fff";
-    g.fillText(t.emoji || "📸", W / 2, P + PH / 2 + 100);
+    g.fillText(ev.icon || t.emoji || "📸", W / 2, P + PH / 2 + 100);
     g.textAlign = "left";
   }
   g.restore();
