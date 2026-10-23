@@ -1671,7 +1671,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.8.3";
+window.APP_VERSION = "2.8.4";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -1868,7 +1868,8 @@ const DEFAULT_OTHER = "#F85149";
 function dateKey(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
-function mediaSrc(m) { return (m && typeof m === "object") ? (m.big ? (m.thumb || "") : m.data) : m; }
+function isBig(m) { return !!(m && typeof m === "object" && m.big === true); }
+function mediaSrc(m) { return (m && typeof m === "object") ? (isBig(m) ? (m.thumb || "") : m.data) : m; }
 function isImageMedia(m) { return !(m && typeof m === "object" && m.type === "video"); }
 
 // ===== EVENTOS "NUEVOS" =====
@@ -2224,14 +2225,14 @@ document.getElementById("photos-diag-btn").addEventListener("click", async () =>
   const seen = new Map();
   eventsCache.forEach((ev) => {
     (ev.images || []).forEach((m, i) => {
-      const big = !!(m && m.big);
+      const big = !!(m && isBig(m));
       const src = mediaSrc(m) || "";
       const h = src ? hashStr(src) : "(sin datos)";
       const kb = big ? "~" + Math.round((m.n || 0) * 500) + " KB en trozos" : Math.round(src.length * 0.75 / 1024) + " KB";
       const tag = ev.date + " · " + String(ev.title || "").slice(0, 24) + " [" + ev.id.slice(0, 5) + "] #" + (i + 1);
       const kind = typeof m === "string" ? "texto" : (m && m.type) || "?";
       lines.push(tag + " | " + kind + (big ? " grande" : " en el evento") + " | " + kb + " | huella " + h);
-      if (big) lines.push("   campos: id=" + m.id + " n=" + m.n + " mime=" + m.mime + " thumbLen=" + String(m.thumb || "").length + " thumbInicio=" + String(m.thumb || "").slice(0, 30) + " claves=" + Object.keys(m).join(","));
+      if (big) lines.push("   campos: id=" + m.id + " n=" + m.n + " mime=" + m.mime + " thumbLen=" + String(m.thumb || "").length + " thumbInicio=" + String(m.thumb || "").slice(0, 30));
       if (src) { if (!seen.has(h)) seen.set(h, []); seen.get(h).push(tag); }
     });
   });
@@ -2414,7 +2415,7 @@ function hashStr(str) {
 }
 const keyCache = new WeakMap();
 function mediaKey(m) {
-  if (m && m.big) return "big|" + m.id;
+  if (m && isBig(m)) return "big|" + m.id;
   if (m && typeof m === "object") {
     let k = keyCache.get(m);
     if (!k) { const d = mediaSrc(m) || ""; k = d.length + "|" + hashStr(d); keyCache.set(m, k); }
@@ -2593,13 +2594,13 @@ async function loadBigBlob(m) {
 
 function deleteBigMedia(list) {
   (list || []).forEach((m) => {
-    if (!m || !m.big) return;
+    if (!m || !isBig(m)) return;
     for (let i = 0; i < m.n; i++) deleteDoc(doc(db, "events", chunkId(m.id, i))).catch(() => {});
   });
 }
 function cleanupRemovedBig(oldList, newList) {
-  const keep = new Set((newList || []).filter((m) => m && m.big).map((m) => m.id));
-  deleteBigMedia((oldList || []).filter((m) => m && m.big && !keep.has(m.id)));
+  const keep = new Set((newList || []).filter((m) => m && isBig(m)).map((m) => m.id));
+  deleteBigMedia((oldList || []).filter((m) => m && isBig(m) && !keep.has(m.id)));
 }
 
 async function fullUrlFor(media) {
@@ -2609,8 +2610,8 @@ async function fullUrlFor(media) {
     fullMem.delete(key); fullMem.set(key, u);   // más reciente
     return u;
   }
-  if (media.big) showToast("Cargando archivo…", 2500);
-  const blob = media.big ? await loadBigBlob(media) : await (await fetch(mediaSrc(media))).blob();
+  if (isBig(media)) showToast("Cargando archivo…", 2500);
+  const blob = isBig(media) ? await loadBigBlob(media) : await (await fetch(mediaSrc(media))).blob();
   const url = URL.createObjectURL(blob);
   fullMem.set(key, url);
   while (fullMem.size > 6) {
@@ -3439,8 +3440,8 @@ function openEditEvent(ev){
   refreshTypeSelect(ev.type || "event");
   document.getElementById("thumbs").innerHTML = "";
   pendingImages.forEach((media, i)=> {
-    if(typeof media === "object" && (media.data || media.big)) {
-      addThumb(media.big ? (media.thumb || "") : media.data, i, media.type);
+    if(typeof media === "object" && (media.data || isBig(media))) {
+      addThumb(isBig(media) ? (media.thumb || "") : media.data, i, media.type);
     } else {
       addThumb(media, i, "image");
     }
@@ -3479,8 +3480,8 @@ function addThumb(src, idx, type = "image"){
 function refreshThumbs(){
   document.getElementById("thumbs").innerHTML = "";
   pendingImages.forEach((media,i)=> {
-    if(typeof media === "object" && (media.data || media.big)) {
-      addThumb(media.big ? (media.thumb || "") : media.data, i, media.type);
+    if(typeof media === "object" && (media.data || isBig(media))) {
+      addThumb(isBig(media) ? (media.thumb || "") : media.data, i, media.type);
     } else {
       addThumb(media, i, "image");
     }
@@ -3782,7 +3783,7 @@ document.getElementById("file-input").addEventListener("change", async (e)=>{
     try {
       const processed = await processMedia(file);
       pendingImages.push(processed);
-      addThumb(processed.big ? (processed.thumb || "") : processed.data, pendingImages.length-1, processed.type);
+      addThumb(isBig(processed) ? (processed.thumb || "") : processed.data, pendingImages.length-1, processed.type);
     } catch(err) {
       console.error("Error procesando archivo:", err);
       await appAlert("Error al procesar " + file.name + ": " + (err && err.message ? err.message : ""));
