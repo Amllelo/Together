@@ -1771,7 +1771,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.9.2";
+window.APP_VERSION = "2.10.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -1884,6 +1884,9 @@ const LS = {
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").then((reg) => {
     console.log("✅ Service Worker registrado");
+    const ensureCache = () => { if (navigator.onLine && reg.active) reg.active.postMessage({ type: "ENSURE_CACHE" }); };
+    ensureCache();
+    navigator.serviceWorker.ready.then(ensureCache);
     
     reg.addEventListener("updatefound", () => {
       const newWorker = reg.installing;
@@ -2101,7 +2104,27 @@ function occursOn(ev, key) {
   if (rp.unit === "year") return a.getMonth() === b.getMonth() && months % 12 === 0 && (months / 12) % n === 0;
   return false;
 }
-function eventsOnDay(key) { if (!key) return []; return eventsCache.filter((ev) => { try { return occursOn(ev, key); } catch (e) { console.error("Evento con error:", ev.id, e); return false; } }); }
+// Un evento real vive solo en su fecha. Las repeticiones de su tipo son ocurrencias automáticas ("virtuales"):
+// sin fotos ni notas, con el nombre del tipo, y se vuelven un evento propio cuando las editas.
+function makeVirtual(ev, key) {
+  const k = ev.type || "event";
+  return { virtual: true, id: "v|" + ev.id + "|" + key, baseId: ev.id, origin: ev.date, date: key, type: k,
+    title: typeOf(k).name, notes: "", images: [], time: null, authorUID: ev.authorUID };
+}
+function eventsOnDay(key) {
+  if (!key) return [];
+  const real = eventsCache.filter((ev) => ev.date === key);
+  const have = new Set(real.map((e) => e.type || "event"));
+  const seen = new Set(), virt = [];
+  eventsCache.forEach((ev) => {
+    if (!ev.date || ev.date >= key) return;
+    const k = ev.type || "event";
+    if (have.has(k) || seen.has(k) || !typeOf(k).repeat) return;
+    try { if (occursOn(ev, key)) { seen.add(k); virt.push(makeVirtual(ev, key)); } }
+    catch (e) { console.error("Evento con error:", ev.id, e); }
+  });
+  return real.concat(virt);
+}
 
 // ----- selección del tipo en el formulario -----
 function refreshTypeSelect(sel) {
@@ -2110,7 +2133,7 @@ function refreshTypeSelect(sel) {
   document.getElementById("ev-type").value = id;
   document.getElementById("ev-type-emoji").textContent = t.emoji || "📅";
   document.getElementById("ev-type-label").textContent = t.name;
-  document.getElementById("ev-type-hint").textContent = t.repeat ? "↻ " + repeatLabel(t.repeat) : "";
+  document.getElementById("ev-type-hint").textContent = t.repeat ? "↻ " + repeatLabel(t.repeat) + " · cada repetición se edita por separado" : "";
 }
 const currentTypeValue = () => document.getElementById("ev-type").value || "event";
 
@@ -2271,30 +2294,36 @@ function computeReminders() {
   const cfg = getRemCfg();
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const out = [];
-  eventsCache.forEach(ev => {
-    if (!ev.date) return;
-    const rp = repeatOf(ev);
-    const hasMedia = !!(ev.images && ev.images.length);
-    if (rp) {
-      if (!cfg.yearly) return;
-      for (let i = 0; i <= cfg.days; i++) {
-        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
-        if (occursOn(ev, dateKey(d))) {
-          const origin = keyDate(ev.date);
-          out.push({ ev, diff: i, date: d, kind: rp.unit === "year" ? "yearly" : "recurring",
-            years: d.getFullYear() - origin.getFullYear() });
-          break;
+  const out = [], seen = new Set();
+  if (cfg.yearly) {
+    for (let i = 0; i <= cfg.days; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+      const key = dateKey(d);
+      eventsOnDay(key).forEach((o) => {
+        const t = typeOf(o.type);
+        if (!t.repeat) return;
+        const sk = (o.type || "event") + "|" + (o.baseId || o.id);
+        if (seen.has(sk)) return;
+        seen.add(sk);
+        let origin = o.origin;
+        if (!origin) {
+          const base = eventsCache.find((e) => e !== o && (e.type || "event") === (o.type || "event") && e.date < o.date && occursOn(e, key));
+          origin = (base || o).date;
         }
-      }
-    } else {
-      const [y, m, d] = ev.date.split("-").map(Number);
-      const diff = Math.round((new Date(y, m - 1, d) - today) / 864e5);
-      if (diff >= 0 && diff <= cfg.days) {
-        if (cfg.upcoming) out.push({ ev, diff, date: new Date(y, m - 1, d), kind: "upcoming", pending: diff === 0 && !hasMedia });
-      } else if (diff < 0 && cfg.memories && m - 1 === today.getMonth() && d === today.getDate()) {
-        out.push({ ev, diff: 0, date: today, kind: "memory", years: today.getFullYear() - y });
-      }
+        out.push({ ev: o, diff: i, date: d, kind: t.repeat.unit === "year" ? "yearly" : "recurring",
+          years: d.getFullYear() - keyDate(origin).getFullYear() });
+      });
+    }
+  }
+  eventsCache.forEach(ev => {
+    if (!ev.date || repeatOf(ev)) return;
+    const [y, m, d] = ev.date.split("-").map(Number);
+    const hasMedia = !!(ev.images && ev.images.length);
+    const diff = Math.round((new Date(y, m - 1, d) - today) / 864e5);
+    if (diff >= 0 && diff <= cfg.days) {
+      if (cfg.upcoming) out.push({ ev, diff, date: new Date(y, m - 1, d), kind: "upcoming", pending: diff === 0 && !hasMedia });
+    } else if (diff < 0 && cfg.memories && m - 1 === today.getMonth() && d === today.getDate()) {
+      out.push({ ev, diff: 0, date: today, kind: "memory", years: today.getFullYear() - y });
     }
   });
   return out.sort((a, b) => a.diff - b.diff);
@@ -3519,6 +3548,7 @@ function renderCalendar(){
       const dot = document.createElement("div");
       dot.className = "day-dot";
       dot.style.background = ev.authorUID === currentUID ? "var(--accent-me)" : "var(--accent-other)";
+      if(ev.virtual) dot.style.opacity = "0.5";
       dots.appendChild(dot);
     });
     cell.appendChild(dots);
@@ -3672,7 +3702,34 @@ function refreshThumbs(){
   });
 }
 
+function buildVirtualCard(ev){
+  const t = typeOf(ev.type);
+  const item = document.createElement("div");
+  item.className = "event-item " + (ev.authorUID === currentUID ? "by-me" : "by-other");
+  item.innerHTML = '<div class="event-body"><h3 class="event-title">' + escapeHTML((t.emoji ? t.emoji + " " : "") + t.name) + '</h3>' +
+    '<div class="event-time">↻ ' + escapeHTML(repeatLabel(t.repeat)) + '</div>' +
+    '<div class="event-notes">Repetición automática. Edítala para ponerle nombre, notas o fotos solo a este día; no cambia las demás.</div>' +
+    '<div class="event-footer"><span>Automático</span><div class="event-actions"><button type="button" class="btn-small">Editar esta repetición</button></div></div></div>';
+  item.querySelector("button").addEventListener("click", () => openVirtualEdit(ev));
+  return item;
+}
+
+function openVirtualEdit(ev){
+  editingEventId = null;
+  pendingImages = [];
+  const t = typeOf(ev.type);
+  document.getElementById("event-modal-title").textContent = "Editar repetición";
+  document.getElementById("ev-title").value = t.name;
+  document.getElementById("ev-time").value = "";
+  document.getElementById("ev-notes").value = "";
+  refreshTypeSelect(ev.type || "event");
+  document.getElementById("ev-icon").value = "";
+  document.getElementById("thumbs").innerHTML = "";
+  document.getElementById("event-overlay").classList.add("active");
+}
+
 function buildEventCard(ev, feedStyle){
+  if(ev.virtual) return buildVirtualCard(ev);
   const item = document.createElement("div");
   item.className = feedStyle ? "feed-card" : "event-item";
   item.classList.add(ev.authorUID === currentUID ? "by-me" : "by-other");
