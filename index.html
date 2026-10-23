@@ -1282,6 +1282,56 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 .set-row input[type=checkbox] { width:18px; height:18px; accent-color: var(--accent-me); flex-shrink:0; }
 .type-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); font-size:0.92rem; }
 
+/* ===== SELECTOR DE TIPO (diseño propio) ===== */
+.type-trigger{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;border:1px solid var(--border);background:linear-gradient(180deg,var(--surface-2),var(--surface));color:var(--text);font:inherit;font-size:1rem;cursor:pointer;text-align:left;transition:transform .15s,border-color .2s}
+.type-trigger:hover{border-color:color-mix(in srgb,var(--accent-me) 50%,var(--border))}
+.type-trigger:active{transform:scale(.985)}
+.type-trigger .te{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:color-mix(in srgb,var(--accent-me) 14%,transparent);flex-shrink:0}
+.type-trigger .tl{flex:1;font-weight:600;min-width:0}
+.type-trigger .tc{color:var(--text-muted);font-size:1.1rem}
+.type-hint{font-size:.8rem;color:var(--accent-me);margin-top:6px;padding-left:4px;min-height:1em;font-weight:600}
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:70;display:none;align-items:flex-end;justify-content:center}
+.sheet-overlay.active{display:flex;animation:fadeIn .2s ease-out}
+.sheet{width:100%;max-width:560px;max-height:88vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-bottom:none;border-radius:28px 28px 0 0;padding:10px 18px calc(22px + var(--safe-bottom));animation:sheetUp .32s cubic-bezier(.2,.8,.2,1) both;box-shadow:0 -12px 40px rgba(0,0,0,.5)}
+.sheet-grab{width:44px;height:5px;border-radius:3px;background:var(--surface-3);margin:4px auto 16px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sheet-head h3{font-family:'Fraunces',serif;font-size:1.55rem;font-weight:600;letter-spacing:-.2px}
+.sheet-x{width:40px;height:40px;border-radius:50%;border:none;background:var(--surface-2);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sheet-x svg{width:18px;height:18px}
+.opt-list{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:20px;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;text-align:left;color:var(--text);font:inherit;width:100%;transition:transform .15s,border-color .2s,background .2s}
+.opt:active{transform:scale(.985)}
+.opt .oe{width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:var(--surface-3);flex-shrink:0}
+.opt .ot{flex:1;min-width:0}
+.opt .on{font-weight:600;font-size:1rem}
+.opt .os{font-size:.8rem;color:var(--text-muted);margin-top:3px}
+.opt .ock{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.opt.sel{border-color:var(--accent-me);background:color-mix(in srgb,var(--accent-me) 10%,var(--surface-2))}
+.opt.sel .ock{background:var(--accent-me);border-color:var(--accent-me)}
+.opt.sel .ock::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--bg)}
+.opt.add{border-style:dashed;border-color:color-mix(in srgb,var(--accent-me) 60%,var(--border));background:transparent}
+.opt.add .oe{background:transparent;color:var(--accent-me);font-size:1.6rem;font-weight:300}
+.opt.add .on{color:var(--accent-me)}
+.sec-label{font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);margin:20px 2px 10px}
+.emo-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:7px}
+.emo{aspect-ratio:1;border-radius:14px;border:1px solid var(--border);background:var(--surface-2);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:transform .12s}
+.emo:active{transform:scale(.9)}
+.emo.sel{border-color:var(--accent-me);background:color-mix(in srgb,var(--accent-me) 16%,var(--surface-2));box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-me) 25%,transparent)}
+.seg{display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface-2);border:1px solid var(--border);border-radius:18px;padding:4px;gap:4px}
+.seg button{border:none;background:transparent;color:var(--text-dim);padding:10px 0;border-radius:14px;font:inherit;font-weight:600;font-size:.82rem;cursor:pointer;transition:background .2s,color .2s}
+.seg button.sel{background:var(--accent-me);color:var(--bg)}
+.stepper{display:flex;align-items:center;justify-content:space-between;background:var(--surface-2);border:1px solid var(--border);border-radius:18px;padding:8px}
+.stepper button{width:46px;height:46px;border-radius:14px;border:none;background:var(--surface-3);color:var(--text);font-size:1.5rem;cursor:pointer;line-height:1}
+.stepper button:active{transform:scale(.92)}
+.stepper .sv{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:600;color:var(--accent-me)}
+.stepper .su{font-size:1rem;color:var(--text-dim);margin-left:6px}
+.field{background:var(--surface-2);border:1px solid var(--border);border-radius:18px;padding:14px 16px;color:var(--text);font:inherit;font-size:1rem;width:100%;box-sizing:border-box}
+.field::placeholder{color:var(--text-muted)}
+.field:focus{outline:none;border-color:var(--accent-me);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-me) 18%,transparent)}
+.preview{font-size:.92rem;color:var(--text-dim);margin-top:12px;text-align:center}
+.cta{width:100%;margin-top:22px;padding:16px;border-radius:18px;border:none;background:var(--accent-me);color:var(--bg);font:inherit;font-weight:700;font-size:1rem;cursor:pointer;box-shadow:0 10px 26px color-mix(in srgb,var(--accent-me) 30%,transparent);transition:transform .15s}
+.cta:active{transform:scale(.985)}
+
 /* ===== RECORDATORIOS ===== */
 .form-group select{padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:1rem;font-family:inherit}
 #reminders-list{display:flex;flex-direction:column;gap:10px}
@@ -1431,19 +1481,14 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
           <input type="text" id="ev-title" placeholder="¿Qué evento?">
         </div>
         <div class="form-group">
-          <label for="ev-type">Tipo</label>
-          <select id="ev-type"></select>
-        </div>
-        <div class="form-group" id="new-type-box" style="display:none">
-          <div style="display:flex; gap:8px;">
-            <input type="text" id="nt-emoji" placeholder="🎉" maxlength="4" style="width:64px; text-align:center;">
-            <input type="text" id="nt-name" placeholder="Nombre del tipo" maxlength="30" style="flex:1; min-width:0;">
-          </div>
-          <label class="set-row" style="font-weight:400;"><input type="checkbox" id="nt-yearly" style="padding:0;"> Se repite cada año</label>
-          <div style="display:flex; gap:8px;">
-            <button type="button" id="nt-cancel" class="btn-small" style="flex:1; padding:10px;">Cancelar</button>
-            <button type="button" id="nt-create" class="btn-small" style="flex:1; padding:10px; background:var(--accent-me); color:var(--bg); border:none;">Crear tipo</button>
-          </div>
+          <label>Tipo</label>
+          <input type="hidden" id="ev-type" value="event">
+          <button type="button" id="ev-type-trigger" class="type-trigger" aria-haspopup="dialog">
+            <span class="te" id="ev-type-emoji">📅</span>
+            <span class="tl" id="ev-type-label">Evento</span>
+            <span class="tc">›</span>
+          </button>
+          <div id="ev-type-hint" class="type-hint"></div>
         </div>
         <div class="form-group">
           <label for="ev-time">Hora (opcional)</label>
@@ -1535,7 +1580,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
         <div class="settings-section" style="border-top:1px solid var(--border); padding-top:16px;">
           <h3 style="font-size:0.95rem; margin-bottom:10px; color:var(--text);">Recordatorios</h3>
           <label class="set-row"><input type="checkbox" id="rem-enabled"><span>Mostrar recordatorios al abrir la app</span></label>
-          <label class="set-row"><input type="checkbox" id="rem-yearly"><span>Cumpleaños, aniversarios y fechas anuales</span></label>
+          <label class="set-row"><input type="checkbox" id="rem-yearly"><span>Eventos que se repiten (cumpleaños, aniversarios, semanales…)</span></label>
           <label class="set-row"><input type="checkbox" id="rem-upcoming"><span>Próximos eventos</span></label>
           <label class="set-row"><input type="checkbox" id="rem-memories"><span>Recuerdos de años anteriores</span></label>
           <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 0; font-size:0.92rem;">
@@ -1592,6 +1637,50 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
         <button id="close-reminders-btn" class="modal-close" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
       </div>
       <div id="reminders-list"></div>
+    </div>
+  </div>
+
+  <!-- HOJA: TIPO DE EVENTO -->
+  <div id="type-sheet" class="sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="type-sheet-title">
+    <div class="sheet">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head">
+        <h3 id="type-sheet-title">Tipo de evento</h3>
+        <button type="button" class="sheet-x" id="type-sheet-x" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      </div>
+      <div class="opt-list" id="type-list"></div>
+    </div>
+  </div>
+
+  <!-- HOJA: NUEVO TIPO -->
+  <div id="type-create-sheet" class="sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="type-create-title">
+    <div class="sheet">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head">
+        <h3 id="type-create-title">Nuevo tipo</h3>
+        <button type="button" class="sheet-x" id="type-create-x" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      </div>
+      <input type="text" id="nt-name" class="field" placeholder="Ej. Salida semanal, Pago de renta" maxlength="30" autocomplete="off">
+      <div class="sec-label">Icono</div>
+      <div class="emo-grid" id="nt-emojis"></div>
+      <div class="sec-label">Se repite</div>
+      <div class="seg" id="nt-units">
+        <button type="button" data-u="none">Nunca</button>
+        <button type="button" data-u="day">Día</button>
+        <button type="button" data-u="week">Semana</button>
+        <button type="button" data-u="month">Mes</button>
+        <button type="button" data-u="year">Año</button>
+      </div>
+      <div id="nt-every-wrap">
+        <div class="sec-label">Cada</div>
+        <div class="stepper">
+          <button type="button" id="nt-minus" aria-label="Menos">−</button>
+          <div><span class="sv" id="nt-every">1</span><span class="su" id="nt-unit-word">año</span></div>
+          <button type="button" id="nt-plus" aria-label="Más">+</button>
+        </div>
+      </div>
+      <div class="preview" id="nt-preview"></div>
+      <button type="button" class="cta" id="nt-create">Crear tipo</button>
     </div>
   </div>
 
@@ -1671,7 +1760,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.8.4";
+window.APP_VERSION = "2.9.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -1946,73 +2035,136 @@ const feedSeenObserver = ("IntersectionObserver" in window) ? new IntersectionOb
 }, { threshold: 0.5 }) : null;
 
 // ===== TIPOS DE EVENTO =====
-// Los tipos personalizados se guardan en el perfil de quien los crea (users/<uid>.eventTypes) y ambos los ven.
+// Cada tipo tiene una repetición: null (una sola vez) o { unit: "day"|"week"|"month"|"year", every: N }.
+// Los tipos personalizados se guardan en el perfil de quien los crea (users/<uid>.eventTypes).
 const BUILTIN_TYPES = [
-  { id: "event", name: "Evento", emoji: "", yearly: false },
-  { id: "birthday", name: "Cumpleaños", emoji: "🎂", yearly: true },
-  { id: "anniversary", name: "Aniversario", emoji: "💞", yearly: true }
+  { id: "event", name: "Evento", emoji: "📅", repeat: null },
+  { id: "birthday", name: "Cumpleaños", emoji: "🎂", repeat: { unit: "year", every: 1 } },
+  { id: "anniversary", name: "Aniversario", emoji: "💞", repeat: { unit: "year", every: 1 } }
 ];
 const ownTypes = () => (usersData[currentUID] && usersData[currentUID].eventTypes) || [];
+const normType = (t) => ({ ...t, repeat: t.repeat !== undefined ? t.repeat : (t.yearly ? { unit: "year", every: 1 } : null) });
 function allTypes() {
   const out = BUILTIN_TYPES.slice(), seen = new Set(out.map((t) => t.id));
   Object.keys(usersData).forEach((uid) => {
     ((usersData[uid] && usersData[uid].eventTypes) || []).forEach((t) => {
-      if (t && t.id && !seen.has(t.id)) { seen.add(t.id); out.push({ ...t, owner: uid }); }
+      if (t && t.id && !seen.has(t.id)) { seen.add(t.id); out.push({ ...normType(t), owner: uid }); }
     });
   });
   return out;
 }
 const typeOf = (id) => allTypes().find((t) => t.id === (id || "event")) || BUILTIN_TYPES[0];
-const isYearly = (ev) => !!typeOf(ev.type).yearly;
-const typeIcon = (ev) => { const t = typeOf(ev.type); return t.emoji ? t.emoji + " " : ""; };
-
-function eventsOnDay(key) {
-  return eventsCache.filter(ev => ev.date === key || (isYearly(ev) && ev.date && ev.date < key && ev.date.slice(5) === key.slice(5)));
+const repeatOf = (ev) => typeOf(ev.type).repeat || null;
+const UNIT_WORDS = { day: ["día", "días"], week: ["semana", "semanas"], month: ["mes", "meses"], year: ["año", "años"] };
+const UNIT_EVERY = { day: "Todos los días", week: "Cada semana", month: "Cada mes", year: "Cada año" };
+function repeatLabel(rp) {
+  if (!rp) return "Una sola vez";
+  const n = rp.every || 1;
+  return n === 1 ? UNIT_EVERY[rp.unit] : "Cada " + n + " " + UNIT_WORDS[rp.unit][1];
 }
+const typeIcon = (ev) => { const t = typeOf(ev.type); return t.emoji && t.id !== "event" ? t.emoji + " " : ""; };
 
-let ntPrev = "event";
+// ----- fechas: un evento "ocurre" en un día si cae en su fecha o en una repetición -----
+const keyDate = (k) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+const daysBetween = (a, b) => Math.round((b - a) / 864e5);
+function occursOn(ev, key) {
+  if (!ev.date || key < ev.date) return false;
+  if (key === ev.date) return true;
+  const rp = repeatOf(ev);
+  if (!rp) return false;
+  const a = keyDate(ev.date), b = keyDate(key), n = Math.max(1, rp.every || 1);
+  if (rp.unit === "day") return daysBetween(a, b) % n === 0;
+  if (rp.unit === "week") return daysBetween(a, b) % (7 * n) === 0;
+  if (a.getDate() !== b.getDate()) return false;
+  const months = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+  if (rp.unit === "month") return months % n === 0;
+  if (rp.unit === "year") return a.getMonth() === b.getMonth() && months % 12 === 0 && (months / 12) % n === 0;
+  return false;
+}
+function eventsOnDay(key) { return eventsCache.filter((ev) => occursOn(ev, key)); }
+
+// ----- selección del tipo en el formulario -----
 function refreshTypeSelect(sel) {
-  const el = document.getElementById("ev-type");
-  el.innerHTML = "";
-  allTypes().forEach((t) => {
-    const o = document.createElement("option");
-    o.value = t.id;
-    o.textContent = (t.emoji ? t.emoji + " " : "") + t.name + (t.yearly ? " (cada año)" : "");
-    el.appendChild(o);
-  });
-  const n = document.createElement("option");
-  n.value = "__new"; n.textContent = "➕ Nuevo tipo…";
-  el.appendChild(n);
-  el.value = allTypes().some((t) => t.id === sel) ? sel : "event";
-  ntPrev = el.value;
-  document.getElementById("new-type-box").style.display = "none";
+  const id = allTypes().some((t) => t.id === sel) ? sel : "event";
+  const t = typeOf(id);
+  document.getElementById("ev-type").value = id;
+  document.getElementById("ev-type-emoji").textContent = t.emoji || "📅";
+  document.getElementById("ev-type-label").textContent = t.name;
+  document.getElementById("ev-type-hint").textContent = t.repeat ? "↻ " + repeatLabel(t.repeat) : "";
 }
-const currentTypeValue = () => { const v = document.getElementById("ev-type").value; return (!v || v === "__new") ? "event" : v; };
+const currentTypeValue = () => document.getElementById("ev-type").value || "event";
 
-document.getElementById("ev-type").addEventListener("change", (e) => {
-  if (e.target.value === "__new") {
-    document.getElementById("new-type-box").style.display = "flex";
-    document.getElementById("nt-emoji").value = "";
-    document.getElementById("nt-name").value = "";
-    document.getElementById("nt-yearly").checked = false;
-    document.getElementById("nt-name").focus();
-  } else {
-    ntPrev = e.target.value;
-    document.getElementById("new-type-box").style.display = "none";
-  }
+function openSheet(id) { document.getElementById(id).classList.add("active"); }
+function closeSheet(id) { document.getElementById(id).classList.remove("active"); }
+
+function renderTypeSheet() {
+  const list = document.getElementById("type-list");
+  list.innerHTML = "";
+  const cur = currentTypeValue();
+  allTypes().forEach((t) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "opt" + (t.id === cur ? " sel" : "");
+    const who = t.owner && t.owner !== currentUID ? " · de tu pareja" : "";
+    b.innerHTML = '<span class="oe">' + escapeHTML(t.emoji || "📅") + '</span>' +
+      '<span class="ot"><div class="on">' + escapeHTML(t.name) + '</div><div class="os">' + escapeHTML(repeatLabel(t.repeat) + who) + '</div></span>' +
+      '<span class="ock"></span>';
+    b.addEventListener("click", () => { refreshTypeSelect(t.id); closeSheet("type-sheet"); });
+    list.appendChild(b);
+  });
+  const add = document.createElement("button");
+  add.type = "button";
+  add.className = "opt add";
+  add.innerHTML = '<span class="oe">＋</span><span class="ot"><div class="on">Crear tipo nuevo</div><div class="os">Nombre, icono y repetición</div></span>';
+  add.addEventListener("click", () => { closeSheet("type-sheet"); openTypeCreate(); });
+  list.appendChild(add);
+}
+document.getElementById("ev-type-trigger").addEventListener("click", () => { renderTypeSheet(); openSheet("type-sheet"); });
+document.getElementById("type-sheet-x").addEventListener("click", () => closeSheet("type-sheet"));
+document.getElementById("type-create-x").addEventListener("click", () => closeSheet("type-create-sheet"));
+document.getElementById("type-sheet").addEventListener("click", (e) => { if (e.target.id === "type-sheet") closeSheet("type-sheet"); });
+document.getElementById("type-create-sheet").addEventListener("click", (e) => { if (e.target.id === "type-create-sheet") closeSheet("type-create-sheet"); });
+
+// ----- crear tipo nuevo -----
+const NT_EMOJIS = ["🎉", "🏠", "✈️", "💪", "🍽️", "🎬", "🐶", "🌙", "💍", "📚", "☕", "🎵", "🛒", "💊", "🎮", "⚽"];
+const nt = { emoji: "🎉", unit: "year", every: 1 };
+NT_EMOJIS.forEach((em) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "emo"; b.dataset.e = em; b.textContent = em;
+  b.addEventListener("click", () => { nt.emoji = em; ntRender(); });
+  document.getElementById("nt-emojis").appendChild(b);
 });
-document.getElementById("nt-cancel").addEventListener("click", () => {
-  document.getElementById("new-type-box").style.display = "none";
-  document.getElementById("ev-type").value = ntPrev;
-});
+document.querySelectorAll("#nt-units button").forEach((b) =>
+  b.addEventListener("click", () => { nt.unit = b.dataset.u; ntRender(); }));
+document.getElementById("nt-minus").addEventListener("click", () => { nt.every = Math.max(1, nt.every - 1); ntRender(); });
+document.getElementById("nt-plus").addEventListener("click", () => { nt.every = Math.min(99, nt.every + 1); ntRender(); });
+function ntRender() {
+  document.querySelectorAll("#nt-emojis .emo").forEach((b) => b.classList.toggle("sel", b.dataset.e === nt.emoji));
+  document.querySelectorAll("#nt-units button").forEach((b) => b.classList.toggle("sel", b.dataset.u === nt.unit));
+  document.getElementById("nt-every-wrap").style.display = nt.unit === "none" ? "none" : "block";
+  document.getElementById("nt-every").textContent = String(nt.every);
+  document.getElementById("nt-unit-word").textContent = nt.unit === "none" ? "" : UNIT_WORDS[nt.unit][nt.every === 1 ? 0 : 1];
+  document.getElementById("nt-preview").textContent = nt.unit === "none" ? "Solo ocurrirá una vez" : "↻ " + repeatLabel({ unit: nt.unit, every: nt.every });
+}
+function openTypeCreate() {
+  nt.emoji = "🎉"; nt.unit = "year"; nt.every = 1;
+  document.getElementById("nt-name").value = "";
+  ntRender();
+  openSheet("type-create-sheet");
+}
 document.getElementById("nt-create").addEventListener("click", async () => {
   const name = document.getElementById("nt-name").value.trim();
   if (!name) { await appAlert("Escribe un nombre para el tipo."); return; }
-  const emoji = Array.from(document.getElementById("nt-emoji").value.trim()).slice(0, 2).join("") || "🏷️";
-  const t = { id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, emoji, yearly: document.getElementById("nt-yearly").checked };
+  const t = {
+    id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    name, emoji: nt.emoji,
+    repeat: nt.unit === "none" ? null : { unit: nt.unit, every: nt.every }
+  };
   const mine = [...ownTypes(), t];
   usersData[currentUID] = { ...(usersData[currentUID] || {}), eventTypes: mine };
   refreshTypeSelect(t.id);
+  closeSheet("type-create-sheet");
+  renderTypesList();
   try {
     await commitWrite(setDoc(doc(db, "users", currentUID), { eventTypes: mine, updatedAt: serverTimestamp() }, { merge: true }));
   } catch (err) {
@@ -2029,9 +2181,9 @@ function renderTypesList() {
   custom.forEach((t) => {
     const row = document.createElement("div");
     row.className = "type-row";
-    const mineT = t.owner === currentUID;
-    row.innerHTML = '<span>' + escapeHTML(t.emoji + " " + t.name) + (t.yearly ? ' <span style="color:var(--text-muted); font-size:0.78rem;">· cada año</span>' : '') + '</span>';
-    if (mineT) {
+    row.innerHTML = '<span>' + escapeHTML((t.emoji || "") + " " + t.name) +
+      ' <span style="color:var(--text-muted); font-size:0.78rem;">· ' + escapeHTML(repeatLabel(t.repeat).toLowerCase()) + '</span></span>';
+    if (t.owner === currentUID) {
       const btn = document.createElement("button");
       btn.className = "btn-small"; btn.textContent = "Eliminar";
       btn.addEventListener("click", async () => {
@@ -2090,21 +2242,30 @@ function computeReminders() {
   const cfg = getRemCfg();
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const DAYS = cfg.days, out = [];
+  const out = [];
   eventsCache.forEach(ev => {
     if (!ev.date) return;
-    const [y, m, d] = ev.date.split("-").map(Number);
+    const rp = repeatOf(ev);
     const hasMedia = !!(ev.images && ev.images.length);
-    if (isYearly(ev)) {
+    if (rp) {
       if (!cfg.yearly) return;
-      let next = new Date(today.getFullYear(), m - 1, d);
-      if (next < today) next = new Date(today.getFullYear() + 1, m - 1, d);
-      const diff = Math.round((next - today) / 864e5), years = next.getFullYear() - y;
-      if (diff <= DAYS && years >= 0) out.push({ ev, diff, kind: "yearly", years });
+      for (let i = 0; i <= cfg.days; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+        if (occursOn(ev, dateKey(d))) {
+          const origin = keyDate(ev.date);
+          out.push({ ev, diff: i, date: d, kind: rp.unit === "year" ? "yearly" : "recurring",
+            years: d.getFullYear() - origin.getFullYear() });
+          break;
+        }
+      }
     } else {
+      const [y, m, d] = ev.date.split("-").map(Number);
       const diff = Math.round((new Date(y, m - 1, d) - today) / 864e5);
-      if (diff >= 0 && diff <= DAYS) { if (cfg.upcoming) out.push({ ev, diff, kind: "upcoming", pending: diff === 0 && !hasMedia }); }
-      else if (diff < 0 && cfg.memories && m - 1 === today.getMonth() && d === today.getDate()) out.push({ ev, diff: 0, kind: "memory", years: today.getFullYear() - y });
+      if (diff >= 0 && diff <= cfg.days) {
+        if (cfg.upcoming) out.push({ ev, diff, date: new Date(y, m - 1, d), kind: "upcoming", pending: diff === 0 && !hasMedia });
+      } else if (diff < 0 && cfg.memories && m - 1 === today.getMonth() && d === today.getDate()) {
+        out.push({ ev, diff: 0, date: today, kind: "memory", years: today.getFullYear() - y });
+      }
     }
   });
   return out.sort((a, b) => a.diff - b.diff);
@@ -2134,6 +2295,7 @@ function maybeShowReminders(fromCache, force) {
       else if (t.id === "anniversary") sub = years > 0 ? yrs + " juntos" : "Aniversario";
       else sub = t.name + (years > 0 ? " · " + yrs : "");
     }
+    else if (kind === "recurring") { icon = t.emoji || "🔁"; sub = repeatLabel(t.repeat); }
     else if (kind === "memory") { icon = "📸"; sub = "Hace " + yrs + " en este día"; }
     else { icon = t.emoji || "📅"; sub = pending ? "Agrega las fotos de hoy" : (ev.time ? "🕐 " + ev.time : t.id === "event" ? "Próximo evento" : t.name); }
     const row = document.createElement("div");
@@ -2142,14 +2304,7 @@ function maybeShowReminders(fromCache, force) {
       (kind === "memory" ? "" : '<div class="rem-when">' + when + '</div>');
     row.addEventListener("click", () => {
       document.getElementById("reminders-overlay").classList.remove("active");
-      const dt = new Date(ev.date + "T00:00:00");
-      if (isYearly(ev) || kind === "memory") {
-        const n = new Date(), td = new Date(n.getFullYear(), n.getMonth(), n.getDate());
-        let t2 = new Date(n.getFullYear(), dt.getMonth(), dt.getDate());
-        if (t2 < td) t2 = new Date(n.getFullYear() + 1, dt.getMonth(), dt.getDate());
-        openDay(dateKey(t2), t2); return;
-      }
-      openDay(ev.date, dt);
+      openDay(dateKey(it.date), it.date);
     });
     list.appendChild(row);
   });
@@ -4048,6 +4203,8 @@ const NAV_LAYERS = {
   "feed-view":        () => document.querySelector('.nav-item[data-view="month-view"]').click(),
   "day-overlay":      () => document.getElementById("close-day-btn").click(),
   "reminders-overlay": () => document.getElementById("close-reminders-btn").click(),
+  "type-create-sheet": () => closeSheet("type-create-sheet"),
+  "type-sheet": () => closeSheet("type-sheet"),
   "settings-overlay": () => document.getElementById("close-settings-btn").click(),
   "event-overlay":    () => document.getElementById("cancel-event-btn").click(),
   "lightbox":         () => document.getElementById("lightbox").click(),
