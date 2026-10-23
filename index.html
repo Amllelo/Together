@@ -1312,6 +1312,8 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 .opt.add{border-style:dashed;border-color:color-mix(in srgb,var(--accent-me) 60%,var(--border));background:transparent}
 .opt.add .oe{background:transparent;color:var(--accent-me);font-size:1.6rem;font-weight:300}
 .opt.add .on{color:var(--accent-me)}
+.opt.multi .ock{border-radius:8px}
+.opt.multi.sel .ock::after{content:"✓";width:auto;height:auto;background:none;color:var(--bg);font-weight:800;font-size:.9rem;border-radius:0}
 .sec-label{font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);margin:20px 2px 10px}
 .emo-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:7px}
 .emo{aspect-ratio:1;border-radius:14px;border:1px solid var(--border);background:var(--surface-2);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:transform .12s}
@@ -1481,7 +1483,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
           <input type="text" id="ev-title" placeholder="¿Qué evento?">
         </div>
         <div class="form-group">
-          <label>Tipo</label>
+          <label>Tipos (puedes elegir varios)</label>
           <input type="hidden" id="ev-type" value="event">
           <button type="button" id="ev-type-trigger" class="type-trigger" aria-haspopup="dialog">
             <span class="te" id="ev-type-emoji">📅</span>
@@ -1652,10 +1654,12 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
     <div class="sheet">
       <div class="sheet-grab"></div>
       <div class="sheet-head">
-        <h3 id="type-sheet-title">Tipo de evento</h3>
+        <h3 id="type-sheet-title">Tipos de evento</h3>
         <button type="button" class="sheet-x" id="type-sheet-x" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
       </div>
+      <div style="font-size:.85rem;color:var(--text-muted);margin:-6px 2px 14px;">Puedes elegir más de uno.</div>
       <div class="opt-list" id="type-list"></div>
+      <button type="button" class="cta" id="type-sheet-done">Listo</button>
     </div>
   </div>
 
@@ -1771,7 +1775,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.10.0";
+window.APP_VERSION = "2.11.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2077,7 +2081,12 @@ function allTypes() {
   return out;
 }
 const typeOf = (id) => allTypes().find((t) => t.id === (id || "event")) || BUILTIN_TYPES[0];
-const repeatOf = (ev) => typeOf(ev.type).repeat || null;
+// Un evento puede tener varios tipos (ev.types). ev.type queda como el principal por compatibilidad.
+const typesOf = (ev) => (ev && Array.isArray(ev.types) && ev.types.length) ? ev.types : [(ev && ev.type) || "event"];
+const periodDays = (rp) => !rp ? 0 : ({ day: 1, week: 7, month: 30, year: 365 }[rp.unit] || 0) * Math.max(1, rp.every || 1);
+const sortedTypes = (ids) => ids.map(typeOf).sort((a, b) => periodDays(b.repeat) - periodDays(a.repeat));   // el de periodo más largo primero
+const primaryType = (ev) => sortedTypes(typesOf(ev))[0] || BUILTIN_TYPES[0];
+const hasRepeat = (ev) => typesOf(ev).some((id) => typeOf(id).repeat);
 const UNIT_WORDS = { day: ["día", "días"], week: ["semana", "semanas"], month: ["mes", "meses"], year: ["año", "años"] };
 const UNIT_EVERY = { day: "Todos los días", week: "Cada semana", month: "Cada mes", year: "Cada año" };
 function repeatLabel(rp) {
@@ -2085,15 +2094,14 @@ function repeatLabel(rp) {
   const n = rp.every || 1;
   return n === 1 ? UNIT_EVERY[rp.unit] : "Cada " + n + " " + UNIT_WORDS[rp.unit][1];
 }
-const typeIcon = (ev) => { if (ev.icon) return ev.icon + " "; const t = typeOf(ev.type); return t.emoji && t.id !== "event" ? t.emoji + " " : ""; };
+const typeIcon = (ev) => { if (ev.icon) return ev.icon + " "; const e = typesOf(ev).map(typeOf).filter((t) => t.id !== "event" && t.emoji).map((t) => t.emoji).join(""); return e ? e + " " : ""; };
 
 // ----- fechas: un evento "ocurre" en un día si cae en su fecha o en una repetición -----
 const keyDate = (k) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
 const daysBetween = (a, b) => Math.round((b - a) / 864e5);
-function occursOn(ev, key) {
+function occursOn(ev, key, rp) {
   if (!key || !ev.date || key < ev.date) return false;
   if (key === ev.date) return true;
-  const rp = repeatOf(ev);
   if (!rp) return false;
   const a = keyDate(ev.date), b = keyDate(key), n = Math.max(1, rp.every || 1);
   if (rp.unit === "day") return daysBetween(a, b) % n === 0;
@@ -2106,36 +2114,53 @@ function occursOn(ev, key) {
 }
 // Un evento real vive solo en su fecha. Las repeticiones de su tipo son ocurrencias automáticas ("virtuales"):
 // sin fotos ni notas, con el nombre del tipo, y se vuelven un evento propio cuando las editas.
-function makeVirtual(ev, key) {
-  const k = ev.type || "event";
-  return { virtual: true, id: "v|" + ev.id + "|" + key, baseId: ev.id, origin: ev.date, date: key, type: k,
-    title: typeOf(k).name, notes: "", images: [], time: null, authorUID: ev.authorUID };
+function makeVirtual(ev, key, ids) {
+  const ts = sortedTypes(ids);
+  return { virtual: true, id: "v|" + ev.id + "|" + key, baseId: ev.id, origin: ev.date, date: key,
+    type: ts[0].id, types: ts.map((t) => t.id), title: ts[0].name, notes: "", images: [], time: null, authorUID: ev.authorUID };
 }
+// En una fecha pueden coincidir varias repeticiones del mismo evento (p. ej. aniversario + cumple mes):
+// se muestra una sola, con el nombre del tipo de periodo más largo.
 function eventsOnDay(key) {
   if (!key) return [];
   const real = eventsCache.filter((ev) => ev.date === key);
-  const have = new Set(real.map((e) => e.type || "event"));
+  const have = new Set();
+  real.forEach((e) => typesOf(e).forEach((id) => have.add(id)));
   const seen = new Set(), virt = [];
   eventsCache.forEach((ev) => {
     if (!ev.date || ev.date >= key) return;
-    const k = ev.type || "event";
-    if (have.has(k) || seen.has(k) || !typeOf(k).repeat) return;
-    try { if (occursOn(ev, key)) { seen.add(k); virt.push(makeVirtual(ev, key)); } }
-    catch (e) { console.error("Evento con error:", ev.id, e); }
+    const ids = [];
+    typesOf(ev).forEach((id) => {
+      if (ids.includes(id) || have.has(id) || seen.has(id)) return;
+      const rp = typeOf(id).repeat;
+      if (!rp) return;
+      try { if (occursOn(ev, key, rp)) ids.push(id); }
+      catch (e) { console.error("Evento con error:", ev.id, e); }
+    });
+    if (ids.length) { ids.forEach((id) => seen.add(id)); virt.push(makeVirtual(ev, key, ids)); }
   });
   return real.concat(virt);
 }
 
 // ----- selección del tipo en el formulario -----
-function refreshTypeSelect(sel) {
-  const id = allTypes().some((t) => t.id === sel) ? sel : "event";
-  const t = typeOf(id);
-  document.getElementById("ev-type").value = id;
-  document.getElementById("ev-type-emoji").textContent = t.emoji || "📅";
-  document.getElementById("ev-type-label").textContent = t.name;
-  document.getElementById("ev-type-hint").textContent = t.repeat ? "↻ " + repeatLabel(t.repeat) + " · cada repetición se edita por separado" : "";
+let selTypes = ["event"];
+function normSel(sel) {
+  const arr = (Array.isArray(sel) ? sel : [sel]).filter((id) => id && allTypes().some((t) => t.id === id));
+  const real = [...new Set(arr)].filter((id) => id !== "event");
+  return real.length ? real : ["event"];
 }
-const currentTypeValue = () => document.getElementById("ev-type").value || "event";
+function refreshTypeSelect(sel) {
+  selTypes = normSel(sel);
+  const list = selTypes.map(typeOf);
+  document.getElementById("ev-type").value = selTypes[0];
+  const em = document.getElementById("ev-type-emoji");
+  em.textContent = list.map((t) => t.emoji || "📅").slice(0, 3).join("");
+  em.style.fontSize = list.length > 1 ? "0.95rem" : "";
+  document.getElementById("ev-type-label").textContent = list.map((t) => t.name).join(" + ");
+  const reps = list.filter((t) => t.repeat).map((t) => (list.length > 1 ? t.name + ": " : "") + repeatLabel(t.repeat).toLowerCase());
+  document.getElementById("ev-type-hint").textContent = reps.length ? "↻ " + reps.join(" · ") + " — cada repetición se edita por separado" : "";
+}
+const currentTypes = () => selTypes.slice();
 
 function openSheet(id) { document.getElementById(id).classList.add("active"); }
 function closeSheet(id) { document.getElementById(id).classList.remove("active"); }
@@ -2143,18 +2168,26 @@ function closeSheet(id) { document.getElementById(id).classList.remove("active")
 function renderTypeSheet() {
   const list = document.getElementById("type-list");
   list.innerHTML = "";
-  const cur = currentTypeValue();
+  const btns = [];
+  const paint = () => btns.forEach(([b, t]) => b.classList.toggle("sel", selTypes.includes(t.id)));
   allTypes().forEach((t) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "opt" + (t.id === cur ? " sel" : "");
+    b.className = "opt multi";
     const who = t.owner && t.owner !== currentUID ? " · de tu pareja" : "";
     b.innerHTML = '<span class="oe">' + escapeHTML(t.emoji || "📅") + '</span>' +
       '<span class="ot"><div class="on">' + escapeHTML(t.name) + '</div><div class="os">' + escapeHTML(repeatLabel(t.repeat) + who) + '</div></span>' +
       '<span class="ock"></span>';
-    b.addEventListener("click", () => { refreshTypeSelect(t.id); closeSheet("type-sheet"); });
+    b.addEventListener("click", () => {
+      if (t.id === "event") selTypes = ["event"];
+      else selTypes = selTypes.includes(t.id) ? selTypes.filter((x) => x !== t.id) : selTypes.filter((x) => x !== "event").concat(t.id);
+      refreshTypeSelect(selTypes);
+      paint();
+    });
+    btns.push([b, t]);
     list.appendChild(b);
   });
+  paint();
   const add = document.createElement("button");
   add.type = "button";
   add.className = "opt add";
@@ -2162,6 +2195,7 @@ function renderTypeSheet() {
   add.addEventListener("click", () => { closeSheet("type-sheet"); openTypeCreate(); });
   list.appendChild(add);
 }
+document.getElementById("type-sheet-done").addEventListener("click", () => closeSheet("type-sheet"));
 document.getElementById("ev-type-trigger").addEventListener("click", () => { renderTypeSheet(); openSheet("type-sheet"); });
 document.getElementById("type-sheet-x").addEventListener("click", () => closeSheet("type-sheet"));
 document.getElementById("type-create-x").addEventListener("click", () => closeSheet("type-create-sheet"));
@@ -2214,7 +2248,7 @@ document.getElementById("nt-create").addEventListener("click", async () => {
   };
   const mine = [...ownTypes(), t];
   usersData[currentUID] = { ...(usersData[currentUID] || {}), eventTypes: mine };
-  refreshTypeSelect(t.id);
+  refreshTypeSelect([...selTypes, t.id]);
   closeSheet("type-create-sheet");
   renderTypesList();
   try {
@@ -2290,6 +2324,17 @@ document.getElementById("rem-now-btn").addEventListener("click", () => {
   maybeShowReminders(false, true);
 });
 
+function originFor(o, key) {
+  if (o.origin) return o.origin;
+  const ids = typesOf(o).filter((id) => typeOf(id).repeat);
+  let best = o.date;
+  eventsCache.forEach((e) => {
+    if (e === o || !e.date || e.date >= best) return;
+    if (ids.some((id) => typesOf(e).includes(id) && occursOn(e, key, typeOf(id).repeat))) best = e.date;
+  });
+  return best;
+}
+
 function computeReminders() {
   const cfg = getRemCfg();
   const now = new Date();
@@ -2300,23 +2345,18 @@ function computeReminders() {
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
       const key = dateKey(d);
       eventsOnDay(key).forEach((o) => {
-        const t = typeOf(o.type);
-        if (!t.repeat) return;
-        const sk = (o.type || "event") + "|" + (o.baseId || o.id);
+        if (!hasRepeat(o)) return;
+        const sk = typesOf(o).join(",") + "|" + (o.baseId || o.id);
         if (seen.has(sk)) return;
         seen.add(sk);
-        let origin = o.origin;
-        if (!origin) {
-          const base = eventsCache.find((e) => e !== o && (e.type || "event") === (o.type || "event") && e.date < o.date && occursOn(e, key));
-          origin = (base || o).date;
-        }
-        out.push({ ev: o, diff: i, date: d, kind: t.repeat.unit === "year" ? "yearly" : "recurring",
-          years: d.getFullYear() - keyDate(origin).getFullYear() });
+        const p = primaryType(o);
+        out.push({ ev: o, diff: i, date: d, kind: p.repeat && p.repeat.unit === "year" ? "yearly" : "recurring",
+          years: d.getFullYear() - keyDate(originFor(o, key)).getFullYear() });
       });
     }
   }
   eventsCache.forEach(ev => {
-    if (!ev.date || repeatOf(ev)) return;
+    if (!ev.date || hasRepeat(ev)) return;
     const [y, m, d] = ev.date.split("-").map(Number);
     const hasMedia = !!(ev.images && ev.images.length);
     const diff = Math.round((new Date(y, m - 1, d) - today) / 864e5);
@@ -2343,7 +2383,8 @@ function maybeShowReminders(fromCache, force) {
   list.innerHTML = "";
   items.forEach(it => {
     const { ev, diff, kind, years, pending } = it;
-    const t = typeOf(ev.type);
+    const t = primaryType(ev);
+    const others = sortedTypes(typesOf(ev)).slice(1).filter((x) => x.id !== "event").map((x) => x.name);
     const when = diff === 0 ? "Hoy" : diff === 1 ? "Mañana" : "En " + diff + " días";
     const yrs = years + (years === 1 ? " año" : " años");
     let icon = "📅", sub = "";
@@ -2352,6 +2393,7 @@ function maybeShowReminders(fromCache, force) {
       if (t.id === "birthday") sub = years > 0 ? "Cumple " + yrs : "Cumpleaños";
       else if (t.id === "anniversary") sub = years > 0 ? yrs + " juntos" : "Aniversario";
       else sub = t.name + (years > 0 ? " · " + yrs : "");
+      if (others.length) sub += " · también " + others.join(", ");
     }
     else if (kind === "recurring") { icon = t.emoji || "🔁"; sub = repeatLabel(t.repeat); }
     else if (kind === "memory") { icon = "📸"; sub = "Hace " + yrs + " en este día"; }
@@ -3578,7 +3620,7 @@ function listenEvents(){
       if(!remindersShown) maybeShowReminders(qs.metadata.fromCache);
       // Si nada visible cambió (p. ej. la confirmación del servidor), no se redibuja
       let sig = "";
-      for(const e of eventsCache) sig += e.id + "|" + e.date + "|" + (e.title||"") + "|" + (e.time||"") + "|" + (e.type||"") + "|" + (e.notes||"") + "|" + (e.lastEditedBy||"") + "|" + (e.images||[]).map(m=>(mediaSrc(m)||"").length).join(",") + ";";
+      for(const e of eventsCache) sig += e.id + "|" + e.date + "|" + (e.title||"") + "|" + (e.time||"") + "|" + (e.type||"") + "|" + (e.types||[]).join("+") + "|" + (e.notes||"") + "|" + (e.lastEditedBy||"") + "|" + (e.images||[]).map(m=>(mediaSrc(m)||"").length).join(",") + ";";
       if(sig === lastEventsSig) return;
       lastEventsSig = sig;
       scheduleRender();
@@ -3650,7 +3692,7 @@ function openEditEvent(ev){
   document.getElementById("ev-title").value = ev.title || "";
   document.getElementById("ev-time").value = ev.time || "";
   document.getElementById("ev-notes").value = ev.notes || "";
-  refreshTypeSelect(ev.type || "event");
+  refreshTypeSelect(typesOf(ev));
   document.getElementById("ev-icon").value = ev.icon || "";
   document.getElementById("thumbs").innerHTML = "";
   pendingImages.forEach((media, i)=> {
@@ -3703,11 +3745,12 @@ function refreshThumbs(){
 }
 
 function buildVirtualCard(ev){
-  const t = typeOf(ev.type);
+  const ts = sortedTypes(ev.types || [ev.type]);
+  const rl = ts.length > 1 ? ts.map((t) => t.name + ": " + repeatLabel(t.repeat).toLowerCase()).join(" · ") : repeatLabel(ts[0].repeat);
   const item = document.createElement("div");
   item.className = "event-item " + (ev.authorUID === currentUID ? "by-me" : "by-other");
-  item.innerHTML = '<div class="event-body"><h3 class="event-title">' + escapeHTML((t.emoji ? t.emoji + " " : "") + t.name) + '</h3>' +
-    '<div class="event-time">↻ ' + escapeHTML(repeatLabel(t.repeat)) + '</div>' +
+  item.innerHTML = '<div class="event-body"><h3 class="event-title">' + escapeHTML(ts.map((t) => t.emoji).filter(Boolean).join("") + " " + ts[0].name) + '</h3>' +
+    '<div class="event-time">↻ ' + escapeHTML(rl) + '</div>' +
     '<div class="event-notes">Repetición automática. Edítala para ponerle nombre, notas o fotos solo a este día; no cambia las demás.</div>' +
     '<div class="event-footer"><span>Automático</span><div class="event-actions"><button type="button" class="btn-small">Editar esta repetición</button></div></div></div>';
   item.querySelector("button").addEventListener("click", () => openVirtualEdit(ev));
@@ -3717,12 +3760,12 @@ function buildVirtualCard(ev){
 function openVirtualEdit(ev){
   editingEventId = null;
   pendingImages = [];
-  const t = typeOf(ev.type);
+  const t = primaryType(ev);
   document.getElementById("event-modal-title").textContent = "Editar repetición";
   document.getElementById("ev-title").value = t.name;
   document.getElementById("ev-time").value = "";
   document.getElementById("ev-notes").value = "";
-  refreshTypeSelect(ev.type || "event");
+  refreshTypeSelect(ev.types || ev.type);
   document.getElementById("ev-icon").value = "";
   document.getElementById("thumbs").innerHTML = "";
   document.getElementById("event-overlay").classList.add("active");
@@ -4106,7 +4149,7 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     return;
   }
 
-  const eventData = { title, notes, time, type: currentTypeValue(), icon: firstEmoji(document.getElementById("ev-icon").value) || null };
+  const eventData = { title, notes, time, type: currentTypes()[0], types: currentTypes(), icon: firstEmoji(document.getElementById("ev-icon").value) || null };
 
   const saveBtn = document.getElementById("save-event-btn");
   saveBtn.disabled = true;
@@ -4194,7 +4237,8 @@ async function makeCardBlob(ev) {
   const mine = ev.authorUID === currentUID;
   const css = getComputedStyle(document.documentElement);
   const accent = (css.getPropertyValue(mine ? "--accent-me" : "--accent-other") || "#3FB950").trim();
-  const t = typeOf(ev.type);
+  const t = primaryType(ev);
+  const tnames = typesOf(ev).map(typeOf).filter((x) => x.id !== "event");
   const serif = "'Fraunces', Georgia, serif", sans = "'Inter', -apple-system, sans-serif";
 
   g.fillStyle = "#0F1117"; g.fillRect(0, 0, W, H);
@@ -4228,9 +4272,9 @@ async function makeCardBlob(ev) {
 
   let y = P + PH + 70;
   const maxW = W - 2 * P;
-  if (t.id !== "event") {
+  if (tnames.length) {
     g.font = "600 34px " + sans; g.fillStyle = accent;
-    g.fillText((t.emoji ? t.emoji + " " : "") + t.name.toUpperCase(), P, y);
+    g.fillText(((t.emoji ? t.emoji + " " : "") + tnames.map((x) => x.name).join(" · ")).toUpperCase(), P, y);
     y += 30;
   }
   g.font = "700 66px " + serif; g.fillStyle = "#F0F6FC";
