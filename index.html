@@ -1671,7 +1671,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.8.2";
+window.APP_VERSION = "2.8.3";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2231,6 +2231,7 @@ document.getElementById("photos-diag-btn").addEventListener("click", async () =>
       const tag = ev.date + " · " + String(ev.title || "").slice(0, 24) + " [" + ev.id.slice(0, 5) + "] #" + (i + 1);
       const kind = typeof m === "string" ? "texto" : (m && m.type) || "?";
       lines.push(tag + " | " + kind + (big ? " grande" : " en el evento") + " | " + kb + " | huella " + h);
+      if (big) lines.push("   campos: id=" + m.id + " n=" + m.n + " mime=" + m.mime + " thumbLen=" + String(m.thumb || "").length + " thumbInicio=" + String(m.thumb || "").slice(0, 30) + " claves=" + Object.keys(m).join(","));
       if (src) { if (!seen.has(h)) seen.set(h, []); seen.get(h).push(tag); }
     });
   });
