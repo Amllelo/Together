@@ -1784,7 +1784,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.12.0";
+window.APP_VERSION = "2.12.1";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2325,6 +2325,9 @@ function saveRemCfgFromUI() {
     memories: document.getElementById("rem-memories").checked,
     days: Number(document.getElementById("rem-days").value) || 7
   }));
+  updateBellBadge();
+  remindersShown = false; remNotified = false;
+  scheduleAutoReminders();
 }
 ["rem-enabled", "rem-yearly", "rem-upcoming", "rem-memories", "rem-days"].forEach((id) =>
   document.getElementById(id).addEventListener("change", saveRemCfgFromUI));
@@ -2404,9 +2407,11 @@ function updateBellBadge() {
   b.classList.toggle("show", n > 0);
 }
 document.getElementById("bell-btn").addEventListener("click", () => maybeShowReminders(false, true));
+setInterval(() => { if (appStarted && !document.hidden) updateBellBadge(); }, 60000);
 // Al volver a la app tras un rato en segundo plano, se muestran de nuevo
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (appStarted) updateBellBadge();
   if (appStarted && hiddenAt && Date.now() - hiddenAt > 120000) {
     remindersShown = false; remNotified = false;
     scheduleAutoReminders();
@@ -3115,6 +3120,7 @@ function stopApp() {
   eventsMap.clear();
   eventsReady = false;
   remindersShown = false; remNotified = false; clearTimeout(remTimer);
+  { const bb = document.getElementById("bell-badge"); if (bb) bb.classList.remove("show"); }
   lastEventsSig = "";
   lastUsersSig = "";
   usersData = {};
