@@ -1334,6 +1334,11 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 .cta{width:100%;margin-top:22px;padding:16px;border-radius:18px;border:none;background:var(--accent-me);color:var(--bg);font:inherit;font-weight:700;font-size:1rem;cursor:pointer;box-shadow:0 10px 26px color-mix(in srgb,var(--accent-me) 30%,transparent);transition:transform .15s}
 .cta:active{transform:scale(.985)}
 
+.rem-empty{text-align:center;color:var(--text-muted);padding:28px 12px;line-height:1.7;font-size:.95rem}
+.rem-empty b{color:var(--text)}
+#bell-btn{position:relative}
+#bell-badge{left:auto;right:-5px;top:-5px;min-width:17px;height:17px;line-height:17px;font-size:.62rem;padding:0 4px}
+
 /* ===== RECORDATORIOS ===== */
 .form-group select{padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:1rem;font-family:inherit}
 #reminders-list{display:flex;flex-direction:column;gap:10px}
@@ -1414,6 +1419,10 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
       </div>
     </div>
     <div class="header-actions">
+      <button class="icon-btn" id="bell-btn" title="Recordatorios" aria-label="Recordatorios">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="nav-badge" id="bell-badge" aria-label="Recordatorios pendientes"></span>
+      </button>
       <button class="icon-btn" id="settings-btn" title="Configuración">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/>
@@ -1775,7 +1784,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.11.0";
+window.APP_VERSION = "2.12.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2297,7 +2306,7 @@ const remCfgKey = (uid) => "remCfg_" + uid;
 function getRemCfg() {
   let c = {};
   try { c = JSON.parse(LS.get(remCfgKey(currentUID)) || "{}"); } catch (e) {}
-  return { enabled: true, days: 7, yearly: true, upcoming: true, memories: true, ...c };
+  return { enabled: true, days: 14, yearly: true, upcoming: true, memories: true, ...c };
 }
 function loadRemCfgUI() {
   const c = getRemCfg();
@@ -2369,17 +2378,64 @@ function computeReminders() {
   return out.sort((a, b) => a.diff - b.diff);
 }
 
+// Lo próximo que viene aunque quede fuera de la ventana de aviso
+function findNextReminder() {
+  const now = new Date();
+  for (let i = 0; i <= 400; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    const o = eventsOnDay(dateKey(d))[0];
+    if (o) return { o, d, i };
+  }
+  return null;
+}
+
+let remTimer = null, remNotified = false, hiddenAt = 0;
+// Se reintenta cada vez que llegan datos (eventos, perfiles y tipos) hasta que haya algo que mostrar
+function scheduleAutoReminders() {
+  if (remindersShown || !appStarted) return;
+  clearTimeout(remTimer);
+  remTimer = setTimeout(() => { if (!remindersShown && appStarted && eventsReady) maybeShowReminders(false, false); }, 700);
+}
+function updateBellBadge() {
+  const b = document.getElementById("bell-badge");
+  if (!b || !currentUID) return;
+  const n = computeReminders().length;
+  b.textContent = n > 9 ? "9+" : String(n);
+  b.classList.toggle("show", n > 0);
+}
+document.getElementById("bell-btn").addEventListener("click", () => maybeShowReminders(false, true));
+// Al volver a la app tras un rato en segundo plano, se muestran de nuevo
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (appStarted && hiddenAt && Date.now() - hiddenAt > 120000) {
+    remindersShown = false; remNotified = false;
+    scheduleAutoReminders();
+    setTimeout(noticeNoReminders, 5000);
+  }
+});
+function noticeNoReminders() {
+  if (!appStarted || remindersShown || remNotified || !getRemCfg().enabled) return;
+  remNotified = true;
+  const nx = findNextReminder();
+  showToast(nx
+    ? "Sin recordatorios por ahora. Lo próximo: " + nx.o.title + " (" + (nx.i === 0 ? "hoy" : nx.i === 1 ? "mañana" : "en " + nx.i + " días") + ")"
+    : "Sin recordatorios por ahora", 5000);
+}
+
 function maybeShowReminders(fromCache, force) {
-  if (!currentUID || (!force && fromCache && !eventsCache.length)) return;
+  if (!currentUID) return;
   if (!force && !getRemCfg().enabled) { remindersShown = true; return; }
   const items = computeReminders();
+  const list = document.getElementById("reminders-list");
   if (!items.length) {
-    if (force) showToast("No hay recordatorios en los próximos " + getRemCfg().days + " días");
-    else if (!fromCache) remindersShown = true;
+    if (!force) return;
+    const nx = findNextReminder();
+    list.innerHTML = '<div class="rem-empty">No hay recordatorios en los próximos <b>' + getRemCfg().days + ' días</b>.' +
+      (nx ? '<br>Lo próximo: <b>' + escapeHTML(nx.o.title) + '</b><br>' + escapeHTML(nx.d.toLocaleDateString("es-419", { weekday: "long", day: "numeric", month: "long" })) + (nx.i > 0 ? ' · en ' + nx.i + (nx.i === 1 ? ' día' : ' días') : ' · hoy') : '') + '</div>';
+    document.getElementById("reminders-overlay").classList.add("active");
     return;
   }
   remindersShown = true;
-  const list = document.getElementById("reminders-list");
   list.innerHTML = "";
   items.forEach(it => {
     const { ev, diff, kind, years, pending } = it;
@@ -2642,7 +2698,7 @@ function scheduleRender() {
   renderScheduled = true;
   requestAnimationFrame(() => {
     renderScheduled = false;
-    [renderCalendar, renderFeed, () => { if (selectedDay) renderDayModal(selectedDay); }, updateNewBadge]
+    [renderCalendar, renderFeed, () => { if (selectedDay) renderDayModal(selectedDay); }, updateNewBadge, updateBellBadge]
       .forEach((fn) => { try { fn(); } catch (err) { console.error("Error al dibujar:", err); } });
   });
 }
@@ -3016,6 +3072,7 @@ async function startApp(user) {
   step("eventos", listenEvents);
   step("usuarios", listenUsers);
   setTimeout(() => { if (!eventsReady && appStarted) { eventsReady = true; scheduleRender(); } }, 6000);
+  setTimeout(() => { scheduleAutoReminders(); setTimeout(noticeNoReminders, 1500); }, 4500);
   document.getElementById("biometric-toggle").checked =
     LS.get(bioEnabledKey(user.uid)) === "true" &&
     !!LS.get(bioCredKey(user.uid));
@@ -3057,7 +3114,7 @@ function stopApp() {
   eventsCache = [];
   eventsMap.clear();
   eventsReady = false;
-  remindersShown = false;
+  remindersShown = false; remNotified = false; clearTimeout(remTimer);
   lastEventsSig = "";
   lastUsersSig = "";
   usersData = {};
@@ -3162,6 +3219,7 @@ function listenUsers() {
     updateUserLabels();
     const usig = JSON.stringify(Object.entries(usersData).map(([k,v])=>[k, v && v.displayName, v && v.accentColor, JSON.stringify((v && v.eventTypes) || [])]));
     if(usig !== lastUsersSig){ lastUsersSig = usig; scheduleRender(); }
+    scheduleAutoReminders();
   }, (err)=> console.error("Error en listener de usuarios:", err));
 
   // Polling adicional para móvil - sincronizar cada 5 segundos
@@ -3188,6 +3246,7 @@ function listenUsers() {
       if(needsUpdate && currentUID) {
         updateUserLabels();
         scheduleRender();
+        scheduleAutoReminders();
       }
     } catch(err) {
       console.error("Error en polling de sincronización:", err);
@@ -3617,7 +3676,7 @@ function listenEvents(){
       });
       eventsCache = Array.from(eventsMap.values()).sort((a,b)=>
         String(a.date).localeCompare(String(b.date)) || a.id.localeCompare(b.id));
-      if(!remindersShown) maybeShowReminders(qs.metadata.fromCache);
+      scheduleAutoReminders();
       // Si nada visible cambió (p. ej. la confirmación del servidor), no se redibuja
       let sig = "";
       for(const e of eventsCache) sig += e.id + "|" + e.date + "|" + (e.title||"") + "|" + (e.time||"") + "|" + (e.type||"") + "|" + (e.types||[]).join("+") + "|" + (e.notes||"") + "|" + (e.lastEditedBy||"") + "|" + (e.images||[]).map(m=>(mediaSrc(m)||"").length).join(",") + ";";
