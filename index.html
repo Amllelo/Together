@@ -1784,7 +1784,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.12.1";
+window.APP_VERSION = "2.13.1";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2875,13 +2875,49 @@ function blobChunkB64(blob) {
   });
 }
 
+async function putChunk(id, i, d) {
+  let last;
+  for (let t = 0; t < 3; t++) {
+    try {
+      await withTimeout(setDoc(doc(db, "events", chunkId(id, i)), { d, m: id, i, authorUID: currentUID }), 60000);
+      return;
+    } catch (e) {
+      last = e;
+      if (e && e.code === "permission-denied") break;      // reintentar no sirve si las reglas lo rechazan
+      await new Promise((r) => setTimeout(r, 800 * (t + 1)));
+    }
+  }
+  throw last;
+}
+
+// Plan B para fotos: si no se puede subir el original, se guarda comprimida dentro del propio evento
+async function compressToInline(blob, maxChars) {
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    for (const [mx, q] of [[1800, 0.72], [1600, 0.65], [1400, 0.58], [1200, 0.5], [1000, 0.45], [800, 0.4]]) {
+      const k = Math.min(1, mx / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      const d = c.toDataURL("image/jpeg", q);
+      if (d.length <= maxChars) return { data: d, type: "image" };
+    }
+    throw new Error("La foto no se pudo comprimir lo suficiente");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 async function uploadBig(item, onStep) {
   const n = Math.ceil(item.blob.size / MEDIA_CHUNK);
   for (let start = 0; start < n; start += 3) {
     await Promise.all(Array.from({ length: Math.min(3, n - start) }, async (_, k) => {
       const i = start + k;
       const d = await blobChunkB64(item.blob.slice(i * MEDIA_CHUNK, (i + 1) * MEDIA_CHUNK));
-      await setDoc(doc(db, "events", chunkId(item.id, i)), { d, m: item.id, i, authorUID: currentUID });
+      await putChunk(item.id, i, d);
       if (onStep) onStep();
     }));
   }
@@ -4165,7 +4201,32 @@ function fileToDataURL(file, type) {
   });
 }
 
+// Fotos HEIC/HEIF (iPhone y algunos Samsung): el navegador no las decodifica, así que se convierten a JPEG
+const isHeic = (f) => /heic|heif/i.test(f.type || "") || /\.(heic|heif)$/i.test(f.name || "");
+let heicLib = null;
+function loadHeicLib() {
+  if (window.heic2any) return Promise.resolve(window.heic2any);
+  if (!heicLib) heicLib = new Promise((res, rej) => {
+    const sc = document.createElement("script");
+    sc.src = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
+    sc.onload = () => window.heic2any ? res(window.heic2any) : rej(new Error("conversor no disponible"));
+    sc.onerror = () => { heicLib = null; rej(new Error("sin conexión para convertir la foto HEIC")); };
+    document.head.appendChild(sc);
+  });
+  return heicLib;
+}
+async function heicToJpeg(file) {
+  const conv = await loadHeicLib();
+  const out = await conv({ blob: file, toType: "image/jpeg", quality: 0.92 });
+  const blob = Array.isArray(out) ? out[0] : out;
+  return new File([blob], (file.name || "foto").replace(/\.(heic|heif)$/i, "") + ".jpg", { type: "image/jpeg" });
+}
+
 async function resizeImage(file, maxSize, quality) {
+  if (isHeic(file)) {
+    try { file = await heicToJpeg(file); }
+    catch (e) { throw new Error(e.message || "No se pudo convertir la foto HEIC. Cámbiala a JPG en la cámara (Ajustes → Formatos → Más compatible)."); }
+  }
   const url = URL.createObjectURL(file);
   try {
     const img = new Image();
@@ -4218,16 +4279,30 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
 
   const saveBtn = document.getElementById("save-event-btn");
   saveBtn.disabled = true;
+  let degradedInfo = null;
   try {
     if(!editingEventId || imagesChanged){
       const totalSteps = Math.max(1, pendingImages.reduce((a, m) => a + (m && m.blob ? Math.ceil(m.blob.size / MEDIA_CHUNK) : 0), 0));
       let done = 0;
       const finals = [];
+      const step = () => { done++; saveBtn.textContent = "Subiendo " + Math.min(99, Math.round(done / totalSteps * 100)) + "%"; };
+      let degraded = 0, firstErr = null;
       for(const m of pendingImages){
-        if(m && m.blob) finals.push(await uploadBig(m, ()=>{ done++; saveBtn.textContent = "Subiendo " + Math.min(99, Math.round(done / totalSteps * 100)) + "%"; }));
-        else finals.push(m);
+        if(m && m.blob){
+          try { finals.push(await uploadBig(m, step)); }
+          catch(e) {
+            console.error("No se pudo subir el archivo grande:", e);
+            if(m.type !== "image") throw e;
+            firstErr = firstErr || e;
+            saveBtn.textContent = "Comprimiendo…";
+            finals.push(await compressToInline(m.blob, 230000));
+            degraded++;
+          }
+        } else finals.push(m);
       }
+      if(JSON.stringify(finals).length > 950000) throw new Error("Las fotos siguen siendo demasiado pesadas para un solo evento. Agrega menos fotos por evento.");
       eventData.images = finals;
+      if(degraded) degradedInfo = { n: degraded, err: firstErr };
     }
     let result;
     if(editingEventId){
@@ -4248,11 +4323,16 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     document.getElementById("thumbs").innerHTML = "";
     document.getElementById("event-overlay").classList.remove("active");
     if(result === "queued") showToast("Guardado en tu dispositivo. Se sincronizará cuando haya conexión.");
+    if(degradedInfo){
+      const er = degradedInfo.err || {};
+      await appAlert(degradedInfo.n + (degradedInfo.n === 1 ? " foto se guardó comprimida" : " fotos se guardaron comprimidas") + " porque no se pudo subir el original.\n\nMotivo: " + (er.code || er.name || "error") + (er.message ? " — " + String(er.message).slice(0, 140) : ""), { type: "warning" });
+    }
   } catch(err) {
     console.error("Error guardando evento:", err);
-    await appAlert(err && err.code === "permission-denied"
+    const detail = "\n\nDetalle: " + ((err && (err.code || err.name)) || "error") + (err && err.message ? " — " + String(err.message).slice(0, 160) : "");
+    await appAlert((err && err.code === "permission-denied"
       ? writeErrorMessage(err)
-      : "No se pudo guardar el evento. Revisa tu conexión o reduce el tamaño de los archivos.", { type: "error" });
+      : "No se pudo guardar el evento. Revisa tu conexión o reduce el tamaño de los archivos.") + detail, { type: "error" });
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = "Guardar";
