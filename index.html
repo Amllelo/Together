@@ -1399,6 +1399,59 @@ body::before {
   transition: opacity .5s ease;
 }
 body:not(:has(#navbar.visible))::before { opacity: 0; }
+
+/* ===== POLAROID: los días con foto se ven como fotos instantáneas ===== */
+.day-cell.has-photo {
+  background: #ECEDF2; border: none; padding: 0; border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.7);
+}
+.day-cell.has-photo:hover:not(.other-month) {
+  background: #F4F5F9; border: none; transform: translateY(-2px) rotate(-.6deg); box-shadow: 0 12px 24px rgba(0,0,0,.55);
+}
+.day-cell.has-photo:active:not(.other-month) { transform: scale(.96); }
+.day-cell.has-photo .day-thumb {
+  top: 4px; left: 4px; right: 4px; bottom: 22%; border-radius: 6px; opacity: 1;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);
+}
+.day-cell.has-photo .day-thumb::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(180deg, rgba(0,0,0,.45) 0%, transparent 55%);
+}
+.day-cell.has-photo .day-num { position: absolute; top: 7px; left: 9px; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.75); }
+.day-cell.has-photo .day-dots {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 22%; margin: 0;
+  justify-content: center; align-items: center; flex-wrap: nowrap;
+}
+.day-cell.has-photo .day-dot { width: 6px; height: 6px; }
+.day-cell.has-photo.today {
+  border: none; background: #ECEDF2;
+  box-shadow: 0 0 0 2px var(--accent-me), 0 0 20px color-mix(in srgb, var(--accent-me) 45%, transparent), 0 8px 18px rgba(0,0,0,.5);
+}
+.day-cell.has-photo.has-new::after { top: 8px; right: 8px; }
+
+/* hoy: contorno y número del color de acento */
+.day-cell.today { box-shadow: 0 0 18px color-mix(in srgb, var(--accent-me) 28%, transparent); }
+.day-cell.today .day-num { color: var(--accent-me); }
+.day-cell.has-photo.today .day-num { color: #fff; }
+
+/* encabezado: avatar con aro del color de tu pareja y flechas sin caja */
+.avatar {
+  background: linear-gradient(135deg, var(--accent-me) 0%, color-mix(in srgb, var(--accent-me) 65%, #fff) 100%);
+  box-shadow: 0 0 0 3px #06080A, 0 0 0 5px color-mix(in srgb, var(--accent-other) 75%, transparent);
+}
+.month-nav button { background: transparent; border-color: transparent; }
+
+/* fotos de cada evento como polaroids */
+.event-carousel, .fc-carousel { padding-top: 8px; padding-bottom: 12px; }
+.event-carousel img, .fc-carousel img {
+  background: #ECEDF2; padding: 6px 6px 26px; border-radius: 6px; object-fit: cover;
+  box-shadow: 0 8px 18px rgba(0,0,0,.45);
+}
+.event-carousel img { width: 108px; height: 128px; }
+.fc-carousel img { width: 142px; height: 170px; }
+.event-carousel img:nth-child(odd), .fc-carousel img:nth-child(odd) { transform: rotate(-1.8deg); }
+.event-carousel img:nth-child(even), .fc-carousel img:nth-child(even) { transform: rotate(1.5deg); }
+.event-carousel img:hover, .fc-carousel img:hover { transform: rotate(0) scale(1.05); }
 </style>
 
 </head>
@@ -1801,7 +1854,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.14.0";
+window.APP_VERSION = "2.15.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -3693,6 +3746,7 @@ function renderCalendar(){
       const thumbMedia = thumbEvent.images.find(isImageMedia);
       const setBg = (url) => { thumb.style.backgroundImage = 'url("' + url + '")'; };
       cell.appendChild(thumb);
+      cell.classList.add("has-photo");
       const cachedThumb = peekThumb(thumbMedia);
       if(cachedThumb) setBg(cachedThumb); else thumbFor(thumbMedia, true).then(setBg);
     }
