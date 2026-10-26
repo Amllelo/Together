@@ -4460,8 +4460,8 @@ async function makeCardBlob(ev) {
   // fondo oscuro con resplandor del color de acento
   g.fillStyle = "#06080A"; g.fillRect(0, 0, W, H);
   const glow = g.createRadialGradient(W / 2, 360, 80, W / 2, 360, 980);
-  glow.addColorStop(0, accent + "66"); glow.addColorStop(1, "transparent");
-  g.fillStyle = glow; g.fillRect(0, 0, W, H);
+  glow.addColorStop(0, accent); glow.addColorStop(1, "rgba(0,0,0,0)");
+  g.save(); g.globalAlpha = 0.4; g.fillStyle = glow; g.fillRect(0, 0, W, H); g.restore();
 
   // polaroid ligeramente girada
   const cx = 90, cy = 90, cw = W - 180, ch = 1130, pad = 48, ps = cw - 2 * pad;
@@ -4528,15 +4528,31 @@ async function makeCardBlob(ev) {
 }
 
 async function shareEventCard(ev) {
+  let blob;
   try {
     showToast("Creando tarjeta…", 2500);
-    const blob = await makeCardBlob(ev);
-    await shareFile(new File([blob], "together-" + ev.date + ".jpg", { type: "image/jpeg" }), ev.title);
+    blob = await makeCardBlob(ev);
+  } catch (err) {
+    console.error("Error creando tarjeta:", err);
+    const msg = String((err && err.message) || "").slice(0, 160);
+    await appAlert("No se pudo crear la tarjeta.\n\nDetalle: " + ((err && (err.name || "error")) || "error") + (msg ? " — " + msg : ""), { type: "error" });
+    return;
+  }
+  const file = new File([blob], "together-" + ev.date + ".jpg", { type: "image/jpeg" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: ev.title });
+      return;
+    }
   } catch (err) {
     if (err && err.name === "AbortError") return;
-    console.error("Error compartiendo:", err);
-    await appAlert("No se pudo crear la tarjeta.", { type: "error" });
+    console.warn("Compartir no disponible, se descarga la imagen:", err);
   }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url; a.download = file.name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  showToast("Tarjeta descargada");
 }
 
 document.getElementById("lb-share").addEventListener("click", async (e) => {
