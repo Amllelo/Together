@@ -4446,7 +4446,7 @@ function rrect(g, x, y, w, h, r) {
 
 async function makeCardBlob(ev) {
   try { await document.fonts.load("700 64px Fraunces"); } catch (e) {}
-  const W = 1080, H = 1350, P = 60;
+  const W = 1080, H = 1350;
   const c = document.createElement("canvas");
   c.width = W; c.height = H;
   const g = c.getContext("2d");
@@ -4457,12 +4457,22 @@ async function makeCardBlob(ev) {
   const tnames = typesOf(ev).map(typeOf).filter((x) => x.id !== "event");
   const serif = "'Fraunces', Georgia, serif", sans = "'Inter', -apple-system, sans-serif";
 
-  g.fillStyle = "#0F1117"; g.fillRect(0, 0, W, H);
-  g.fillStyle = accent; g.fillRect(0, 0, W, 10);
+  // fondo oscuro con resplandor del color de acento
+  g.fillStyle = "#06080A"; g.fillRect(0, 0, W, H);
+  const glow = g.createRadialGradient(W / 2, 360, 80, W / 2, 360, 980);
+  glow.addColorStop(0, accent + "66"); glow.addColorStop(1, "transparent");
+  g.fillStyle = glow; g.fillRect(0, 0, W, H);
 
-  const PH = 800;
-  rrect(g, P, P, W - 2 * P, PH, 36);
-  g.save(); g.clip();
+  // polaroid ligeramente girada
+  const cx = 90, cy = 90, cw = W - 180, ch = 1130, pad = 48, ps = cw - 2 * pad;
+  g.save();
+  g.translate(W / 2, H / 2 - 20); g.rotate(-0.022); g.translate(-W / 2, -(H / 2 - 20));
+  g.shadowColor = "rgba(0,0,0,.6)"; g.shadowBlur = 50; g.shadowOffsetY = 24;
+  g.fillStyle = "#F4F1EA"; rrect(g, cx, cy, cw, ch, 10); g.fill();
+  g.shadowColor = "transparent";
+
+  const px = cx + pad, py = cy + pad;
+  g.save(); rrect(g, px, py, ps, ps, 4); g.clip();
   let drawn = false;
   const media = (ev.images || []).find(isImageMedia);
   if (media) {
@@ -4470,46 +4480,49 @@ async function makeCardBlob(ev) {
       const img = new Image();
       img.src = await fullUrlFor(media);
       await img.decode();
-      const w = W - 2 * P, r = Math.max(w / img.naturalWidth, PH / img.naturalHeight);
-      const sw = w / r, sh = PH / r;
-      g.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, P, P, w, PH);
+      const r = Math.max(ps / img.naturalWidth, ps / img.naturalHeight);
+      const sw = ps / r, sh = ps / r;
+      g.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, px, py, ps, ps);
       drawn = true;
     } catch (e) { console.warn("Tarjeta sin foto:", e); }
   }
   if (!drawn) {
-    const gr = g.createLinearGradient(P, P, W - P, P + PH);
+    const gr = g.createLinearGradient(px, py, px + ps, py + ps);
     gr.addColorStop(0, accent); gr.addColorStop(1, "#161B22");
-    g.fillStyle = gr; g.fillRect(P, P, W - 2 * P, PH);
+    g.fillStyle = gr; g.fillRect(px, py, ps, ps);
     g.font = "300px serif"; g.textAlign = "center"; g.fillStyle = "#fff";
-    g.fillText(ev.icon || t.emoji || "📸", W / 2, P + PH / 2 + 100);
-    g.textAlign = "left";
+    g.fillText(ev.icon || t.emoji || "📸", W / 2, py + ps / 2 + 100);
+  }
+  g.strokeStyle = "rgba(0,0,0,.18)"; g.lineWidth = 2; g.strokeRect(px, py, ps, ps);
+  g.restore();
+
+  // pie de la polaroid (centrado)
+  g.textAlign = "center";
+  const mx = W / 2, maxW = cw - 2 * pad;
+  let y = py + ps + 60;
+  if (tnames.length) {
+    g.font = "600 28px " + sans; g.fillStyle = accent;
+    g.fillText(((t.emoji ? t.emoji + " " : "") + tnames.map((x) => x.name).join(" · ")).toUpperCase(), mx, y);
+    y += 14;
+  }
+  g.font = "700 56px " + serif; g.fillStyle = "#1A1D23";
+  const tl = wrapLines(g, ev.title, maxW, 2);
+  tl.forEach((ln) => { y += 62; g.fillText(ln, mx, y); });
+  g.font = "400 30px " + sans; g.fillStyle = "#6B7280";
+  const dt = new Date(ev.date + "T00:00:00").toLocaleDateString("es-419", { day: "numeric", month: "long", year: "numeric" });
+  y += 46; g.fillText(dt + (ev.time ? "  ·  " + ev.time : ""), mx, y);
+  if (ev.notes && tl.length < 2 && y + 44 < cy + ch - 20) {
+    g.font = "400 28px " + sans; g.fillStyle = "#4B5563";
+    y += 44; g.fillText(wrapLines(g, ev.notes, maxW, 1)[0] || "", mx, y);
   }
   g.restore();
 
-  let y = P + PH + 70;
-  const maxW = W - 2 * P;
-  if (tnames.length) {
-    g.font = "600 34px " + sans; g.fillStyle = accent;
-    g.fillText(((t.emoji ? t.emoji + " " : "") + tnames.map((x) => x.name).join(" · ")).toUpperCase(), P, y);
-    y += 30;
-  }
-  g.font = "700 66px " + serif; g.fillStyle = "#F0F6FC";
-  y += 56;
-  wrapLines(g, ev.title, maxW, 2).forEach((ln) => { g.fillText(ln, P, y); y += 78; });
-  y -= 8;
-  g.font = "400 34px " + sans; g.fillStyle = "#8B949E";
-  const dt = new Date(ev.date + "T00:00:00").toLocaleDateString("es-419", { day: "numeric", month: "long", year: "numeric" });
-  g.fillText(dt + (ev.time ? "  ·  " + ev.time : ""), P, y);
-  if (ev.notes) {
-    y += 30;
-    g.font = "400 36px " + sans; g.fillStyle = "#C9D1D9";
-    wrapLines(g, ev.notes, maxW, 3).forEach((ln) => { y += 52; g.fillText(ln, P, y); });
-  }
-
+  // marca y autor
+  g.textAlign = "left";
   g.font = "700 44px " + serif; g.fillStyle = accent;
-  g.fillText("Together", P, H - 60);
+  g.fillText("Together", 90, H - 55);
   const author = usersData[ev.authorUID] && usersData[ev.authorUID].displayName;
-  if (author) { g.font = "400 32px " + sans; g.fillStyle = "#8B949E"; g.textAlign = "right"; g.fillText(author, W - P, H - 62); g.textAlign = "left"; }
+  if (author) { g.font = "400 32px " + sans; g.fillStyle = "#8B949E"; g.textAlign = "right"; g.fillText(author, W - 90, H - 57); g.textAlign = "left"; }
 
   return new Promise((resolve, reject) => c.toBlob((b) => b ? resolve(b) : reject(new Error("sin imagen")), "image/jpeg", 0.92));
 }
