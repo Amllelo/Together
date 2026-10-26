@@ -1382,6 +1382,23 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
     max-height: 90vh;
   }
 }
+
+/* ===== DEGRADADO DE LA PAREJA: mi color a la izquierda, el de mi pareja a la derecha ===== */
+@property --accent-me { syntax: "<color>"; inherits: true; initial-value: #3FB950; }
+@property --accent-other { syntax: "<color>"; inherits: true; initial-value: #F85149; }
+html { transition: --accent-me .7s ease, --accent-other .7s ease; }
+body::before {
+  content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: -1; pointer-events: none;
+  height: min(64vh, 580px);
+  background:
+    radial-gradient(125% 95% at 0% 0%, color-mix(in srgb, var(--accent-me) 62%, #06080A) 0%, transparent 64%),
+    radial-gradient(125% 95% at 100% 0%, color-mix(in srgb, var(--accent-other) 62%, #06080A) 0%, transparent 64%),
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-me) 8%, #0B0D12) 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(#000 32%, transparent 100%);
+  mask-image: linear-gradient(#000 32%, transparent 100%);
+  transition: opacity .5s ease;
+}
+body:not(:has(#navbar.visible))::before { opacity: 0; }
 </style>
 
 </head>
@@ -1784,7 +1801,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.13.1";
+window.APP_VERSION = "2.14.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {

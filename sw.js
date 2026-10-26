@@ -1,4 +1,4 @@
-const CACHE_NAME = "calendario-v34";
+const CACHE_NAME = "calendario-v35";
 // Lo esencial para abrir la app sin conexión: si no se puede guardar, la instalación falla
 // y se sigue usando la versión anterior con su caché (así nunca queda una app vacía).
 const CORE = ["./index.html", "./firebase-bundle.js"];
