@@ -1461,6 +1461,50 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 .pg-item.sel .pg-check{background:var(--accent-me);border-color:var(--accent-me);box-shadow:inset 0 0 0 4px var(--surface)}
 .cta.ghost{background:transparent;color:var(--accent-me);border:1px solid var(--accent-me);box-shadow:none;margin-top:10px}
 .cta:disabled{opacity:.4;cursor:not-allowed}
+
+/* ===== VIDEO: miniaturas y reproductor propio ===== */
+.vid-tile { overflow: hidden; }
+.vid-tile > img.vid-thumb,
+.event-carousel .vid-tile > img.vid-thumb,
+.fc-carousel .vid-tile > img.vid-thumb {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; border-radius: inherit; padding: 0; margin: 0;
+  background: var(--surface-3); box-shadow: none; transform: none;
+}
+.vid-tile > svg {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 34px; height: 34px; padding: 8px; box-sizing: border-box;
+  border-radius: 50%; background: rgba(0, 0, 0, 0.5); color: #fff; z-index: 1;
+}
+.vid-tile > span { z-index: 1; }
+#lightbox-video { width: 100%; max-height: 82vh; object-fit: contain; background: #000; border-radius: var(--radius); }
+#lightbox .lbv-bar, #lightbox .lbv-bar * { touch-action: manipulation; }
+.lbv-bar {
+  display: none; position: absolute; left: 12px; right: 12px;
+  bottom: calc(64px + var(--safe-bottom)); align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 999px; z-index: 6;
+  background: rgba(20, 22, 28, 0.8);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.lbv-bar button {
+  width: 38px; height: 38px; flex-shrink: 0; border: none; border-radius: 50%;
+  background: transparent; color: #fff; padding: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.lbv-bar button:active { transform: scale(0.9); }
+.lbv-bar svg { width: 20px; height: 20px; }
+.lbv-bar span { font-size: 0.72rem; color: #e6e9ef; min-width: 32px; text-align: center; font-variant-numeric: tabular-nums; }
+.lbv-bar input[type=range] { flex: 1; min-width: 0; height: 4px; accent-color: var(--accent-me); cursor: pointer; }
+#lbv-big {
+  display: none; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 72px; height: 72px; border: none; border-radius: 50%; padding: 0; z-index: 5;
+  background: rgba(0, 0, 0, 0.55); color: #fff; cursor: pointer;
+  align-items: center; justify-content: center;
+}
+#lbv-big svg { width: 30px; height: 30px; margin-left: 4px; }
+#lightbox.is-video .lbv-bar { display: flex; }
+#lightbox.is-video.is-paused #lbv-big { display: flex; }
 </style>
 
 </head>
@@ -1805,8 +1849,16 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
   <!-- LIGHTBOX -->
   <div id="lightbox">
     <img id="lightbox-img" alt="">
-    <video id="lightbox-video" style="max-width:100%; max-height:100%; border-radius:var(--radius);" controls></video>
+    <video id="lightbox-video" playsinline preload="metadata"></video>
     <div id="lb-dots" class="lb-dots"></div>
+    <button id="lbv-big" type="button" aria-label="Reproducir"></button>
+    <div id="lb-vctrl" class="lbv-bar">
+      <button type="button" id="lbv-play" aria-label="Reproducir"></button>
+      <span id="lbv-cur">0:00</span>
+      <input type="range" id="lbv-seek" min="0" max="1000" value="0" aria-label="Posición del video">
+      <span id="lbv-dur">0:00</span>
+      <button type="button" id="lbv-mute" aria-label="Silenciar"></button>
+    </div>
     <button id="lb-share" aria-label="Compartir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg></button>
   </div>
 </div>
@@ -2879,7 +2931,57 @@ function pumpThumbs() {
   }
 }
 
+function blobToDataURL(b) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(b);
+  });
+}
+
+// Saca un fotograma del video (src: Blob o URL) y lo devuelve como JPEG pequeño
+function videoPoster(src) {
+  return new Promise((resolve, reject) => {
+    const v = document.createElement("video");
+    let url = null, done = false;
+    const cleanup = () => { v.removeAttribute("src"); v.load(); if (url) URL.revokeObjectURL(url); };
+    const fail = (e) => { if (done) return; done = true; clearTimeout(timer); cleanup(); reject(e || new Error("video no legible")); };
+    const timer = setTimeout(() => fail(new Error("tiempo agotado al leer el video")), 25000);
+    const draw = () => {
+      if (done) return;
+      try {
+        if (!v.videoWidth || !v.videoHeight) return fail();
+        const k = Math.min(1, 480 / Math.max(v.videoWidth, v.videoHeight));
+        const c = document.createElement("canvas");
+        c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
+        c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+        c.toBlob((b) => {
+          if (done) return;
+          done = true; clearTimeout(timer); cleanup();
+          b ? resolve(b) : reject(new Error("sin imagen"));
+        }, "image/jpeg", 0.72);
+      } catch (e) { fail(e); }
+    };
+    v.muted = true; v.playsInline = true; v.preload = "auto";
+    v.onerror = () => fail();
+    v.onloadeddata = () => {
+      const t = isFinite(v.duration) && v.duration > 0 ? Math.min(1, v.duration / 3) : 0;
+      if (t > 0) v.currentTime = t; else draw();
+    };
+    v.onseeked = draw;
+    if (src instanceof Blob) { url = URL.createObjectURL(src); v.src = url; }
+    else v.src = src;
+  });
+}
+
+async function makeVideoThumbBlob(media) {
+  const src = isBig(media) ? await fullUrlFor(media) : mediaSrc(media);
+  return videoPoster(src);
+}
+
 async function makeThumbBlob(media) {
+  if (!isImageMedia(media)) return makeVideoThumbBlob(media);
   const blob = await (await fetch(mediaSrc(media))).blob();
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -2937,6 +3039,7 @@ const thumbObserver = ("IntersectionObserver" in window) ? new IntersectionObser
 }, { rootMargin: "400px" }) : null;
 
 function lazyThumb(img, media) {
+  if (media && typeof media === "object" && media.thumb) { img.src = media.thumb; return; }
   const cached = peekThumb(media);
   if (cached) { img.src = cached; return; }
   if (!thumbObserver) { thumbFor(media).then((url) => { img.src = url; }); return; }
@@ -2944,10 +3047,19 @@ function lazyThumb(img, media) {
   thumbObserver.observe(img);
 }
 
-function makeVideoTile() {
+function makeVideoTile(media) {
   const tile = document.createElement("div");
   tile.className = "vid-tile";
-  tile.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>VIDEO</span>';
+  if (media) {
+    const img = document.createElement("img");
+    img.className = "vid-thumb";
+    img.alt = "";
+    img.decoding = "async";
+    img.onerror = () => img.remove();
+    lazyThumb(img, media);
+    tile.appendChild(img);
+  }
+  tile.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>VIDEO</span>');
   return tile;
 }
 
@@ -3916,7 +4028,7 @@ function addThumb(src, idx, type = "image"){
   });
   
   if(type === "video") {
-    t.appendChild(makeVideoTile());
+    t.appendChild(makeVideoTile(pendingImages[idx]));
   } else {
     const img = document.createElement("img");
     img.decoding = "async";
@@ -4029,7 +4141,7 @@ function buildEventCard(ev, feedStyle){
         el.alt = "";
         lazyThumb(el, media);
       } else {
-        el = makeVideoTile();
+        el = makeVideoTile(media);
       }
       el.addEventListener("click", ()=> openLightbox(media, ev.images, idx));
       carouselEl.appendChild(el);
@@ -4157,23 +4269,33 @@ async function showLbItem(){
   const media = lbList[lbIndex];
   lbSetDots();
   const token = ++lightboxToken;
+  const lb = document.getElementById("lightbox");
   const lightboxImg = document.getElementById("lightbox-img");
   const lightboxVideo = document.getElementById("lightbox-video");
   const isVideo = !isImageMedia(media);
 
   lightboxVideo.pause();
+  lb.classList.toggle("is-video", isVideo);
+  lb.classList.toggle("is-paused", isVideo);
   if(isVideo) {
     lightboxImg.style.display = "none";
     lightboxImg.removeAttribute("src");
+    lightboxVideo.poster = (media && media.thumb) || "";
+    lightboxVideo.removeAttribute("src");
+    lightboxVideo.load();
     lightboxVideo.style.display = "block";
+    document.getElementById("lbv-cur").textContent = "0:00";
+    document.getElementById("lbv-dur").textContent = "0:00";
+    document.getElementById("lbv-seek").value = "0";
   } else {
     lightboxVideo.style.display = "none";
     lightboxVideo.removeAttribute("src");
+    lightboxVideo.load();
     const t = peekThumb(media);
     if(t) lightboxImg.src = t; else lightboxImg.removeAttribute("src");
     lightboxImg.style.display = "block";
   }
-  document.getElementById("lightbox").classList.add("active");
+  lb.classList.add("active");
 
   try {
     const url = await fullUrlFor(media);
@@ -4189,19 +4311,22 @@ async function showLbItem(){
     }
   } catch(err) {
     console.error("No se pudo abrir el archivo:", err);
+    if(isVideo) showToast("No se pudo cargar el video");
   }
 }
 
 document.getElementById("lightbox").addEventListener("click", (e)=>{
   if(lbSwiped) return;
   const v = document.getElementById("lightbox-video");
-  if(e.target === v) return;
+  if(e.target.closest && e.target.closest("#lb-vctrl, #lbv-big, #lb-share, #lb-dots")) return;
+  if(e.target === v) { if(v.getAttribute("src")) { if(v.paused) v.play().catch(()=>{}); else v.pause(); } return; }
   lightboxToken++;
   v.pause();
   v.removeAttribute("src");
   v.load();
   document.getElementById("lightbox-img").removeAttribute("src");
-  document.getElementById("lightbox").classList.remove("active");
+  const lb = document.getElementById("lightbox");
+  lb.classList.remove("active", "is-video", "is-paused");
   lbList = [];
 });
 
@@ -4210,7 +4335,7 @@ document.getElementById("lightbox").addEventListener("click", (e)=>{
   const lb = document.getElementById("lightbox");
   let sx = 0, sy = 0, on = false;
   lb.addEventListener("touchstart", (e)=>{
-    if(e.touches.length !== 1){ on = false; return; }
+    if(e.touches.length !== 1 || (e.target.closest && e.target.closest("#lb-vctrl, #lbv-big"))){ on = false; return; }
     sx = e.touches[0].clientX; sy = e.touches[0].clientY; on = true;
   }, { passive: true });
   lb.addEventListener("touchend", (e)=>{
@@ -4227,6 +4352,53 @@ document.getElementById("lightbox").addEventListener("click", (e)=>{
     if(!lb.classList.contains("active")) return;
     if(e.key === "ArrowRight") lbStep(1);
     if(e.key === "ArrowLeft") lbStep(-1);
+  });
+})();
+
+(function lbPlayer(){
+  const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+  const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+  const ICON_VOL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>';
+  const ICON_MUTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
+  const v = document.getElementById("lightbox-video");
+  const lb = document.getElementById("lightbox");
+  const play = document.getElementById("lbv-play");
+  const big = document.getElementById("lbv-big");
+  const mute = document.getElementById("lbv-mute");
+  const seek = document.getElementById("lbv-seek");
+  const cur = document.getElementById("lbv-cur");
+  const dur = document.getElementById("lbv-dur");
+  const fmt = (s) => { s = isFinite(s) && s > 0 ? Math.floor(s) : 0; return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  let scrubbing = false;
+  play.innerHTML = ICON_PLAY; big.innerHTML = ICON_PLAY; mute.innerHTML = ICON_VOL;
+
+  const toggle = () => {
+    if (!v.getAttribute("src")) return;
+    if (v.paused) v.play().catch(() => {}); else v.pause();
+  };
+  play.addEventListener("click", toggle);
+  big.addEventListener("click", toggle);
+  v.addEventListener("play", () => { play.innerHTML = ICON_PAUSE; play.setAttribute("aria-label", "Pausar"); lb.classList.remove("is-paused"); });
+  v.addEventListener("pause", () => { play.innerHTML = ICON_PLAY; play.setAttribute("aria-label", "Reproducir"); lb.classList.add("is-paused"); });
+  v.addEventListener("loadedmetadata", () => { dur.textContent = fmt(v.duration); });
+  v.addEventListener("timeupdate", () => {
+    if (scrubbing) return;
+    cur.textContent = fmt(v.currentTime);
+    seek.value = v.duration ? String(Math.round(v.currentTime / v.duration * 1000)) : "0";
+  });
+  v.addEventListener("error", () => { if (v.getAttribute("src")) showToast("Este video no se puede reproducir aquí"); });
+  seek.addEventListener("input", () => {
+    scrubbing = true;
+    if (v.duration) cur.textContent = fmt(seek.value / 1000 * v.duration);
+  });
+  seek.addEventListener("change", () => {
+    if (v.duration) v.currentTime = seek.value / 1000 * v.duration;
+    scrubbing = false;
+  });
+  mute.addEventListener("click", () => {
+    v.muted = !v.muted;
+    mute.innerHTML = v.muted ? ICON_MUTE : ICON_VOL;
+    mute.setAttribute("aria-label", v.muted ? "Activar sonido" : "Silenciar");
   });
 })();
 
@@ -4281,8 +4453,16 @@ async function processMedia(file) {
 
   if(isVideo) {
     if(file.size > MAX_VIDEO_BYTES) throw new Error("Video muy pesado (máx 60 MB)");
-    if(file.size <= 90 * 1024) return await fileToDataURL(file, "video");
-    return { type: "video", big: true, id: newMediaId(), blob: file, mime: file.type || "video/mp4" };
+    let thumb = "";
+    try { thumb = await blobToDataURL(await videoPoster(file)); }
+    catch(e) { console.warn("Sin miniatura del video:", e); }
+    if(file.size <= 90 * 1024) {
+      const v = await fileToDataURL(file, "video");
+      return thumb ? { ...v, thumb } : v;
+    }
+    const big = { type: "video", big: true, id: newMediaId(), blob: file, mime: file.type || "video/mp4" };
+    if(thumb) big.thumb = thumb;
+    return big;
   }
   return await resizeImage(file, 2400, 0.85);
 }
