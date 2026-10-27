@@ -1457,6 +1457,8 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 .pg-item:active{transform:scale(.96)}
 .pg-item img{width:100%;height:100%;object-fit:cover;display:block}
 .pg-item.sel{border-color:var(--accent-me)}
+.pg-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:34px;height:34px;padding:8px;box-sizing:border-box;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.pg-play svg{width:100%;height:100%}
 .pg-check{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.35);box-sizing:border-box;transition:all .2s}
 .pg-item.sel .pg-check{background:var(--accent-me);border-color:var(--accent-me);box-shadow:inset 0 0 0 4px var(--surface)}
 .cta.ghost{background:transparent;color:var(--accent-me);border:1px solid var(--accent-me);box-shadow:none;margin-top:10px}
@@ -1836,10 +1838,10 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
     <div class="sheet">
       <div class="sheet-grab"></div>
       <div class="sheet-head">
-        <h3 id="photo-sheet-title">Compartir fotos</h3>
+        <h3 id="photo-sheet-title">Compartir recuerdo</h3>
         <button type="button" class="sheet-x" id="photo-sheet-x" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
       </div>
-      <div style="font-size:.85rem;color:var(--text-muted);margin:-6px 2px 14px;">Toca las fotos que quieres compartir. Cada una se envía como tarjeta.</div>
+      <div style="font-size:.85rem;color:var(--text-muted);margin:-6px 2px 14px;">Toca las fotos o videos que quieres compartir. Las fotos se envían como tarjeta; los videos, como video.</div>
       <div id="photo-grid" class="photo-grid"></div>
       <button type="button" class="cta" id="photo-share-sel">Selecciona fotos</button>
       <button type="button" class="cta ghost" id="photo-share-all">Compartir todas</button>
@@ -4651,6 +4653,15 @@ function rrect(g, x, y, w, h, r) {
 async function makeCardBlob(ev, pick) {
   try { await document.fonts.load("700 64px Fraunces"); } catch (e) {}
   const W = 1080, H = 1350;
+  const media = pick || (ev.images || []).find(isImageMedia);
+  let img = null;
+  if (media) {
+    try {
+      img = new Image();
+      img.src = await fullUrlFor(media);
+      await img.decode();
+    } catch (e) { console.warn("Tarjeta sin foto:", e); img = null; }
+  }
   const c = document.createElement("canvas");
   c.width = W; c.height = H;
   const g = c.getContext("2d");
@@ -4661,49 +4672,43 @@ async function makeCardBlob(ev, pick) {
   const tnames = typesOf(ev).map(typeOf).filter((x) => x.id !== "event");
   const serif = "'Fraunces', Georgia, serif", sans = "'Inter', -apple-system, sans-serif";
 
-  // fondo oscuro con resplandor del color de acento
   g.fillStyle = "#06080A"; g.fillRect(0, 0, W, H);
   const glow = g.createRadialGradient(W / 2, 360, 80, W / 2, 360, 980);
-  glow.addColorStop(0, accent); glow.addColorStop(1, "rgba(0,0,0,0)");
-  g.save(); g.globalAlpha = 0.4; g.fillStyle = glow; g.fillRect(0, 0, W, H); g.restore();
+  glow.addColorStop(0, accent + "66"); glow.addColorStop(1, "transparent");
+  g.fillStyle = glow; g.fillRect(0, 0, W, H);
 
-  // polaroid ligeramente girada
-  const cx = 90, cy = 90, cw = W - 180, ch = 1130, pad = 48, ps = cw - 2 * pad;
+  // La foto ocupa su proporción real (máx. ~1.1 veces el ancho), así no se recorta
+  const cw = W - 180, pad = 48, ps = cw - 2 * pad, CAP = 300;
+  let ph = ps;
+  if (img) ph = Math.min(Math.max(ps * img.naturalHeight / img.naturalWidth, ps * 0.5), ps * 1.1);
+  const ch = pad + ph + CAP;
+  const cx = 90, cy = Math.max(40, Math.round((H - ch) / 2) - 10);
+
   g.save();
-  g.translate(W / 2, H / 2 - 20); g.rotate(-0.022); g.translate(-W / 2, -(H / 2 - 20));
+  g.translate(W / 2, cy + ch / 2); g.rotate(-0.022); g.translate(-W / 2, -(cy + ch / 2));
   g.shadowColor = "rgba(0,0,0,.6)"; g.shadowBlur = 50; g.shadowOffsetY = 24;
   g.fillStyle = "#F4F1EA"; rrect(g, cx, cy, cw, ch, 10); g.fill();
   g.shadowColor = "transparent";
 
   const px = cx + pad, py = cy + pad;
-  g.save(); rrect(g, px, py, ps, ps, 4); g.clip();
-  let drawn = false;
-  const media = pick || (ev.images || []).find(isImageMedia);
-  if (media) {
-    try {
-      const img = new Image();
-      img.src = await fullUrlFor(media);
-      await img.decode();
-      const r = Math.max(ps / img.naturalWidth, ps / img.naturalHeight);
-      const sw = ps / r, sh = ps / r;
-      g.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, px, py, ps, ps);
-      drawn = true;
-    } catch (e) { console.warn("Tarjeta sin foto:", e); }
-  }
-  if (!drawn) {
-    const gr = g.createLinearGradient(px, py, px + ps, py + ps);
+  g.fillStyle = "#111317"; g.fillRect(px, py, ps, ph);
+  if (img) {
+    const r = Math.min(ps / img.naturalWidth, ph / img.naturalHeight);
+    const dw = img.naturalWidth * r, dh = img.naturalHeight * r;
+    g.drawImage(img, px + (ps - dw) / 2, py + (ph - dh) / 2, dw, dh);
+  } else {
+    const gr = g.createLinearGradient(px, py, px + ps, py + ph);
     gr.addColorStop(0, accent); gr.addColorStop(1, "#161B22");
-    g.fillStyle = gr; g.fillRect(px, py, ps, ps);
+    g.fillStyle = gr; g.fillRect(px, py, ps, ph);
     g.font = "300px serif"; g.textAlign = "center"; g.fillStyle = "#fff";
-    g.fillText(ev.icon || t.emoji || "📸", W / 2, py + ps / 2 + 100);
+    g.fillText(ev.icon || t.emoji || "📸", W / 2, py + ph / 2 + 100);
   }
-  g.strokeStyle = "rgba(0,0,0,.18)"; g.lineWidth = 2; g.strokeRect(px, py, ps, ps);
-  g.restore();
+  g.strokeStyle = "rgba(0,0,0,.18)"; g.lineWidth = 2; g.strokeRect(px, py, ps, ph);
 
   // pie de la polaroid (centrado)
   g.textAlign = "center";
   const mx = W / 2, maxW = cw - 2 * pad;
-  let y = py + ps + 60;
+  let y = py + ph + 60;
   if (tnames.length) {
     g.font = "600 28px " + sans; g.fillStyle = accent;
     g.fillText(((t.emoji ? t.emoji + " " : "") + tnames.map((x) => x.name).join(" · ")).toUpperCase(), mx, y);
@@ -4736,14 +4741,23 @@ async function shareCards(ev, medias) {
   const files = [];
   try {
     for (let i = 0; i < medias.length; i++) {
-      showToast(many ? "Creando tarjeta " + (i + 1) + " de " + medias.length + "…" : "Creando tarjeta…", 2500);
-      const blob = await makeCardBlob(ev, medias[i]);
-      files.push(new File([blob], "together-" + ev.date + (many ? "-" + (i + 1) : "") + ".jpg", { type: "image/jpeg" }));
+      const m = medias[i];
+      const n = many ? "-" + (i + 1) : "";
+      showToast(many ? "Preparando " + (i + 1) + " de " + medias.length + "…" : "Preparando…", 2500);
+      if (!m || isImageMedia(m)) {
+        const blob = await makeCardBlob(ev, m);
+        files.push(new File([blob], "together-" + ev.date + n + ".jpg", { type: "image/jpeg" }));
+      } else {
+        const blob = await (await fetch(await fullUrlFor(m))).blob();
+        const type = blob.type || m.mime || "video/mp4";
+        const ext = type.includes("webm") ? "webm" : type.includes("quicktime") ? "mov" : "mp4";
+        files.push(new File([blob], "together-" + ev.date + n + "." + ext, { type }));
+      }
     }
   } catch (err) {
-    console.error("Error creando tarjeta:", err);
+    console.error("Error preparando archivos:", err);
     const msg = String((err && err.message) || "").slice(0, 160);
-    await appAlert("No se pudo crear la tarjeta.\n\nDetalle: " + ((err && (err.name || "error")) || "error") + (msg ? " — " + msg : ""), { type: "error" });
+    await appAlert("No se pudo preparar el archivo.\n\nDetalle: " + ((err && (err.name || "error")) || "error") + (msg ? " — " + msg : ""), { type: "error" });
     return;
   }
   try {
@@ -4753,7 +4767,7 @@ async function shareCards(ev, medias) {
     }
   } catch (err) {
     if (err && err.name === "AbortError") return;
-    console.warn("Compartir no disponible, se descargan las imágenes:", err);
+    console.warn("Compartir no disponible, se descargan los archivos:", err);
   }
   for (const f of files) {
     const url = URL.createObjectURL(f);
@@ -4762,10 +4776,10 @@ async function shareCards(ev, medias) {
     setTimeout(() => URL.revokeObjectURL(url), 4000);
     await new Promise((r) => setTimeout(r, 350));
   }
-  showToast(many ? "Tarjetas descargadas" : "Tarjeta descargada");
+  showToast(files.length > 1 ? "Archivos descargados" : "Descargado");
 }
 
-function openPhotoPicker(ev, photos) {
+function openPhotoPicker(ev, items) {
   const grid = document.getElementById("photo-grid");
   const btnSel = document.getElementById("photo-share-sel");
   const btnAll = document.getElementById("photo-share-all");
@@ -4773,9 +4787,9 @@ function openPhotoPicker(ev, photos) {
   const sel = new Set();
   const sync = () => {
     btnSel.disabled = sel.size === 0;
-    btnSel.textContent = sel.size ? "Compartir seleccionadas (" + sel.size + ")" : "Selecciona fotos";
+    btnSel.textContent = sel.size ? "Compartir seleccionados (" + sel.size + ")" : "Selecciona fotos o videos";
   };
-  photos.forEach((m, i) => {
+  items.forEach((m, i) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "pg-item";
@@ -4783,9 +4797,16 @@ function openPhotoPicker(ev, photos) {
     img.alt = "";
     img.decoding = "async";
     lazyThumb(img, m);
+    b.appendChild(img);
+    if (!isImageMedia(m)) {
+      const p = document.createElement("span");
+      p.className = "pg-play";
+      p.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+      b.appendChild(p);
+    }
     const chk = document.createElement("span");
     chk.className = "pg-check";
-    b.append(img, chk);
+    b.appendChild(chk);
     b.addEventListener("click", () => {
       if (sel.has(i)) sel.delete(i); else sel.add(i);
       b.classList.toggle("sel", sel.has(i));
@@ -4795,18 +4816,19 @@ function openPhotoPicker(ev, photos) {
   });
   sync();
   btnSel.onclick = () => {
-    const list = [...sel].sort((x, y) => x - y).map((i) => photos[i]);
+    const list = [...sel].sort((x, y) => x - y).map((i) => items[i]);
     closeSheet("photo-sheet");
     shareCards(ev, list);
   };
-  btnAll.onclick = () => { closeSheet("photo-sheet"); shareCards(ev, photos); };
+  btnAll.onclick = () => { closeSheet("photo-sheet"); shareCards(ev, items); };
   openSheet("photo-sheet");
 }
 
 async function shareEventCard(ev) {
-  const photos = (ev.images || []).filter(isImageMedia);
-  if (photos.length > 1) { openPhotoPicker(ev, photos); return; }
-  await shareCards(ev, [photos[0]]);
+  const all = ev.images || [];
+  if (all.length > 1) { openPhotoPicker(ev, all); return; }
+  // un solo archivo: foto -> tarjeta, video -> el video; sin archivos -> tarjeta con el color del evento
+  await shareCards(ev, [all[0]]);
 }
 
 document.getElementById("photo-sheet-x").addEventListener("click", () => closeSheet("photo-sheet"));
