@@ -4679,52 +4679,55 @@ async function makeCardBlob(ev, pick) {
   g.fillStyle = glow; g.fillRect(0, 0, W, H);
   g.restore();
 
-  // La foto ocupa su proporción real (máx. ~1.1 veces el ancho), así no se recorta
-  const cw = W - 180, pad = 48, ps = cw - 2 * pad, CAP = 300;
-  let ph = ps;
-  if (img) ph = Math.min(Math.max(ps * img.naturalHeight / img.naturalWidth, ps * 0.5), ps * 1.1);
-  const ch = pad + ph + CAP;
-  const cx = 90, cy = Math.max(40, Math.round((H - ch) / 2) - 10);
+  // El área de la foto tiene exactamente la proporción de la imagen: el marco se adapta a ella
+  const pad = 48, PS = 804, MAXH = 880, MINW = 420, CAP = 300;
+  let pw = PS, ph = PS;
+  if (img) {
+    const r = img.naturalHeight / img.naturalWidth;
+    pw = PS;
+    if (pw * r > MAXH) pw = MAXH / r;
+    pw = Math.max(pw, MINW);
+    ph = pw * r;
+  }
+  const cw = pw + 2 * pad, ch = pad + ph + CAP;
+  const cx = Math.round((W - cw) / 2), cy = Math.max(40, Math.round((H - ch) / 2) - 10);
+  const centerX = cx + cw / 2;
 
   g.save();
-  g.translate(W / 2, cy + ch / 2); g.rotate(-0.022); g.translate(-W / 2, -(cy + ch / 2));
+  g.translate(centerX, cy + ch / 2); g.rotate(-0.022); g.translate(-centerX, -(cy + ch / 2));
   g.shadowColor = "rgba(0,0,0,.6)"; g.shadowBlur = 50; g.shadowOffsetY = 24;
   g.fillStyle = "#F4F1EA"; rrect(g, cx, cy, cw, ch, 10); g.fill();
   g.shadowColor = "transparent";
 
   const px = cx + pad, py = cy + pad;
-  g.fillStyle = "#111317"; g.fillRect(px, py, ps, ph);
   if (img) {
-    const r = Math.min(ps / img.naturalWidth, ph / img.naturalHeight);
-    const dw = img.naturalWidth * r, dh = img.naturalHeight * r;
-    g.drawImage(img, px + (ps - dw) / 2, py + (ph - dh) / 2, dw, dh);
+    g.drawImage(img, px, py, pw, ph);
   } else {
-    const gr = g.createLinearGradient(px, py, px + ps, py + ph);
+    const gr = g.createLinearGradient(px, py, px + pw, py + ph);
     gr.addColorStop(0, accent); gr.addColorStop(1, "#161B22");
-    g.fillStyle = gr; g.fillRect(px, py, ps, ph);
+    g.fillStyle = gr; g.fillRect(px, py, pw, ph);
     g.font = "300px serif"; g.textAlign = "center"; g.fillStyle = "#fff";
-    g.fillText(ev.icon || t.emoji || "📸", W / 2, py + ph / 2 + 100);
+    g.fillText(ev.icon || t.emoji || "📸", centerX, py + ph / 2 + 100);
   }
-  g.strokeStyle = "rgba(0,0,0,.18)"; g.lineWidth = 2; g.strokeRect(px, py, ps, ph);
 
   // pie de la polaroid (centrado)
   g.textAlign = "center";
-  const mx = W / 2, maxW = cw - 2 * pad;
+  const maxW = cw - 2 * pad;
   let y = py + ph + 60;
   if (tnames.length) {
     g.font = "600 28px " + sans; g.fillStyle = accent;
-    g.fillText(((t.emoji ? t.emoji + " " : "") + tnames.map((x) => x.name).join(" · ")).toUpperCase(), mx, y);
+    g.fillText(((t.emoji ? t.emoji + " " : "") + tnames.map((x) => x.name).join(" · ")).toUpperCase(), centerX, y);
     y += 14;
   }
   g.font = "700 56px " + serif; g.fillStyle = "#1A1D23";
   const tl = wrapLines(g, ev.title, maxW, 2);
-  tl.forEach((ln) => { y += 62; g.fillText(ln, mx, y); });
+  tl.forEach((ln) => { y += 62; g.fillText(ln, centerX, y); });
   g.font = "400 30px " + sans; g.fillStyle = "#6B7280";
   const dt = new Date(ev.date + "T00:00:00").toLocaleDateString("es-419", { day: "numeric", month: "long", year: "numeric" });
-  y += 46; g.fillText(dt + (ev.time ? "  ·  " + ev.time : ""), mx, y);
+  y += 46; g.fillText(dt + (ev.time ? "  ·  " + ev.time : ""), centerX, y);
   if (ev.notes && tl.length < 2 && y + 44 < cy + ch - 20) {
     g.font = "400 28px " + sans; g.fillStyle = "#4B5563";
-    y += 44; g.fillText(wrapLines(g, ev.notes, maxW, 1)[0] || "", mx, y);
+    y += 44; g.fillText(wrapLines(g, ev.notes, maxW, 1)[0] || "", centerX, y);
   }
   g.restore();
 
