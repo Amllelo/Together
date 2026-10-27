@@ -4674,8 +4674,10 @@ async function makeCardBlob(ev, pick) {
 
   g.fillStyle = "#06080A"; g.fillRect(0, 0, W, H);
   const glow = g.createRadialGradient(W / 2, 360, 80, W / 2, 360, 980);
-  glow.addColorStop(0, accent + "66"); glow.addColorStop(1, "transparent");
+  glow.addColorStop(0, accent); glow.addColorStop(1, "rgba(0,0,0,0)");
+  g.save(); g.globalAlpha = 0.4;
   g.fillStyle = glow; g.fillRect(0, 0, W, H);
+  g.restore();
 
   // La foto ocupa su proporción real (máx. ~1.1 veces el ancho), así no se recorta
   const cw = W - 180, pad = 48, ps = cw - 2 * pad, CAP = 300;
