@@ -1452,6 +1452,15 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 .event-carousel img:nth-child(odd), .fc-carousel img:nth-child(odd) { transform: rotate(-1.8deg); }
 .event-carousel img:nth-child(even), .fc-carousel img:nth-child(even) { transform: rotate(1.5deg); }
 .event-carousel img:hover, .fc-carousel img:hover { transform: rotate(0) scale(1.05); }
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+.pg-item{position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:2px solid transparent;background:var(--surface-2);padding:0;cursor:pointer;transition:transform .12s,border-color .2s}
+.pg-item:active{transform:scale(.96)}
+.pg-item img{width:100%;height:100%;object-fit:cover;display:block}
+.pg-item.sel{border-color:var(--accent-me)}
+.pg-check{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.35);box-sizing:border-box;transition:all .2s}
+.pg-item.sel .pg-check{background:var(--accent-me);border-color:var(--accent-me);box-shadow:inset 0 0 0 4px var(--surface)}
+.cta.ghost{background:transparent;color:var(--accent-me);border:1px solid var(--accent-me);box-shadow:none;margin-top:10px}
+.cta:disabled{opacity:.4;cursor:not-allowed}
 </style>
 
 </head>
@@ -1775,6 +1784,21 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
       </div>
       <div class="preview" id="nt-preview"></div>
       <button type="button" class="cta" id="nt-create">Crear tipo</button>
+    </div>
+  </div>
+
+  <!-- HOJA: FOTOS PARA COMPARTIR -->
+  <div id="photo-sheet" class="sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="photo-sheet-title">
+    <div class="sheet">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head">
+        <h3 id="photo-sheet-title">Compartir fotos</h3>
+        <button type="button" class="sheet-x" id="photo-sheet-x" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      </div>
+      <div style="font-size:.85rem;color:var(--text-muted);margin:-6px 2px 14px;">Toca las fotos que quieres compartir. Cada una se envía como tarjeta.</div>
+      <div id="photo-grid" class="photo-grid"></div>
+      <button type="button" class="cta" id="photo-share-sel">Selecciona fotos</button>
+      <button type="button" class="cta ghost" id="photo-share-all">Compartir todas</button>
     </div>
   </div>
 
@@ -4444,7 +4468,7 @@ function rrect(g, x, y, w, h, r) {
   if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
 }
 
-async function makeCardBlob(ev) {
+async function makeCardBlob(ev, pick) {
   try { await document.fonts.load("700 64px Fraunces"); } catch (e) {}
   const W = 1080, H = 1350;
   const c = document.createElement("canvas");
@@ -4474,7 +4498,7 @@ async function makeCardBlob(ev) {
   const px = cx + pad, py = cy + pad;
   g.save(); rrect(g, px, py, ps, ps, 4); g.clip();
   let drawn = false;
-  const media = (ev.images || []).find(isImageMedia);
+  const media = pick || (ev.images || []).find(isImageMedia);
   if (media) {
     try {
       const img = new Image();
@@ -4527,33 +4551,86 @@ async function makeCardBlob(ev) {
   return new Promise((resolve, reject) => c.toBlob((b) => b ? resolve(b) : reject(new Error("sin imagen")), "image/jpeg", 0.92));
 }
 
-async function shareEventCard(ev) {
-  let blob;
+async function shareCards(ev, medias) {
+  const many = medias.length > 1;
+  const files = [];
   try {
-    showToast("Creando tarjeta…", 2500);
-    blob = await makeCardBlob(ev);
+    for (let i = 0; i < medias.length; i++) {
+      showToast(many ? "Creando tarjeta " + (i + 1) + " de " + medias.length + "…" : "Creando tarjeta…", 2500);
+      const blob = await makeCardBlob(ev, medias[i]);
+      files.push(new File([blob], "together-" + ev.date + (many ? "-" + (i + 1) : "") + ".jpg", { type: "image/jpeg" }));
+    }
   } catch (err) {
     console.error("Error creando tarjeta:", err);
     const msg = String((err && err.message) || "").slice(0, 160);
     await appAlert("No se pudo crear la tarjeta.\n\nDetalle: " + ((err && (err.name || "error")) || "error") + (msg ? " — " + msg : ""), { type: "error" });
     return;
   }
-  const file = new File([blob], "together-" + ev.date + ".jpg", { type: "image/jpeg" });
   try {
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: ev.title });
+    if (navigator.canShare && navigator.canShare({ files })) {
+      await navigator.share({ files, title: ev.title });
       return;
     }
   } catch (err) {
     if (err && err.name === "AbortError") return;
-    console.warn("Compartir no disponible, se descarga la imagen:", err);
+    console.warn("Compartir no disponible, se descargan las imágenes:", err);
   }
-  const url = URL.createObjectURL(file);
-  const a = document.createElement("a");
-  a.href = url; a.download = file.name; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-  showToast("Tarjeta descargada");
+  for (const f of files) {
+    const url = URL.createObjectURL(f);
+    const a = document.createElement("a");
+    a.href = url; a.download = f.name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    await new Promise((r) => setTimeout(r, 350));
+  }
+  showToast(many ? "Tarjetas descargadas" : "Tarjeta descargada");
 }
+
+function openPhotoPicker(ev, photos) {
+  const grid = document.getElementById("photo-grid");
+  const btnSel = document.getElementById("photo-share-sel");
+  const btnAll = document.getElementById("photo-share-all");
+  grid.innerHTML = "";
+  const sel = new Set();
+  const sync = () => {
+    btnSel.disabled = sel.size === 0;
+    btnSel.textContent = sel.size ? "Compartir seleccionadas (" + sel.size + ")" : "Selecciona fotos";
+  };
+  photos.forEach((m, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pg-item";
+    const img = document.createElement("img");
+    img.alt = "";
+    img.decoding = "async";
+    lazyThumb(img, m);
+    const chk = document.createElement("span");
+    chk.className = "pg-check";
+    b.append(img, chk);
+    b.addEventListener("click", () => {
+      if (sel.has(i)) sel.delete(i); else sel.add(i);
+      b.classList.toggle("sel", sel.has(i));
+      sync();
+    });
+    grid.appendChild(b);
+  });
+  sync();
+  btnSel.onclick = () => {
+    const list = [...sel].sort((x, y) => x - y).map((i) => photos[i]);
+    closeSheet("photo-sheet");
+    shareCards(ev, list);
+  };
+  btnAll.onclick = () => { closeSheet("photo-sheet"); shareCards(ev, photos); };
+  openSheet("photo-sheet");
+}
+
+async function shareEventCard(ev) {
+  const photos = (ev.images || []).filter(isImageMedia);
+  if (photos.length > 1) { openPhotoPicker(ev, photos); return; }
+  await shareCards(ev, [photos[0]]);
+}
+
+document.getElementById("photo-sheet-x").addEventListener("click", () => closeSheet("photo-sheet"));
+document.getElementById("photo-sheet").addEventListener("click", (e) => { if (e.target.id === "photo-sheet") closeSheet("photo-sheet"); });
 
 document.getElementById("lb-share").addEventListener("click", async (e) => {
   e.stopPropagation();
@@ -4580,6 +4657,7 @@ const NAV_LAYERS = {
   "reminders-overlay": () => document.getElementById("close-reminders-btn").click(),
   "type-create-sheet": () => closeSheet("type-create-sheet"),
   "type-sheet": () => closeSheet("type-sheet"),
+  "photo-sheet": () => closeSheet("photo-sheet"),
   "settings-overlay": () => document.getElementById("close-settings-btn").click(),
   "event-overlay":    () => document.getElementById("cancel-event-btn").click(),
   "lightbox":         () => document.getElementById("lightbox").click(),
