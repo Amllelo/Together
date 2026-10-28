@@ -1512,6 +1512,54 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 .feed-group { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 600; color: var(--text-dim); text-transform: capitalize; margin: 10px 2px -4px; }
 .avatar { background-size: cover; background-position: center; cursor: pointer; }
 .avatar.has-photo { color: transparent; }
+
+/* ===== JUNTOS / DESEOS ===== */
+.home-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:16px}
+.home-card h3{font-size:1.1rem;margin:0 0 12px}
+.hc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.hc-head h3{margin:0}
+.days-card{text-align:center;background:linear-gradient(135deg,color-mix(in srgb,var(--accent-me) 22%,var(--surface)),color-mix(in srgb,var(--accent-other) 22%,var(--surface)))}
+.dc-label{font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--text-dim);font-weight:600}
+.dc-num{font-family:'Fraunces',serif;font-size:4rem;font-weight:700;line-height:1.1;margin-top:6px}
+.dc-unit{font-size:1rem;color:var(--text-dim)}
+.dc-sub{margin-top:8px;font-size:.95rem}
+.dc-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.12);margin:16px 0 8px;overflow:hidden}
+.dc-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent-me),var(--accent-other))}
+.dc-next{font-size:.85rem;color:var(--text-dim);line-height:1.5}
+.cd-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.cd-item:last-child{border-bottom:none}
+.cd-icon{font-size:1.6rem;flex-shrink:0}
+.cd-text{flex:1;min-width:0}
+.cd-title{font-weight:600;overflow-wrap:anywhere}
+.cd-date{font-size:.8rem;color:var(--text-muted);margin-top:2px;text-transform:capitalize}
+.cd-days{text-align:center;flex-shrink:0;min-width:56px}
+.cd-days b{display:block;font-family:'Fraunces',serif;font-size:1.5rem;color:var(--accent-me);line-height:1.1}
+.cd-days span{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.cd-hint{font-size:.85rem;color:var(--text-muted);line-height:1.5;padding:4px 0}
+.chip-row{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px;touch-action:pan-x pan-y;scrollbar-width:none}
+.chip-row::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font:inherit;font-size:.85rem;cursor:pointer;flex-shrink:0}
+.chip:active{transform:scale(.96)}
+.chip.sel{border-color:var(--accent-me);background:color-mix(in srgb,var(--accent-me) 18%,var(--surface-2))}
+.msg-compose{display:flex;gap:8px;margin-bottom:14px}
+.msg-compose .field{flex:1;min-width:0;padding:11px 14px}
+.cta-mini{padding:0 18px;border-radius:18px;border:none;background:var(--accent-me);color:var(--bg);font:inherit;font-weight:700;cursor:pointer}
+.cta-mini:active{transform:scale(.96)}
+.msg{max-width:84%;width:fit-content;padding:9px 13px;border-radius:16px;margin-bottom:8px;overflow-wrap:anywhere}
+.msg.mine{margin-left:auto;background:color-mix(in srgb,var(--accent-me) 24%,var(--surface-2));border-bottom-right-radius:4px;cursor:pointer}
+.msg.theirs{background:color-mix(in srgb,var(--accent-other) 24%,var(--surface-2));border-bottom-left-radius:4px}
+.msg-time{font-size:.68rem;color:var(--text-muted);margin-top:3px}
+.wish-cats{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.wish-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--radius);background:var(--surface-2);border:1px solid var(--border);margin-bottom:10px;flex-wrap:wrap}
+.wish-item.by-me{border-left:3px solid var(--accent-me)}
+.wish-item.by-other{border-left:3px solid var(--accent-other)}
+.wish-item.done .wi-title{text-decoration:line-through;color:var(--text-dim)}
+.wi-emoji{font-size:1.6rem;flex-shrink:0}
+.wi-text{flex:1;min-width:140px}
+.wi-title{font-weight:600;overflow-wrap:anywhere}
+.wi-sub{font-size:.8rem;color:var(--text-muted);margin-top:2px}
+.wi-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.btn-small.wi-done{background:var(--accent-me);color:var(--bg);border-color:transparent}
 </style>
 
 </head>
@@ -1601,6 +1649,33 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
     <div id="feed-list"></div>
   </div>
 
+  <!-- HOME VIEW -->
+  <div id="home-view" class="view">
+    <h2 style="margin:0 0 20px;">Juntos</h2>
+    <div id="home-days"></div>
+    <div id="home-countdowns"></div>
+    <div class="home-card">
+      <div class="hc-head"><h3>💌 Mensajes</h3><button type="button" id="notif-btn" class="btn-small" hidden>Activar avisos</button></div>
+      <div class="chip-row" id="msg-chips"></div>
+      <div class="msg-compose">
+        <input type="text" id="msg-input" class="field" maxlength="240" placeholder="Escribe algo lindo…" autocomplete="off">
+        <button type="button" id="msg-send" class="cta-mini">Enviar</button>
+      </div>
+      <div id="msg-list"></div>
+    </div>
+  </div>
+
+  <!-- WISH VIEW -->
+  <div id="wish-view" class="view">
+    <h2 style="margin:0 0 20px;">Por hacer juntos</h2>
+    <div class="home-card">
+      <input type="text" id="wish-input" class="field" maxlength="80" placeholder="Un lugar, una película, un viaje…" autocomplete="off">
+      <div class="wish-cats" id="wish-cats"></div>
+      <button type="button" class="cta" id="wish-add">Agregar a la lista</button>
+    </div>
+    <div id="wish-list"></div>
+  </div>
+
   <!-- DAY MODAL -->
   <div id="day-overlay" class="modal-overlay">
     <div class="modal-content">
@@ -1645,6 +1720,9 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
         <div class="form-group">
           <label for="ev-time">Hora (opcional)</label>
           <input type="time" id="ev-time">
+        </div>
+        <div class="form-group">
+          <label class="set-row"><input type="checkbox" id="ev-countdown"><span>⏳ Mostrar cuenta regresiva en «Juntos»</span></label>
         </div>
         <div class="form-group">
           <label for="ev-notes">Notas (opcional)</label>
@@ -1955,11 +2033,20 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
     Recuerdos
     <span class="nav-badge" id="feed-badge" aria-label="Recuerdos nuevos"></span>
   </div>
+  <div class="nav-item" data-view="home-view">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+    Juntos
+    <span class="nav-badge" id="home-badge" aria-label="Mensajes nuevos"></span>
+  </div>
+  <div class="nav-item" data-view="wish-view">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.1 8.6 22 9.3 16.9 14.1 18.2 21 12 17.6 5.8 21 7.1 14.1 2 9.3 8.9 8.6 12 2"/></svg>
+    Deseos
+  </div>
 </div>
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.16.0";
+window.APP_VERSION = "2.17.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2878,7 +2965,7 @@ function scheduleRender() {
   renderScheduled = true;
   requestAnimationFrame(() => {
     renderScheduled = false;
-    [renderCalendar, renderFeed, () => { if (selectedDay) renderDayModal(selectedDay); }, updateNewBadge, updateBellBadge]
+    [renderCalendar, renderFeed, renderHome, renderWish, () => { if (selectedDay) renderDayModal(selectedDay); }, updateNewBadge, updateBellBadge]
       .forEach((fn) => { try { fn(); } catch (err) { console.error("Error al dibujar:", err); } });
   });
 }
@@ -3347,6 +3434,7 @@ async function startApp(user) {
   step("calendario", renderCalendar);
   step("eventos", listenEvents);
   step("usuarios", listenUsers);
+  step("juntos", listenSocial);
   setTimeout(() => { if (!eventsReady && appStarted) { eventsReady = true; scheduleRender(); } }, 6000);
   setTimeout(() => { scheduleAutoReminders(); setTimeout(noticeNoReminders, 1500); }, 4500);
   document.getElementById("biometric-toggle").checked =
@@ -3391,6 +3479,9 @@ function stopApp() {
   eventsMap.clear();
   eventsReady = false;
   remindersShown = false; remNotified = false; clearTimeout(remTimer);
+  if (unsubSocial) { unsubSocial(); unsubSocial = null; }
+  socialMap.clear(); socialReady = false; editingSince = false;
+  { const hb = document.getElementById("home-badge"); if (hb) hb.classList.remove("show"); }
   { const bb = document.getElementById("bell-badge"); if (bb) bb.classList.remove("show"); }
   lastEventsSig = "";
   lastUsersSig = "";
@@ -3494,7 +3585,7 @@ function listenUsers() {
     });
 
     updateUserLabels();
-    const usig = JSON.stringify(Object.entries(usersData).map(([k,v])=>[k, v && v.displayName, v && v.accentColor, JSON.stringify((v && v.eventTypes) || []), v && v.photo ? hashStr(v.photo) : ""]));
+    const usig = JSON.stringify(Object.entries(usersData).map(([k,v])=>[k, v && v.displayName, v && v.accentColor, JSON.stringify((v && v.eventTypes) || []), v && v.photo ? hashStr(v.photo) : "", v && v.since]));
     if(usig !== lastUsersSig){ lastUsersSig = usig; scheduleRender(); }
     scheduleAutoReminders();
   }, (err)=> console.error("Error en listener de usuarios:", err));
@@ -3515,7 +3606,7 @@ function listenUsers() {
            oldData.accentColor !== newData.accentColor ||
            oldData.displayName !== newData.displayName ||
            JSON.stringify(oldData.eventTypes || []) !== JSON.stringify(newData.eventTypes || []) ||
-           oldData.photo !== newData.photo) {
+           oldData.since !== newData.since || oldData.photo !== newData.photo) {
           needsUpdate = true;
           usersData[d.id] = newData;
         }
@@ -3860,6 +3951,8 @@ document.querySelectorAll(".nav-item[data-view]").forEach(item=>{
     item.classList.add("active");
     document.getElementById(viewName).classList.add("active");
     if(viewName === "feed-view") renderFeed();
+    if(viewName === "home-view") renderHome();
+    if(viewName === "wish-view") renderWish();
   });
 });
 
@@ -4005,7 +4098,7 @@ function listenEvents(){
       scheduleAutoReminders();
       // Si nada visible cambió (p. ej. la confirmación del servidor), no se redibuja
       let sig = "";
-      for(const e of eventsCache) sig += e.id + "|" + e.date + "|" + (e.title||"") + "|" + (e.time||"") + "|" + (e.type||"") + "|" + (e.types||[]).join("+") + "|" + (e.notes||"") + "|" + (e.lastEditedBy||"") + "|" + (e.images||[]).map(m=>(mediaSrc(m)||"").length).join(",") + ";";
+      for(const e of eventsCache) sig += e.id + "|" + e.date + "|" + (e.title||"") + "|" + (e.time||"") + "|" + (e.type||"") + "|" + (e.types||[]).join("+") + "|" + (e.notes||"") + "|" + (e.lastEditedBy||"") + "|" + (e.countdown?1:0) + "|" + (e.icon||"") + "|" + (e.images||[]).map(m=>(mediaSrc(m)||"").length).join(",") + ";";
       if(sig === lastEventsSig) return;
       lastEventsSig = sig;
       scheduleRender();
@@ -4040,6 +4133,8 @@ function openNewEventFor(key){
   document.getElementById("ev-time").value = "";
   document.getElementById("ev-notes").value = "";
   refreshTypeSelect("event");
+  document.getElementById("ev-countdown").checked = false;
+  pendingWishId = null;
   document.getElementById("ev-icon").value = "";
   document.getElementById("thumbs").innerHTML = "";
   document.getElementById("event-overlay").classList.add("active");
@@ -4070,6 +4165,7 @@ function openEditEvent(ev){
   document.getElementById("ev-time").value = ev.time || "";
   document.getElementById("ev-notes").value = ev.notes || "";
   refreshTypeSelect(typesOf(ev));
+  document.getElementById("ev-countdown").checked = !!ev.countdown;
   document.getElementById("ev-icon").value = ev.icon || "";
   document.getElementById("thumbs").innerHTML = "";
   pendingImages.forEach((media, i)=> {
@@ -4143,6 +4239,7 @@ function openVirtualEdit(ev){
   document.getElementById("ev-time").value = "";
   document.getElementById("ev-notes").value = "";
   refreshTypeSelect(ev.types || ev.type);
+  document.getElementById("ev-countdown").checked = false;
   document.getElementById("ev-icon").value = "";
   document.getElementById("thumbs").innerHTML = "";
   document.getElementById("event-overlay").classList.add("active");
@@ -4716,7 +4813,7 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     return;
   }
 
-  const eventData = { title, notes, time, type: currentTypes()[0], types: currentTypes(), icon: firstEmoji(document.getElementById("ev-icon").value) || null };
+  const eventData = { title, notes, time, type: currentTypes()[0], types: currentTypes(), icon: firstEmoji(document.getElementById("ev-icon").value) || null, countdown: document.getElementById("ev-countdown").checked };
 
   const saveBtn = document.getElementById("save-event-btn");
   saveBtn.disabled = true;
@@ -4757,7 +4854,12 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
       eventData.date = selectedDay;
       eventData.authorUID = currentUID;
       eventData.createdAt = serverTimestamp();
-      result = await commitWrite(addDoc(collection(db,"events"), eventData));
+      const newRef = doc(collection(db,"events"));
+      result = await commitWrite(setDoc(newRef, eventData));
+      if(pendingWishId){
+        const wid = pendingWishId; pendingWishId = null;
+        commitWrite(updateDoc(doc(db,"events", wid), { done: true, doneAt: Date.now(), eventId: newRef.id })).catch(()=>{});
+      }
     }
     if(eventData.images) cleanupRemovedBig(origImages, eventData.images);
     pendingImages = [];
@@ -5046,12 +5148,333 @@ document.getElementById("lb-share").addEventListener("click", async (e) => {
   }
 });
 
+// ===== JUNTOS: días juntos, cuenta regresiva, mensajes y lista de deseos =====
+// Mensajes y deseos viven en la colección "events" como documentos sin campo "date" (igual que los
+// trozos de archivos), así el calendario los ignora y no hacen falta reglas nuevas.
+let pendingWishId = null;
+let unsubSocial = null;
+const socialMap = new Map();
+let socialReady = false;
+let editingSince = false;
+let wishCat = "place";
+const WISH_CATS = { place: ["📍", "Lugar"], movie: ["🎬", "Película"], trip: ["✈️", "Viaje"], food: ["🍽️", "Comida"], other: ["✨", "Otro"] };
+const MSG_QUICK = ["Pensé en ti 💭", "Te quiero ❤️", "Buenos días ☀️", "Buenas noches 🌙", "Te extraño 🥺", "Gracias 🙏"];
+const msgReadKey = (uid) => "msgRead_" + uid;
+const msgs = () => [...socialMap.values()].filter((d) => d.kind === "msg").sort((a, b) => (a.ts || 0) - (b.ts || 0));
+const wishes = () => [...socialMap.values()].filter((d) => d.kind === "wish");
+const nameOf = (uid) => uid === currentUID ? ((usersData[currentUID] && usersData[currentUID].displayName) || "Tú") : ((usersData[uid] && usersData[uid].displayName) || "Tu pareja");
+const homeActive = () => document.getElementById("home-view").classList.contains("active");
+const todayDate = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
+const fmtDate = (d, o) => d.toLocaleDateString("es-419", o || { day: "numeric", month: "long", year: "numeric" });
+
+async function socialWrite(p) {
+  try { await commitWrite(p); }
+  catch (err) { console.error(err); await appAlert(writeErrorMessage(err), { type: "error" }); }
+}
+
+function listenSocial() {
+  if (unsubSocial) unsubSocial();
+  socialMap.clear(); socialReady = false;
+  if (!LS.get(msgReadKey(currentUID))) LS.set(msgReadKey(currentUID), String(Date.now()));
+  unsubSocial = onSnapshot(query(collection(db, "events"), orderBy("ts")), (qs) => {
+    const fresh = [];
+    const lastRead = Number(LS.get(msgReadKey(currentUID)) || 0);
+    qs.docChanges().forEach((ch) => {
+      if (ch.type === "removed") { socialMap.delete(ch.doc.id); return; }
+      const d = { id: ch.doc.id, ...ch.doc.data() };
+      socialMap.set(d.id, d);
+      if (ch.type === "added" && socialReady && d.kind === "msg" && d.authorUID !== currentUID && (d.ts || 0) > lastRead) fresh.push(d);
+    });
+    const first = !socialReady;
+    socialReady = true;
+    if (fresh.length) notifyMsgs(fresh);
+    if (first) { const n = unreadCount(); if (n && !homeActive()) showToast("💌 Tienes " + n + (n === 1 ? " mensaje nuevo" : " mensajes nuevos"), 5000); }
+    updateHomeBadge();
+    scheduleRender();
+  }, (err) => {
+    console.error("Error en mensajes/deseos:", err);
+    showToast(err && err.code === "permission-denied" ? "Firebase no permite leer mensajes y deseos (revisa las reglas de Firestore)." : "No se pudieron cargar mensajes y deseos.", 6000);
+  });
+}
+
+// ----- días juntos -----
+function getSince() {
+  let best = null;
+  Object.values(usersData).forEach((u) => { if (u && u.since && (!best || (u.sinceAt || 0) > (best.sinceAt || 0))) best = u; });
+  return best ? best.since : null;
+}
+async function saveSince(val) {
+  const sinceAt = Date.now();
+  usersData[currentUID] = { ...(usersData[currentUID] || {}), since: val, sinceAt };
+  editingSince = false;
+  renderHome();
+  await socialWrite(setDoc(doc(db, "users", currentUID), { since: val, sinceAt, updatedAt: serverTimestamp() }, { merge: true }));
+}
+function milestonesFor(s) {
+  const m = new Map();
+  for (let n = 100; n <= 12000; n += 100) m.set(n, { n, label: n + " días juntos", icon: "🎉" });
+  for (let y = 1; y <= 40; y++) {
+    const n = daysBetween(s, new Date(s.getFullYear() + y, s.getMonth(), s.getDate()));
+    m.set(n, { n, label: y === 1 ? "1 año juntos" : y + " años juntos", icon: "💞" });
+  }
+  return [...m.values()].sort((a, b) => a.n - b.n);
+}
+const joinEs = (p) => p.length < 2 ? (p[0] || "") : p.slice(0, -1).join(", ") + " y " + p[p.length - 1];
+
+function renderDays() {
+  const box = document.getElementById("home-days");
+  const sv = getSince();
+  if (box.querySelector("#since-input") && (editingSince || !sv)) return;   // no borrar lo que se está escribiendo
+  if (!sv || editingSince) {
+    box.innerHTML = '<div class="home-card"><h3>💞 Días juntos</h3><div class="dc-next" style="margin-bottom:12px">¿Desde cuándo están juntos? Los dos verán el contador.</div>' +
+      '<input type="date" id="since-input" class="field" value="' + (sv || "") + '" max="' + dateKey(new Date()) + '">' +
+      '<button type="button" class="cta" id="since-save">Guardar fecha</button>' +
+      (sv ? '<button type="button" class="cta ghost" id="since-cancel">Cancelar</button>' : '') + '</div>';
+    document.getElementById("since-save").addEventListener("click", () => {
+      const v = document.getElementById("since-input").value;
+      if (!v) { showToast("Elige una fecha"); return; }
+      saveSince(v);
+    });
+    const c = document.getElementById("since-cancel");
+    if (c) c.addEventListener("click", () => { editingSince = false; renderDays(); });
+    return;
+  }
+  const t0 = todayDate(), s = keyDate(sv), days = daysBetween(s, t0), num = Math.abs(days);
+  let sub = "", next = "", pct = 0;
+  if (days >= 0) {
+    let y = t0.getFullYear() - s.getFullYear(), m = t0.getMonth() - s.getMonth(), d = t0.getDate() - s.getDate();
+    if (d < 0) { m--; d += new Date(t0.getFullYear(), t0.getMonth(), 0).getDate(); }
+    if (m < 0) { y--; m += 12; }
+    const parts = [];
+    if (y) parts.push(y + (y === 1 ? " año" : " años"));
+    if (m) parts.push(m + (m === 1 ? " mes" : " meses"));
+    if (d) parts.push(d + (d === 1 ? " día" : " días"));
+    sub = joinEs(parts);
+    const ms = milestonesFor(s);
+    const nx = ms.find((x) => x.n >= days);
+    const pv = [...ms].reverse().find((x) => x.n < days);
+    const pn = pv ? pv.n : 0;
+    if (nx.n === days) { next = "🎉 ¡Hoy cumplen " + nx.label + "!"; pct = 100; }
+    else {
+      pct = Math.round((days - pn) / (nx.n - pn) * 100);
+      next = "Próximo hito: " + nx.label + " · " + fmtDate(new Date(s.getFullYear(), s.getMonth(), s.getDate() + nx.n)) + " · faltan " + (nx.n - days) + " días";
+    }
+  }
+  box.innerHTML = '<div class="home-card days-card"><div class="dc-label">' + (days >= 0 ? "Llevamos juntos" : "Faltan para empezar") + '</div>' +
+    '<div class="dc-num">' + num + '</div><div class="dc-unit">' + (num === 1 ? "día" : "días") + '</div>' +
+    (sub ? '<div class="dc-sub">' + escapeHTML(sub) + '</div>' : '') +
+    (days >= 0 ? '<div class="dc-bar"><i style="width:' + pct + '%"></i></div><div class="dc-next">' + escapeHTML(next) + '</div>' : '') +
+    '<button type="button" class="btn-small" id="since-edit" style="margin-top:14px">Cambiar fecha</button></div>';
+  document.getElementById("since-edit").addEventListener("click", () => { editingSince = true; renderDays(); });
+}
+
+// ----- cuenta regresiva -----
+function nextOccurrence(ev, from) {
+  const fk = dateKey(from);
+  if (ev.date >= fk) return keyDate(ev.date);
+  const rps = typesOf(ev).map((id) => typeOf(id).repeat).filter(Boolean);
+  if (!rps.length) return null;
+  for (let i = 1; i <= 400; i++) {
+    const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i), k = dateKey(d);
+    if (rps.some((rp) => occursOn(ev, k, rp))) return d;
+  }
+  return null;
+}
+function renderCountdowns() {
+  const box = document.getElementById("home-countdowns");
+  const t0 = todayDate(), items = [];
+  let hasFlag = false;
+  eventsCache.forEach((ev) => {
+    if (!ev.countdown || !ev.date) return;
+    hasFlag = true;
+    const d = nextOccurrence(ev, t0);
+    if (d) items.push({ title: ev.title, icon: ev.icon || primaryType(ev).emoji || "📅", date: d, diff: daysBetween(t0, d), key: dateKey(d) });
+  });
+  const sv = getSince();
+  if (sv) {
+    const s = keyDate(sv), days = daysBetween(s, t0);
+    if (days >= 0) {
+      const nx = milestonesFor(s).find((x) => x.n >= days);
+      if (nx) items.push({ title: nx.label, icon: nx.icon, date: new Date(s.getFullYear(), s.getMonth(), s.getDate() + nx.n), diff: nx.n - days, milestone: true });
+    }
+  }
+  items.sort((a, b) => a.diff - b.diff);
+  const shown = items.slice(0, 6);
+  const rows = shown.map((it, i) =>
+    '<div class="cd-item" data-i="' + i + '"><div class="cd-icon">' + escapeHTML(it.icon) + '</div><div class="cd-text"><div class="cd-title">' + escapeHTML(it.title) +
+    '</div><div class="cd-date">' + escapeHTML(fmtDate(it.date, { weekday: "long", day: "numeric", month: "long" })) + '</div></div>' +
+    '<div class="cd-days">' + (it.diff === 0 ? '<b>¡Hoy!</b>' : '<b>' + it.diff + '</b><span>' + (it.diff === 1 ? "día" : "días") + '</span>') + '</div></div>').join("");
+  const hint = hasFlag ? "" : '<div class="cd-hint">Marca un evento con «Cuenta regresiva» al crearlo o editarlo y aparecerá aquí.</div>';
+  box.innerHTML = '<div class="home-card"><h3>⏳ Cuenta regresiva</h3>' + rows + hint + '</div>';
+  box.querySelectorAll(".cd-item").forEach((el) => el.addEventListener("click", () => {
+    const it = shown[Number(el.dataset.i)];
+    if (it && !it.milestone) openDay(it.key, it.date);
+  }));
+}
+
+// ----- mensajes -----
+function unreadCount() {
+  const cur = Number(LS.get(msgReadKey(currentUID)) || 0);
+  return msgs().filter((m) => m.authorUID !== currentUID && (m.ts || 0) > cur).length;
+}
+function updateHomeBadge() {
+  if (!currentUID) return;
+  const n = unreadCount(), b = document.getElementById("home-badge");
+  b.textContent = n > 9 ? "9+" : String(n);
+  b.classList.toggle("show", n > 0);
+  try {
+    if (n && navigator.setAppBadge) navigator.setAppBadge(n).catch(() => {});
+    else if (!n && navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
+  } catch (e) {}
+}
+function markMsgsRead() {
+  if (!currentUID || document.hidden || !homeActive()) return;
+  const last = msgs().filter((m) => m.authorUID !== currentUID).reduce((a, m) => Math.max(a, m.ts || 0), 0);
+  if (last > Number(LS.get(msgReadKey(currentUID)) || 0)) LS.set(msgReadKey(currentUID), String(last));
+  updateHomeBadge();
+}
+function notifyMsgs(list) {
+  if (homeActive() && !document.hidden) return;   // ya los está viendo
+  const last = list[list.length - 1];
+  const text = list.length > 1 ? list.length + " mensajes nuevos" : nameOf(last.authorUID) + ": " + last.text;
+  if (document.hidden) {
+    if ("Notification" in window && Notification.permission === "granted" && navigator.serviceWorker) {
+      navigator.serviceWorker.ready.then((r) => r.showNotification("Together 💌", { body: text, icon: "./icon-192.png", tag: "together-msg" })).catch(() => {});
+    }
+  } else showToast("💌 " + text, 5000);
+}
+const fmtMsgTime = (ts) => {
+  const d = new Date(ts || Date.now());
+  const hm = d.toLocaleTimeString("es-419", { hour: "2-digit", minute: "2-digit" });
+  return d.toDateString() === new Date().toDateString() ? hm : d.toLocaleDateString("es-419", { day: "numeric", month: "short" }) + " " + hm;
+};
+function renderMsgs() {
+  const box = document.getElementById("msg-list");
+  const list = msgs().slice(-30).reverse();
+  box.innerHTML = "";
+  if (!list.length) { box.innerHTML = '<div class="rem-empty" style="padding:14px 0">Aún no hay mensajes.<br>Envía el primero 💌</div>'; return; }
+  list.forEach((m) => {
+    const mine = m.authorUID === currentUID;
+    const b = document.createElement("div");
+    b.className = "msg " + (mine ? "mine" : "theirs");
+    b.innerHTML = '<div>' + escapeHTML(m.text) + '</div><div class="msg-time">' + (mine ? "" : escapeHTML(nameOf(m.authorUID)) + " · ") + fmtMsgTime(m.ts) + '</div>';
+    if (mine) b.addEventListener("click", async () => {
+      if (await appConfirm("¿Eliminar este mensaje?", { confirmText: "Eliminar", danger: true })) socialWrite(deleteDoc(doc(db, "events", m.id)));
+    });
+    box.appendChild(b);
+  });
+}
+async function sendMsg(text) {
+  text = String(text || "").trim();
+  if (!text || !currentUID) return;
+  const id = "msg_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  await socialWrite(setDoc(doc(db, "events", id), { kind: "msg", text: text.slice(0, 240), authorUID: currentUID, ts: Date.now() }));
+}
+function paintNotifBtn() {
+  const b = document.getElementById("notif-btn");
+  if (!("Notification" in window)) { b.hidden = true; return; }
+  const p = Notification.permission;
+  b.hidden = false;
+  b.textContent = p === "granted" ? "Avisos activados ✓" : p === "denied" ? "Avisos bloqueados" : "Activar avisos";
+  b.disabled = p !== "default";
+}
+document.getElementById("notif-btn").addEventListener("click", () => { Notification.requestPermission().then(paintNotifBtn, paintNotifBtn); });
+MSG_QUICK.forEach((t) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip"; b.textContent = t;
+  b.addEventListener("click", () => sendMsg(t));
+  document.getElementById("msg-chips").appendChild(b);
+});
+const sendFromInput = () => { const i = document.getElementById("msg-input"), t = i.value; i.value = ""; sendMsg(t); };
+document.getElementById("msg-send").addEventListener("click", sendFromInput);
+document.getElementById("msg-input").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); sendFromInput(); } });
+
+function renderHome() {
+  if (!currentUID || !homeActive()) return;
+  renderDays(); renderCountdowns(); renderMsgs(); paintNotifBtn();
+  markMsgsRead();
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && appStarted) renderHome(); });
+setInterval(() => { if (appStarted && !document.hidden) renderHome(); }, 60000);
+
+// ----- por hacer juntos -----
+Object.keys(WISH_CATS).forEach((k) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip"; b.dataset.k = k;
+  b.textContent = WISH_CATS[k][0] + " " + WISH_CATS[k][1];
+  b.addEventListener("click", () => { wishCat = k; paintWishCats(); });
+  document.getElementById("wish-cats").appendChild(b);
+});
+function paintWishCats() { document.querySelectorAll("#wish-cats .chip").forEach((b) => b.classList.toggle("sel", b.dataset.k === wishCat)); }
+paintWishCats();
+
+async function addWish() {
+  const inp = document.getElementById("wish-input"), title = inp.value.trim();
+  if (!title) { inp.focus(); return; }
+  inp.value = "";
+  const id = "wl_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  await socialWrite(setDoc(doc(db, "events", id), { kind: "wish", title, cat: wishCat, done: false, authorUID: currentUID, ts: Date.now() }));
+}
+document.getElementById("wish-add").addEventListener("click", addWish);
+document.getElementById("wish-input").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addWish(); } });
+
+// Al marcarlo como hecho se abre el formulario de evento (hoy, con su icono) para agregar fotos;
+// al guardarlo, el deseo queda hecho y enlazado a ese recuerdo.
+function completeWish(w) {
+  openNewEventFor(dateKey(new Date()));
+  document.getElementById("ev-title").value = w.title;
+  document.getElementById("ev-icon").value = (WISH_CATS[w.cat] || WISH_CATS.other)[0];
+  pendingWishId = w.id;
+  showToast("Agrega las fotos y guarda para pasarlo a Recuerdos", 4000);
+}
+new MutationObserver(() => {
+  if (!document.getElementById("event-overlay").classList.contains("active")) pendingWishId = null;
+}).observe(document.getElementById("event-overlay"), { attributes: true, attributeFilter: ["class"] });
+
+async function removeWish(w) {
+  if (await appConfirm("¿Quitar «" + w.title + "» de la lista?", { confirmText: "Quitar", danger: true })) socialWrite(deleteDoc(doc(db, "events", w.id)));
+}
+function wishRow(w) {
+  const c = WISH_CATS[w.cat] || WISH_CATS.other;
+  const ev = w.eventId ? eventsMap.get(w.eventId) : null;
+  const row = document.createElement("div");
+  row.className = "wish-item " + (w.authorUID === currentUID ? "by-me" : "by-other") + (w.done ? " done" : "");
+  row.innerHTML = '<div class="wi-emoji">' + c[0] + '</div><div class="wi-text"><div class="wi-title">' + escapeHTML(w.title) + '</div><div class="wi-sub">' +
+    escapeHTML(c[1] + " · " + nameOf(w.authorUID) + (w.done && w.doneAt ? " · hecho el " + fmtDate(new Date(w.doneAt), { day: "numeric", month: "short", year: "numeric" }) : "")) + '</div></div><div class="wi-actions"></div>';
+  const acts = row.querySelector(".wi-actions");
+  const btn = (label, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn-small " + cls; b.textContent = label; b.addEventListener("click", fn); acts.appendChild(b); };
+  if (!w.done) btn("✓ Hecho", "wi-done", () => completeWish(w));
+  else {
+    if (ev) btn("Ver recuerdo", "", () => openDay(ev.date, keyDate(ev.date)));
+    btn("Deshacer", "", () => socialWrite(updateDoc(doc(db, "events", w.id), { done: false, doneAt: null, eventId: null })));
+  }
+  btn("✕", "", () => removeWish(w));
+  return row;
+}
+function renderWish() {
+  if (!currentUID || !document.getElementById("wish-view").classList.contains("active")) return;
+  const list = document.getElementById("wish-list"), all = wishes();
+  list.innerHTML = "";
+  if (!all.length) { list.innerHTML = '<div class="feed-empty">Su lista está vacía<br><span>Agreguen lo que quieran hacer juntos</span></div>'; return; }
+  const sect = (t, arr) => {
+    if (!arr.length) return;
+    const h = document.createElement("h3");
+    h.className = "feed-group"; h.style.margin = "18px 2px 10px"; h.textContent = t + " (" + arr.length + ")";
+    list.appendChild(h);
+    arr.forEach((w) => list.appendChild(wishRow(w)));
+  };
+  sect("Pendientes", all.filter((w) => !w.done).sort((a, b) => (b.ts || 0) - (a.ts || 0)));
+  sect("Hechos", all.filter((w) => w.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)));
+}
+
 // ===== NAVEGACIÓN CON EL BOTÓN "ATRÁS" =====
 // Cada pantalla superpuesta (día, evento, ajustes, visor de fotos) y la vista "Recuerdos"
 // cuenta como un nivel. Al abrirse se agrega una entrada al historial; "Atrás" (botón del
 // teléfono o gesto) cierra el nivel superior en vez de salirse de la app.
 const NAV_LAYERS = {
   "feed-view":        () => document.querySelector('.nav-item[data-view="month-view"]').click(),
+  "home-view":        () => document.querySelector('.nav-item[data-view="month-view"]').click(),
+  "wish-view":        () => document.querySelector('.nav-item[data-view="month-view"]').click(),
   "day-overlay":      () => document.getElementById("close-day-btn").click(),
   "reminders-overlay": () => document.getElementById("close-reminders-btn").click(),
   "type-create-sheet": () => closeSheet("type-create-sheet"),
