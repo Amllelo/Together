@@ -26,7 +26,7 @@
   --surface-3: #21262D;
   --text: #F0F6FC;
   --text-dim: #8B949E;
-  --text-muted: #6E7681;
+  --text-muted: #959DA8;
   --border: #30363D;
   --accent-me: #3FB950;
   --accent-other: #F85149;
@@ -95,7 +95,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   margin: 0 0 12px 0;
   letter-spacing: -1px;
-  background: linear-gradient(135deg, #3FB950 0%, #58A6FF 100%);
+  background: linear-gradient(135deg, var(--accent-me) 0%, var(--accent-other) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1100,7 +1100,7 @@ header.topbar {
 @keyframes calSlideL { from { opacity: 0.2; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
 @keyframes shimmer { from { background-position: -200px 0; } to { background-position: 200px 0; } }
 .modal-overlay.active .modal-content { animation: sheetUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-#lightbox.active img, #lightbox.active video { animation: zoomIn 0.22s ease-out both; }
+#lightbox.active img, #lightbox.active video { animation: zoomIn 0.22s ease-out; }
 #calendar.slide-from-right { animation: calSlideR 0.28s ease-out both; }
 #calendar.slide-from-left  { animation: calSlideL 0.28s ease-out both; }
 @media (prefers-reduced-motion: reduce) {
@@ -1507,6 +1507,11 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 #lbv-big svg { width: 30px; height: 30px; margin-left: 4px; }
 #lightbox.is-video .lbv-bar { display: flex; }
 #lightbox.is-video.is-paused #lbv-big { display: flex; }
+
+/* ===== AGRUPACIÓN, FOTO DE PERFIL ===== */
+.feed-group { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 600; color: var(--text-dim); text-transform: capitalize; margin: 10px 2px -4px; }
+.avatar { background-size: cover; background-position: center; cursor: pointer; }
+.avatar.has-photo { color: transparent; }
 </style>
 
 </head>
@@ -1537,7 +1542,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 <div id="app">
   <header class="topbar">
     <div class="user-info">
-      <div class="avatar" id="avatar-display">?</div>
+      <div class="avatar" id="avatar-display" title="Cambiar foto de perfil">?</div>
       <div class="user-details">
         <div class="user-name" id="user-name">Cargando...</div>
         <div class="sync-status">Sincronizado</div>
@@ -1589,6 +1594,10 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
   <!-- FEED VIEW -->
   <div id="feed-view" class="view">
     <h2 style="margin-bottom:24px; margin-top:0;">Recuerdos</h2>
+    <div id="feed-group-toggle" class="seg" style="grid-template-columns:1fr 1fr; max-width:220px; margin:0 0 20px;">
+      <button type="button" data-g="month">Por mes</button>
+      <button type="button" data-g="year">Por año</button>
+    </div>
     <div id="feed-list"></div>
   </div>
 
@@ -1686,6 +1695,8 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
             <input type="text" id="user-display-name" placeholder="Tu nombre personalizado" style="width:100%; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-family:inherit; font-size:0.95rem;">
             <button id="save-name-btn" style="margin-top:8px; padding:8px 14px; border-radius:var(--radius-sm); border:none; background:var(--accent-me); color:var(--bg); font-weight:600; cursor:pointer; font-size:0.9rem; width:100%;">Guardar nombre</button>
             <p style="font-size:0.8rem; color:var(--text-muted); margin-top:8px; margin-bottom:0;">Tu pareja verá este nombre en el calendario</p>
+            <button id="profile-photo-btn" style="margin-top:8px; padding:8px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-weight:600; cursor:pointer; font-size:0.9rem; width:100%;">Cambiar foto de perfil</button>
+            <input type="file" id="profile-photo-input" accept="image/*" hidden>
           </div>
         </div>
 
@@ -1833,6 +1844,22 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
     </div>
   </div>
 
+  <!-- HOJA: CÓMO COMPARTIR -->
+  <div id="share-mode-sheet" class="sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="share-mode-title">
+    <div class="sheet">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head">
+        <h3 id="share-mode-title">¿Cómo compartir?</h3>
+        <button type="button" class="sheet-x" id="share-mode-x" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      </div>
+      <div class="opt-list">
+        <button type="button" class="opt" data-mode="share"><span class="oe">📤</span><span class="ot"><div class="on">Compartir imagen</div><div class="os">Tarjeta o video, por cualquier app</div></span></button>
+        <button type="button" class="opt" data-mode="save"><span class="oe">💾</span><span class="ot"><div class="on">Guardar en el teléfono</div><div class="os">Descarga la tarjeta o el video</div></span></button>
+        <button type="button" class="opt" data-mode="link"><span class="oe">🔗</span><span class="ot"><div class="on">Compartir como texto y enlace</div><div class="os">Título, fecha y notas, con enlace a la app</div></span></button>
+      </div>
+    </div>
+  </div>
+
   <!-- HOJA: FOTOS PARA COMPARTIR -->
   <div id="photo-sheet" class="sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="photo-sheet-title">
     <div class="sheet">
@@ -1932,7 +1959,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.15.0";
+window.APP_VERSION = "2.16.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -3467,7 +3494,7 @@ function listenUsers() {
     });
 
     updateUserLabels();
-    const usig = JSON.stringify(Object.entries(usersData).map(([k,v])=>[k, v && v.displayName, v && v.accentColor, JSON.stringify((v && v.eventTypes) || [])]));
+    const usig = JSON.stringify(Object.entries(usersData).map(([k,v])=>[k, v && v.displayName, v && v.accentColor, JSON.stringify((v && v.eventTypes) || []), v && v.photo ? hashStr(v.photo) : ""]));
     if(usig !== lastUsersSig){ lastUsersSig = usig; scheduleRender(); }
     scheduleAutoReminders();
   }, (err)=> console.error("Error en listener de usuarios:", err));
@@ -3487,7 +3514,8 @@ function listenUsers() {
         if(!oldData ||
            oldData.accentColor !== newData.accentColor ||
            oldData.displayName !== newData.displayName ||
-           JSON.stringify(oldData.eventTypes || []) !== JSON.stringify(newData.eventTypes || [])) {
+           JSON.stringify(oldData.eventTypes || []) !== JSON.stringify(newData.eventTypes || []) ||
+           oldData.photo !== newData.photo) {
           needsUpdate = true;
           usersData[d.id] = newData;
         }
@@ -3505,6 +3533,7 @@ function listenUsers() {
 }
 
 function updateUserLabels() {
+  paintAvatar();
   try {
     const myName = usersData[currentUID]?.displayName || "Vos";
     const otherUID = Object.keys(usersData).find(uid => uid !== currentUID);
@@ -3551,6 +3580,52 @@ function updateUserLabels() {
     console.error("Error en updateUserLabels:", err);
   }
 }
+
+// ===== FOTO DE PERFIL =====
+function paintAvatar(){
+  const el = document.getElementById("avatar-display");
+  if (!el || !currentUID) return;
+  const photo = usersData[currentUID] && usersData[currentUID].photo;
+  el.classList.toggle("has-photo", !!photo);
+  el.style.backgroundImage = photo ? 'url("' + photo + '")' : "";
+  el.textContent = photo ? "" : ((currentUser && currentUser.email ? currentUser.email[0] : "?") || "?").toUpperCase();
+}
+
+async function makeAvatarDataURL(file){
+  if (isHeic(file)) file = await heicToJpeg(file);
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const S = 256, sw = Math.min(img.naturalWidth, img.naturalHeight);
+    const c = document.createElement("canvas");
+    c.width = S; c.height = S;
+    c.getContext("2d").drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sw) / 2, sw, sw, 0, 0, S, S);
+    return c.toDataURL("image/jpeg", 0.85);
+  } finally { URL.revokeObjectURL(url); }
+}
+
+async function pickProfilePhoto(file){
+  if (!currentUID || !file) return;
+  if (!file.type.startsWith("image/") && !isHeic(file)) { await appAlert("Elige una imagen."); return; }
+  if (!navigator.onLine) { await appAlert("Sin conexión: la foto de perfil necesita Internet para guardarse."); return; }
+  try {
+    showToast("Guardando foto…", 2500);
+    const photo = await makeAvatarDataURL(file);
+    const r = await commitWrite(setDoc(doc(db, "users", currentUID), { photo, updatedAt: serverTimestamp() }, { merge: true }));
+    usersData[currentUID] = { ...(usersData[currentUID] || {}), photo };
+    paintAvatar();
+    showToast(r === "queued" ? "Foto guardada. Se sincronizará cuando haya conexión." : "Foto de perfil actualizada");
+  } catch (err) {
+    console.error("Error con la foto de perfil:", err);
+    await appAlert("No se pudo cambiar la foto de perfil." + (err && err.message ? "\n\nDetalle: " + String(err.message).slice(0, 140) : ""), { type: "error" });
+  }
+}
+
+document.getElementById("avatar-display").addEventListener("click", () => { if (currentUID) document.getElementById("profile-photo-input").click(); });
+document.getElementById("profile-photo-btn").addEventListener("click", () => document.getElementById("profile-photo-input").click());
+document.getElementById("profile-photo-input").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; pickProfilePhoto(f); });
 
 function authErrorMessage(err) {
   const code = (err && err.code) || "";
@@ -3905,7 +3980,7 @@ function renderCalendar(){
     });
     cell.appendChild(dots);
     
-    if(key) cell.addEventListener("click", ()=> openDay(key, cellDate));
+    if(key) cell.addEventListener("click", ()=> eventsOnDay(key).length ? openDay(key, cellDate) : openNewEventFor(key));
     daysGrid.appendChild(cell);
   }
   grid.appendChild(daysGrid);
@@ -3953,29 +4028,21 @@ function openDay(key, dateObj){
     dateObj.toLocaleDateString("es-419", { weekday:"long", day:"numeric", month:"long" });
   renderDayModal(key);
   document.getElementById("day-overlay").classList.add("active");
-  
-  // Agregar listener al botón de nuevo evento
-  const newEventBtn = document.getElementById("new-event-in-day-btn");
-  if(newEventBtn) {
-    newEventBtn.onclick = ()=>{
-      // selectedDay ya está establecido
-      editingEventId = null;
-      pendingImages = [];
-      
-      document.getElementById("event-modal-title").textContent = "Nuevo evento";
-      document.getElementById("ev-title").value = "";
-      document.getElementById("ev-time").value = "";
-      document.getElementById("ev-notes").value = "";
-      refreshTypeSelect("event");
-      document.getElementById("ev-icon").value = "";
-      document.getElementById("thumbs").innerHTML = "";
-      
-      // El modal del día queda debajo: al cerrar/volver se regresa a él
-      document.getElementById("event-overlay").classList.add("active");
-      
-      console.log("✅ Crear nuevo evento para:", selectedDay);
-    };
-  }
+  document.getElementById("new-event-in-day-btn").onclick = ()=> openNewEventFor(selectedDay);
+}
+
+function openNewEventFor(key){
+  selectedDay = key;
+  editingEventId = null;
+  pendingImages = [];
+  document.getElementById("event-modal-title").textContent = "Nuevo evento";
+  document.getElementById("ev-title").value = "";
+  document.getElementById("ev-time").value = "";
+  document.getElementById("ev-notes").value = "";
+  refreshTypeSelect("event");
+  document.getElementById("ev-icon").value = "";
+  document.getElementById("thumbs").innerHTML = "";
+  document.getElementById("event-overlay").classList.add("active");
 }
 
 document.getElementById("close-day-btn").addEventListener("click", ()=>{
@@ -4206,7 +4273,13 @@ function appendFeedItems(count){
   const hasObserver = "IntersectionObserver" in window;
   const end = hasObserver ? Math.min(feedShown + count, feedItems.length) : feedItems.length;
   const frag = document.createDocumentFragment();
-  for(; feedShown < end; feedShown++) frag.appendChild(buildEventCard(feedItems[feedShown], true));
+  let lastKey = feedShown > 0 ? feedGroupKey(feedItems[feedShown - 1]) : null;
+  for(; feedShown < end; feedShown++){
+    const ev = feedItems[feedShown];
+    const k = feedGroupKey(ev);
+    if(k !== lastKey){ frag.appendChild(feedGroupHeader(ev)); lastKey = k; }
+    frag.appendChild(buildEventCard(ev, true));
+  }
   list.appendChild(frag);
   if(feedSeenObserver) list.querySelectorAll(".feed-card.is-new:not([data-observed])").forEach(el=>{ el.dataset.observed = "1"; feedSeenObserver.observe(el); });
   
@@ -4224,6 +4297,27 @@ function appendFeedItems(count){
     feedObserver.observe(sentinel);
   }
 }
+
+// Agrupación de Recuerdos por mes o año
+let feedGroupBy = LS.get("feedGroupBy") === "year" ? "year" : "month";
+const feedGroupKey = (ev) => feedGroupBy === "year" ? ev.date.slice(0, 4) : ev.date.slice(0, 7);
+function feedGroupHeader(ev){
+  const [y, m] = ev.date.split("-").map(Number);
+  const h = document.createElement("h3");
+  h.className = "feed-group";
+  h.textContent = feedGroupBy === "year" ? String(y) : new Date(y, m - 1, 1).toLocaleDateString("es-419", { month: "long", year: "numeric" });
+  return h;
+}
+function paintFeedToggle(){
+  document.querySelectorAll("#feed-group-toggle button").forEach(b => b.classList.toggle("sel", b.dataset.g === feedGroupBy));
+}
+document.querySelectorAll("#feed-group-toggle button").forEach(b => b.addEventListener("click", () => {
+  feedGroupBy = b.dataset.g;
+  LS.set("feedGroupBy", feedGroupBy);
+  paintFeedToggle();
+  renderFeed();
+}));
+paintFeedToggle();
 
 function escapeHTML(str){
   const d = document.createElement("div");
@@ -4271,6 +4365,7 @@ async function showLbItem(){
   const media = lbList[lbIndex];
   lbSetDots();
   const token = ++lightboxToken;
+  if (window.lbResetZoom) window.lbResetZoom();
   const lb = document.getElementById("lightbox");
   const lightboxImg = document.getElementById("lightbox-img");
   const lightboxVideo = document.getElementById("lightbox-video");
@@ -4321,6 +4416,7 @@ document.getElementById("lightbox").addEventListener("click", (e)=>{
   if(lbSwiped) return;
   const v = document.getElementById("lightbox-video");
   if(e.target.closest && e.target.closest("#lb-vctrl, #lbv-big, #lb-share, #lb-dots")) return;
+  if(e.target.id === "lightbox-img") return;   // tocar la foto no cierra; el fondo sí
   if(e.target === v) { if(v.getAttribute("src")) { if(v.paused) v.play().catch(()=>{}); else v.pause(); } return; }
   lightboxToken++;
   v.pause();
@@ -4332,28 +4428,96 @@ document.getElementById("lightbox").addEventListener("click", (e)=>{
   lbList = [];
 });
 
-// Deslizar izquierda/derecha para cambiar de foto (y flechas del teclado)
-(function(){
+// Gestos del visor: deslizar para cambiar de foto, pellizco y arrastre para ampliar,
+// doble toque para ampliar/reducir. Las flechas del teclado también cambian de foto.
+(function lbGestures(){
   const lb = document.getElementById("lightbox");
-  let sx = 0, sy = 0, on = false;
-  lb.addEventListener("touchstart", (e)=>{
-    if(e.touches.length !== 1 || (e.target.closest && e.target.closest("#lb-vctrl, #lbv-big"))){ on = false; return; }
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY; on = true;
+  const img = document.getElementById("lightbox-img");
+  const Z = { s: 1, x: 0, y: 0 };
+  const MAX = 4;
+  let on = false, sx = 0, sy = 0, pinch = null, pan = null, pinchUsed = false, moved = false;
+  let tapT = 0, tapX = 0, tapY = 0, lastTap = { t: 0, x: 0, y: 0 };
+  const isImg = () => img.style.display !== "none";
+  const dist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+  function clampPan(){
+    const mx = img.offsetWidth * (Z.s - 1) / 2, my = img.offsetHeight * (Z.s - 1) / 2;
+    Z.x = Math.max(-mx, Math.min(mx, Z.x));
+    Z.y = Math.max(-my, Math.min(my, Z.y));
+  }
+  function apply(anim){
+    img.style.transition = anim ? "transform .22s ease-out" : "none";
+    img.style.transform = "translate(" + Z.x + "px," + Z.y + "px) scale(" + Z.s + ")";
+  }
+  function reset(anim){ Z.s = 1; Z.x = 0; Z.y = 0; apply(anim); }
+  function toggleZoom(x, y){
+    if (Z.s > 1) { reset(true); return; }
+    const r = img.getBoundingClientRect(), k = 2.5;
+    Z.s = k;
+    Z.x = -(x - (r.left + r.width / 2)) * (k - 1);
+    Z.y = -(y - (r.top + r.height / 2)) * (k - 1);
+    clampPan(); apply(true);
+  }
+  window.lbResetZoom = () => reset(false);
+  img.addEventListener("dblclick", (e) => toggleZoom(e.clientX, e.clientY));
+
+  lb.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+      on = false; pan = null;
+      if (isImg()) { pinch = { d: dist(e.touches[0], e.touches[1]), s: Z.s }; pinchUsed = true; }
+      return;
+    }
+    if (e.touches.length !== 1) { on = false; return; }
+    const t = e.touches[0];
+    pinchUsed = false; moved = false; tapT = Date.now(); tapX = sx = t.clientX; tapY = sy = t.clientY;
+    on = Z.s <= 1 && !(e.target.closest && e.target.closest("#lb-vctrl, #lbv-big"));
+    pan = Z.s > 1 ? { x: t.clientX, y: t.clientY, ox: Z.x, oy: Z.y } : null;
   }, { passive: true });
-  lb.addEventListener("touchend", (e)=>{
-    if(!on) return;
-    on = false;
-    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-    if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5){
-      // El "click" que sigue a un deslizamiento no debe cerrar el visor (la bandera caduca sola)
-      lbSwiped = true; setTimeout(()=>{ lbSwiped = false; }, 350);
-      lbStep(dx < 0 ? 1 : -1);
+
+  lb.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2 && pinch) {
+      e.preventDefault();
+      Z.s = Math.min(MAX, Math.max(1, pinch.s * dist(e.touches[0], e.touches[1]) / pinch.d));
+      clampPan(); apply(false);
+    } else if (e.touches.length === 1) {
+      const t = e.touches[0];
+      if (Math.hypot(t.clientX - tapX, t.clientY - tapY) > 8) moved = true;
+      if (pan) {
+        e.preventDefault();
+        Z.x = pan.ox + (t.clientX - pan.x); Z.y = pan.oy + (t.clientY - pan.y);
+        clampPan(); apply(false);
+      }
+    }
+  }, { passive: false });
+
+  lb.addEventListener("touchend", (e) => {
+    if (e.touches.length < 2 && pinch) {
+      pinch = null;
+      if (Z.s < 1.05) reset(true); else { clampPan(); apply(true); }
+    }
+    if (e.touches.length === 0) {
+      pan = null;
+      if (!pinchUsed && !moved && Date.now() - tapT < 300) {
+        const t = e.changedTouches[0], now = Date.now();
+        if (now - lastTap.t < 320 && Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y) < 40 && isImg()) {
+          lastTap.t = 0;
+          toggleZoom(t.clientX, t.clientY);
+        } else lastTap = { t: now, x: t.clientX, y: t.clientY };
+      }
+      if (on && !pinchUsed) {
+        on = false;
+        const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          lbSwiped = true; setTimeout(() => { lbSwiped = false; }, 350);
+          lbStep(dx < 0 ? 1 : -1);
+        }
+      }
     }
   }, { passive: true });
-  document.addEventListener("keydown", (e)=>{
-    if(!lb.classList.contains("active")) return;
-    if(e.key === "ArrowRight") lbStep(1);
-    if(e.key === "ArrowLeft") lbStep(-1);
+
+  document.addEventListener("keydown", (e) => {
+    if (!lb.classList.contains("active")) return;
+    if (e.key === "ArrowRight") lbStep(1);
+    if (e.key === "ArrowLeft") lbStep(-1);
   });
 })();
 
@@ -4741,7 +4905,8 @@ async function makeCardBlob(ev, pick) {
   return new Promise((resolve, reject) => c.toBlob((b) => b ? resolve(b) : reject(new Error("sin imagen")), "image/jpeg", 0.92));
 }
 
-async function shareCards(ev, medias) {
+async function shareCards(ev, medias, mode = "share") {
+  if (mode === "link") return shareAsLink(ev);
   const many = medias.length > 1;
   const files = [];
   try {
@@ -4765,6 +4930,7 @@ async function shareCards(ev, medias) {
     await appAlert("No se pudo preparar el archivo.\n\nDetalle: " + ((err && (err.name || "error")) || "error") + (msg ? " — " + msg : ""), { type: "error" });
     return;
   }
+  if (mode === "save") { await downloadFiles(files); return; }
   try {
     if (navigator.canShare && navigator.canShare({ files })) {
       await navigator.share({ files, title: ev.title });
@@ -4774,6 +4940,10 @@ async function shareCards(ev, medias) {
     if (err && err.name === "AbortError") return;
     console.warn("Compartir no disponible, se descargan los archivos:", err);
   }
+  await downloadFiles(files);
+}
+
+async function downloadFiles(files) {
   for (const f of files) {
     const url = URL.createObjectURL(f);
     const a = document.createElement("a");
@@ -4783,6 +4953,29 @@ async function shareCards(ev, medias) {
   }
   showToast(files.length > 1 ? "Archivos descargados" : "Descargado");
 }
+
+async function shareAsLink(ev) {
+  const dt = new Date(ev.date + "T00:00:00").toLocaleDateString("es-419", { day: "numeric", month: "long", year: "numeric" });
+  const text = typeIcon(ev) + ev.title + " · " + dt + (ev.time ? " · " + ev.time : "") + (ev.notes ? "\n" + ev.notes : "");
+  try {
+    if (!navigator.share) throw new Error("sin share");
+    await navigator.share({ title: ev.title, text, url: location.origin });
+  } catch (err) {
+    if (err && err.name === "AbortError") return;
+    try { await navigator.clipboard.writeText(text + "\n" + location.origin); showToast("Texto y enlace copiados"); }
+    catch (e) { await appAlert(text + "\n" + location.origin, { type: "info" }); }
+  }
+}
+
+let shareModeCb = null;
+function askShareMode(cb){ shareModeCb = cb; openSheet("share-mode-sheet"); }
+document.querySelectorAll("#share-mode-sheet .opt").forEach((b) => b.addEventListener("click", () => {
+  const cb = shareModeCb; shareModeCb = null;
+  closeSheet("share-mode-sheet");
+  if (cb) cb(b.dataset.mode);
+}));
+document.getElementById("share-mode-x").addEventListener("click", () => { shareModeCb = null; closeSheet("share-mode-sheet"); });
+document.getElementById("share-mode-sheet").addEventListener("click", (e) => { if (e.target.id === "share-mode-sheet") { shareModeCb = null; closeSheet("share-mode-sheet"); } });
 
 function openPhotoPicker(ev, items) {
   const grid = document.getElementById("photo-grid");
@@ -4823,17 +5016,16 @@ function openPhotoPicker(ev, items) {
   btnSel.onclick = () => {
     const list = [...sel].sort((x, y) => x - y).map((i) => items[i]);
     closeSheet("photo-sheet");
-    shareCards(ev, list);
+    askShareMode((m) => shareCards(ev, list, m));
   };
-  btnAll.onclick = () => { closeSheet("photo-sheet"); shareCards(ev, items); };
+  btnAll.onclick = () => { closeSheet("photo-sheet"); askShareMode((m) => shareCards(ev, items, m)); };
   openSheet("photo-sheet");
 }
 
 async function shareEventCard(ev) {
   const all = ev.images || [];
   if (all.length > 1) { openPhotoPicker(ev, all); return; }
-  // un solo archivo: foto -> tarjeta, video -> el video; sin archivos -> tarjeta con el color del evento
-  await shareCards(ev, [all[0]]);
+  askShareMode((m) => shareCards(ev, [all[0]], m));
 }
 
 document.getElementById("photo-sheet-x").addEventListener("click", () => closeSheet("photo-sheet"));
@@ -4865,6 +5057,7 @@ const NAV_LAYERS = {
   "type-create-sheet": () => closeSheet("type-create-sheet"),
   "type-sheet": () => closeSheet("type-sheet"),
   "photo-sheet": () => closeSheet("photo-sheet"),
+  "share-mode-sheet": () => closeSheet("share-mode-sheet"),
   "settings-overlay": () => document.getElementById("close-settings-btn").click(),
   "event-overlay":    () => document.getElementById("cancel-event-btn").click(),
   "lightbox":         () => document.getElementById("lightbox").click(),
