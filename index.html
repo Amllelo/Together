@@ -1313,7 +1313,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 .opt.add .oe{background:transparent;color:var(--accent-me);font-size:1.6rem;font-weight:300}
 .opt.add .on{color:var(--accent-me)}
 .opt.multi .ock{border-radius:8px}
-.opt.multi.sel .ock::after{content:"✓";width:auto;height:auto;background:none;color:var(--bg);font-weight:800;font-size:.9rem;border-radius:0}
+.opt.multi.sel .ock::after{content:none}
 .sec-label{font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);margin:20px 2px 10px}
 .emo-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:7px}
 .emo{aspect-ratio:1;border-radius:14px;border:1px solid var(--border);background:var(--surface-2);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:transform .12s}
@@ -1573,6 +1573,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 .emo{color:var(--text-dim)}
 .emo.sel{color:var(--accent-me)}
 .emo svg{width:22px;height:22px}
+.ico{display:inline-block;vertical-align:-3px;flex-shrink:0}
 </style>
 
 </head>
@@ -1719,7 +1720,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
           <button type="button" id="ev-type-trigger" class="type-trigger" aria-haspopup="dialog">
             <span class="te" id="ev-type-emoji"></span>
             <span class="tl" id="ev-type-label">Evento</span>
-            <span class="tc">›</span>
+            <span class="tc" data-ico="chevron"></span>
           </button>
           <div id="ev-type-hint" class="type-hint"></div>
         </div>
@@ -1920,9 +1921,9 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
       <div id="nt-every-wrap">
         <div class="sec-label">Cada</div>
         <div class="stepper">
-          <button type="button" id="nt-minus" aria-label="Menos">−</button>
+          <button type="button" id="nt-minus" aria-label="Menos" data-ico="minus"></button>
           <div><span class="sv" id="nt-every">1</span><span class="su" id="nt-unit-word">año</span></div>
-          <button type="button" id="nt-plus" aria-label="Más">+</button>
+          <button type="button" id="nt-plus" aria-label="Más" data-ico="plus"></button>
         </div>
       </div>
       <div class="preview" id="nt-preview"></div>
@@ -1939,9 +1940,9 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
         <button type="button" class="sheet-x" id="share-mode-x" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
       </div>
       <div class="opt-list">
-        <button type="button" class="opt" data-mode="share"><span class="oe"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span><span class="ot"><div class="on">Compartir imagen</div><div class="os">Tarjeta o video, por cualquier app</div></span></button>
-        <button type="button" class="opt" data-mode="save"><span class="oe"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span><span class="ot"><div class="on">Guardar en el teléfono</div><div class="os">Descarga la tarjeta o el video</div></span></button>
-        <button type="button" class="opt" data-mode="link"><span class="oe"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span><span class="ot"><div class="on">Compartir como texto y enlace</div><div class="os">Título, fecha y notas, con enlace a la app</div></span></button>
+        <button type="button" class="opt" data-mode="share"><span class="oe"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#58A6FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span><span class="ot"><div class="on">Compartir imagen</div><div class="os">Tarjeta o video, por cualquier app</div></span></button>
+        <button type="button" class="opt" data-mode="save"><span class="oe"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3FB950" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span><span class="ot"><div class="on">Guardar en el teléfono</div><div class="os">Descarga la tarjeta o el video</div></span></button>
+        <button type="button" class="opt" data-mode="link"><span class="oe"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D2A8FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span><span class="ot"><div class="on">Compartir como texto y enlace</div><div class="os">Título, fecha y notas, con enlace a la app</div></span></button>
       </div>
     </div>
   </div>
@@ -2054,7 +2055,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.18.0";
+window.APP_VERSION = "2.20.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2251,6 +2252,13 @@ const DEFAULT_ME = "#3FB950";
 const DEFAULT_OTHER = "#F85149";
 
 // ===== ICONOS SVG (sustituyen a los emojis) =====
+const ICON_COLORS = {
+  calendar: "#58A6FF", cake: "#F778BA", heart: "#FF4D6D", repeat: "#39D0C0", pin: "#3FB950", plane: "#79C0FF",
+  film: "#A371F7", utensils: "#FFA657", sparkle: "#E3B341", star: "#FFD33D", gift: "#7EE787", tag: "#8B949E",
+  hourglass: "#D29922", camera: "#2DD4BF", clock: "#6E7BF2", chat: "#56B6C2", music: "#E879F9", coffee: "#C69026",
+  home: "#D4A373", dumbbell: "#FF6B6B", check: "#FFFFFF", x: "#F85149", plus: "#58A6FF", minus: "#8B949E",
+  chevron: "#8B949E", share: "#58A6FF", save: "#3FB950", link: "#D2A8FF"
+};
 const ICON_PATHS = {
   calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>',
   cake: '<path d="M3 21h18"/><path d="M4 21v-8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8"/><path d="M4 16c1.7 1 3.3 1 5 0s3.3-1 5 0 3.3 1 5 0"/><path d="M8 11V8"/><path d="M12 11V8"/><path d="M16 11V8"/>',
@@ -2271,13 +2279,21 @@ const ICON_PATHS = {
   music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
   coffee: '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>',
   home: '<path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
-  dumbbell: '<path d="M6 6v12M18 6v12M3 9v6M21 9v6M6 12h12"/>'
+  dumbbell: '<path d="M6 6v12M18 6v12M3 9v6M21 9v6M6 12h12"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>',
+  x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  minus: '<line x1="5" y1="12" x2="19" y2="12"/>',
+  chevron: '<polyline points="9 18 15 12 9 6"/>',
+  share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>',
+  save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>'
 };
 const PICK_ICONS = ["calendar","cake","heart","sparkle","star","gift","pin","plane","film","utensils","music","coffee","home","dumbbell","camera","tag"];
-const svgIcon = (k, size = 18, cls = "") => '<svg class="ico ' + cls + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON_PATHS[k] || ICON_PATHS.tag) + '</svg>';
+const svgIcon = (k, size = 18, cls = "") => '<svg class="ico ' + cls + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="' + (ICON_COLORS[k] || "#8B949E") + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON_PATHS[k] || ICON_PATHS.tag) + '</svg>';
 function iconImage(k, color, px) {
   return new Promise((res, rej) => {
-    const markup = svgIcon(k, px).replace('stroke="currentColor"', 'stroke="' + color + '"');
+    const markup = svgIcon(k, px);
     const img = new Image();
     img.onload = () => res(img); img.onerror = rej;
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(markup);
@@ -2285,6 +2301,8 @@ function iconImage(k, color, px) {
 }
 const evIconKey = (ev) => (ev && ev.icon && ICON_PATHS[ev.icon]) ? ev.icon : null;
 
+let eventsInflight = 0;
+let eventsPollTimer = null;
 // ===== UTILIDADES =====
 function dateKey(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -2482,7 +2500,7 @@ function refreshTypeSelect(sel) {
   em.style.fontSize = list.length > 1 ? "0.95rem" : "";
   document.getElementById("ev-type-label").textContent = list.map((t) => t.name).join(" + ");
   const reps = list.filter((t) => t.repeat).map((t) => (list.length > 1 ? t.name + ": " : "") + repeatLabel(t.repeat).toLowerCase());
-  document.getElementById("ev-type-hint").textContent = reps.length ? "↻ " + reps.join(" · ") + " — cada repetición se edita por separado" : "";
+  document.getElementById("ev-type-hint").innerHTML = reps.length ? svgIcon("repeat", 14) + " " + escapeHTML(reps.join(" · ")) + " — cada repetición se edita por separado" : "";
 }
 const currentTypes = () => selTypes.slice();
 
@@ -2493,7 +2511,7 @@ function renderTypeSheet() {
   const list = document.getElementById("type-list");
   list.innerHTML = "";
   const btns = [];
-  const paint = () => btns.forEach(([b, t]) => b.classList.toggle("sel", selTypes.includes(t.id)));
+  const paint = () => btns.forEach(([b, t]) => { const on = selTypes.includes(t.id); b.classList.toggle("sel", on); b.querySelector(".ock").innerHTML = on ? svgIcon("check", 14) : ""; });
   allTypes().forEach((t) => {
     const b = document.createElement("button");
     b.type = "button";
@@ -2515,7 +2533,7 @@ function renderTypeSheet() {
   const add = document.createElement("button");
   add.type = "button";
   add.className = "opt add";
-  add.innerHTML = '<span class="oe">＋</span><span class="ot"><div class="on">Crear tipo nuevo</div><div class="os">Nombre, icono y repetición</div></span>';
+  add.innerHTML = '<span class="oe">' + svgIcon("plus", 22) + '</span><span class="ot"><div class="on">Crear tipo nuevo</div><div class="os">Nombre, icono y repetición</div></span>';
   add.addEventListener("click", () => { closeSheet("type-sheet"); openTypeCreate(); });
   list.appendChild(add);
 }
@@ -2544,7 +2562,7 @@ function ntRender() {
   document.getElementById("nt-every-wrap").style.display = nt.unit === "none" ? "none" : "block";
   document.getElementById("nt-every").textContent = String(nt.every);
   document.getElementById("nt-unit-word").textContent = nt.unit === "none" ? "" : UNIT_WORDS[nt.unit][nt.every === 1 ? 0 : 1];
-  document.getElementById("nt-preview").textContent = nt.unit === "none" ? "Solo ocurrirá una vez" : "↻ " + repeatLabel({ unit: nt.unit, every: nt.every });
+  document.getElementById("nt-preview").innerHTML = nt.unit === "none" ? "Solo ocurrirá una vez" : svgIcon("repeat", 14) + " " + escapeHTML(repeatLabel({ unit: nt.unit, every: nt.every }));
 }
 function openTypeCreate() {
   nt.ic = "gift"; nt.unit = "year"; nt.every = 1;
@@ -2991,6 +3009,8 @@ function writeErrorMessage(err) {
 }
 
 async function commitWrite(promise) {
+  eventsInflight++;
+  promise.finally(() => { eventsInflight--; }).catch(() => {});
   let queued = false;
   // Si el servidor rechaza el cambio después de haberlo dado por "guardado", avisar (no dejarlo en silencio)
   promise.catch((err) => { if (queued) appAlert(writeErrorMessage(err), { type: "error" }); });
@@ -3524,6 +3544,8 @@ function stopApp() {
   eventsReady = false;
   remindersShown = false; remNotified = false; clearTimeout(remTimer);
   if (unsubSocial) { unsubSocial(); unsubSocial = null; }
+  clearInterval(socialPollTimer);
+  clearInterval(eventsPollTimer);
   socialMap.clear(); socialReady = false; editingSince = false;
   { const hb = document.getElementById("home-badge"); if (hb) hb.classList.remove("show"); }
   { const bb = document.getElementById("bell-badge"); if (bb) bb.classList.remove("show"); }
@@ -3994,9 +4016,9 @@ document.querySelectorAll(".nav-item[data-view]").forEach(item=>{
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     item.classList.add("active");
     document.getElementById(viewName).classList.add("active");
-    if(viewName === "feed-view") renderFeed();
-    if(viewName === "home-view") renderHome();
-    if(viewName === "wish-view") renderWish();
+    if(viewName === "feed-view") { renderFeed(); pollEvents(); }
+    if(viewName === "home-view") { renderHome(); pollSocial(); }
+    if(viewName === "wish-view") { renderWish(); pollSocial(); }
   });
 });
 
@@ -4123,6 +4145,32 @@ function renderCalendar(){
   grid.appendChild(daysGrid);
 }
 
+function applyEvents(list){
+  const wasReady = eventsReady;
+  eventsReady = true;
+  eventsMap.clear();
+  list.forEach((e) => eventsMap.set(e.id, e));
+  eventsCache = Array.from(eventsMap.values()).sort((a,b)=>
+    String(a.date).localeCompare(String(b.date)) || a.id.localeCompare(b.id));
+  scheduleAutoReminders();
+  let sig = "";
+  for(const e of eventsCache) sig += e.id + "|" + e.date + "|" + (e.title||"") + "|" + (e.time||"") + "|" + (e.type||"") + "|" + (e.types||[]).join("+") + "|" + (e.notes||"") + "|" + (e.lastEditedBy||"") + "|" + (e.countdown?1:0) + "|" + (e.icon||"") + "|" + (e.images||[]).map(m=>(mediaSrc(m)||"").length).join(",") + ";";
+  if(sig === lastEventsSig && wasReady) return;
+  lastEventsSig = sig;
+  scheduleRender();
+}
+
+async function pollEvents(){
+  if(!currentUID || !appStarted || !navigator.onLine || document.hidden || eventsInflight > 0) return;
+  try {
+    const qs = await getDocs(query(collection(db, "events"), orderBy("date")));
+    if(eventsInflight > 0) return;
+    applyEvents(qs.docs.map((d) => ({ id: d.id, ...d.data() })));
+  } catch(err) {
+    console.warn("Sincronización de eventos:", err);
+  }
+}
+
 function listenEvents(){
   try {
     if(unsubEvents) unsubEvents();
@@ -4131,29 +4179,18 @@ function listenEvents(){
     const q = query(collection(db, "events"), orderBy("date"));
 
     unsubEvents = onSnapshot(q, (qs)=>{
-      eventsReady = true;
-      // Solo se procesan los documentos nuevos/modificados/eliminados
-      qs.docChanges().forEach(ch => {
-        if(ch.type === "removed") eventsMap.delete(ch.doc.id);
-        else eventsMap.set(ch.doc.id, { id: ch.doc.id, ...ch.doc.data() });
-      });
-      eventsCache = Array.from(eventsMap.values()).sort((a,b)=>
-        String(a.date).localeCompare(String(b.date)) || a.id.localeCompare(b.id));
-      scheduleAutoReminders();
-      // Si nada visible cambió (p. ej. la confirmación del servidor), no se redibuja
-      let sig = "";
-      for(const e of eventsCache) sig += e.id + "|" + e.date + "|" + (e.title||"") + "|" + (e.time||"") + "|" + (e.type||"") + "|" + (e.types||[]).join("+") + "|" + (e.notes||"") + "|" + (e.lastEditedBy||"") + "|" + (e.countdown?1:0) + "|" + (e.icon||"") + "|" + (e.images||[]).map(m=>(mediaSrc(m)||"").length).join(",") + ";";
-      if(sig === lastEventsSig) return;
-      lastEventsSig = sig;
-      scheduleRender();
+      applyEvents(qs.docs.map((d) => ({ id: d.id, ...d.data() })));
     }, (error)=>{
       console.error("Error en Firestore:", error);
-      eventsReady = true;                                   // sin skeletons eternos
+      eventsReady = true;
       scheduleRender();
       showToast(error && error.code === "permission-denied"
         ? "Firebase no permite leer los eventos (revisa las reglas de Firestore)."
         : "No se pudieron cargar los eventos. Se reintentará solo.", 6000);
     });
+    clearInterval(eventsPollTimer);
+    eventsPollTimer = setInterval(pollEvents, 5000);
+    pollEvents();
   } catch(err) {
     console.error("Error en listenEvents:", err);
   }
@@ -4267,7 +4304,7 @@ function buildVirtualCard(ev){
   const item = document.createElement("div");
   item.className = "event-item " + (ev.authorUID === currentUID ? "by-me" : "by-other");
   item.innerHTML = '<div class="event-body"><h3 class="event-title">' + svgIcon(ts[0].ic || "repeat", 16) + " " + escapeHTML(ts[0].name) + '</h3>' +
-    '<div class="event-time">↻ ' + escapeHTML(rl) + '</div>' +
+    '<div class="event-time">' + svgIcon("repeat", 14) + ' ' + escapeHTML(rl) + '</div>' +
     '<div class="event-notes">Repetición automática. Edítala para ponerle nombre, notas o fotos solo a este día; no cambia las demás.</div>' +
     '<div class="event-footer"><span>Automático</span><div class="event-actions"><button type="button" class="btn-small">Editar esta repetición</button></div></div></div>';
   item.querySelector("button").addEventListener("click", () => openVirtualEdit(ev));
@@ -5211,34 +5248,59 @@ const homeActive = () => document.getElementById("home-view").classList.contains
 const todayDate = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
 const fmtDate = (d, o) => d.toLocaleDateString("es-419", o || { day: "numeric", month: "long", year: "numeric" });
 
+let socialInflight = 0;
+let socialPollTimer = null;
+let lastSocialSig = "";
+const socialDeleted = new Set();
 async function socialWrite(p) {
+  socialInflight++;
   try { await commitWrite(p); }
   catch (err) { console.error(err); await appAlert(writeErrorMessage(err), { type: "error" }); }
+  finally { socialInflight--; }
 }
-
+function socialDelete(id) {
+  socialDeleted.add(id); socialMap.delete(id); scheduleRender();
+  return socialWrite(deleteDoc(doc(db, "events", id))).finally(() => socialDeleted.delete(id));
+}
+function applySocial(list) {
+  const lastRead = Number(LS.get(msgReadKey(currentUID)) || 0);
+  const fresh = [], ids = new Set();
+  list.forEach((d) => {
+    if (socialDeleted.has(d.id)) return;
+    ids.add(d.id);
+    if (!socialMap.has(d.id) && socialReady && d.kind === "msg" && d.authorUID !== currentUID && (d.ts || 0) > lastRead) fresh.push(d);
+    socialMap.set(d.id, d);
+  });
+  [...socialMap.keys()].forEach((id) => { if (!ids.has(id)) socialMap.delete(id); });
+  const first = !socialReady;
+  socialReady = true;
+  if (fresh.length) notifyMsgs(fresh);
+  if (first) { const n = unreadCount(); if (n && !homeActive()) showToast("Tienes " + n + (n === 1 ? " mensaje nuevo" : " mensajes nuevos"), 5000); }
+  updateHomeBadge();
+  const sig = [...socialMap.values()].map((d) => [d.id, d.text || d.title, d.done, d.doneAt || 0, d.eventId || ""].join("|")).join(";");
+  if (sig !== lastSocialSig) { lastSocialSig = sig; scheduleRender(); }
+}
+async function pollSocial() {
+  if (!currentUID || !appStarted || !navigator.onLine || document.hidden || socialInflight > 0) return;
+  try {
+    const qs = await getDocs(query(collection(db, "events"), orderBy("ts")));
+    if (socialInflight > 0) return;
+    applySocial(qs.docs.map((d) => ({ id: d.id, ...d.data() })));
+  } catch (err) { console.warn("Sincronización de mensajes:", err); }
+}
 function listenSocial() {
   if (unsubSocial) unsubSocial();
-  socialMap.clear(); socialReady = false;
+  socialMap.clear(); socialReady = false; lastSocialSig = "";
   if (!LS.get(msgReadKey(currentUID))) LS.set(msgReadKey(currentUID), String(Date.now()));
   unsubSocial = onSnapshot(query(collection(db, "events"), orderBy("ts")), (qs) => {
-    const fresh = [];
-    const lastRead = Number(LS.get(msgReadKey(currentUID)) || 0);
-    qs.docChanges().forEach((ch) => {
-      if (ch.type === "removed") { socialMap.delete(ch.doc.id); return; }
-      const d = { id: ch.doc.id, ...ch.doc.data() };
-      socialMap.set(d.id, d);
-      if (ch.type === "added" && socialReady && d.kind === "msg" && d.authorUID !== currentUID && (d.ts || 0) > lastRead) fresh.push(d);
-    });
-    const first = !socialReady;
-    socialReady = true;
-    if (fresh.length) notifyMsgs(fresh);
-    if (first) { const n = unreadCount(); if (n && !homeActive()) showToast("Tienes " + n + (n === 1 ? " mensaje nuevo" : " mensajes nuevos"), 5000); }
-    updateHomeBadge();
-    scheduleRender();
+    applySocial(qs.docs.map((d) => ({ id: d.id, ...d.data() })));
   }, (err) => {
     console.error("Error en mensajes/deseos:", err);
     showToast(err && err.code === "permission-denied" ? "Firebase no permite leer mensajes y deseos (revisa las reglas de Firestore)." : "No se pudieron cargar mensajes y deseos.", 6000);
   });
+  clearInterval(socialPollTimer);
+  socialPollTimer = setInterval(pollSocial, 4000);
+  pollSocial();
 }
 
 // ----- días juntos -----
@@ -5403,7 +5465,7 @@ function renderMsgs() {
     b.className = "msg " + (mine ? "mine" : "theirs");
     b.innerHTML = '<div>' + escapeHTML(m.text) + '</div><div class="msg-time">' + (mine ? "" : escapeHTML(nameOf(m.authorUID)) + " · ") + fmtMsgTime(m.ts) + '</div>';
     if (mine) b.addEventListener("click", async () => {
-      if (await appConfirm("¿Eliminar este mensaje?", { confirmText: "Eliminar", danger: true })) socialWrite(deleteDoc(doc(db, "events", m.id)));
+      if (await appConfirm("¿Eliminar este mensaje?", { confirmText: "Eliminar", danger: true })) socialDelete(m.id);
     });
     box.appendChild(b);
   });
@@ -5419,7 +5481,7 @@ function paintNotifBtn() {
   if (!("Notification" in window)) { b.hidden = true; return; }
   const p = Notification.permission;
   b.hidden = false;
-  b.textContent = p === "granted" ? "Avisos activados ✓" : p === "denied" ? "Avisos bloqueados" : "Activar avisos";
+  b.textContent = p === "granted" ? "Avisos activados" : p === "denied" ? "Avisos bloqueados" : "Activar avisos";
   b.disabled = p !== "default";
 }
 document.getElementById("notif-btn").addEventListener("click", () => { Notification.requestPermission().then(paintNotifBtn, paintNotifBtn); });
@@ -5438,7 +5500,8 @@ function renderHome() {
   renderDays(); renderCountdowns(); renderMsgs(); paintNotifBtn();
   markMsgsRead();
 }
-document.addEventListener("visibilitychange", () => { if (!document.hidden && appStarted) renderHome(); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden && appStarted) { renderHome(); pollSocial(); pollEvents(); } });
+window.addEventListener("online", () => { if (appStarted) { pollSocial(); pollEvents(); } });
 setInterval(() => { if (appStarted && !document.hidden) renderHome(); }, 60000);
 
 // ----- por hacer juntos -----
@@ -5476,7 +5539,7 @@ new MutationObserver(() => {
 }).observe(document.getElementById("event-overlay"), { attributes: true, attributeFilter: ["class"] });
 
 async function removeWish(w) {
-  if (await appConfirm("¿Quitar «" + w.title + "» de la lista?", { confirmText: "Quitar", danger: true })) socialWrite(deleteDoc(doc(db, "events", w.id)));
+  if (await appConfirm("¿Quitar «" + w.title + "» de la lista?", { confirmText: "Quitar", danger: true })) socialDelete(w.id);
 }
 function wishRow(w) {
   const c = WISH_CATS[w.cat] || WISH_CATS.other;
@@ -5486,13 +5549,13 @@ function wishRow(w) {
   row.innerHTML = '<div class="wi-emoji">' + svgIcon(c[0], 22) + '</div><div class="wi-text"><div class="wi-title">' + escapeHTML(w.title) + '</div><div class="wi-sub">' +
     escapeHTML(c[1] + " · " + nameOf(w.authorUID) + (w.done && w.doneAt ? " · hecho el " + fmtDate(new Date(w.doneAt), { day: "numeric", month: "short", year: "numeric" }) : "")) + '</div></div><div class="wi-actions"></div>';
   const acts = row.querySelector(".wi-actions");
-  const btn = (label, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn-small " + cls; b.textContent = label; b.addEventListener("click", fn); acts.appendChild(b); };
-  if (!w.done) btn("✓ Hecho", "wi-done", () => completeWish(w));
+  const btn = (label, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn-small " + cls; b.innerHTML = label; b.addEventListener("click", fn); acts.appendChild(b); };
+  if (!w.done) btn(svgIcon("check", 14) + " Hecho", "wi-done", () => completeWish(w));
   else {
     if (ev) btn("Ver recuerdo", "", () => openDay(ev.date, keyDate(ev.date)));
     btn("Deshacer", "", () => socialWrite(updateDoc(doc(db, "events", w.id), { done: false, doneAt: null, eventId: null })));
   }
-  btn("✕", "", () => removeWish(w));
+  btn(svgIcon("x", 14), "", () => removeWish(w));
   return row;
 }
 function renderWish() {
