@@ -1574,6 +1574,29 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 .emo.sel{color:var(--accent-me)}
 .emo svg{width:22px;height:22px}
 .ico{display:inline-block;vertical-align:-3px;flex-shrink:0}
+/* ===== PERFIL DE LA PAREJA ===== */
+.partner-chip{display:inline-flex;align-items:center;gap:6px;background:none;border:none;padding:0;margin-top:2px;color:var(--text);font:inherit;font-size:.8rem;cursor:pointer;max-width:100%;min-width:0}
+.partner-chip .pc-av{width:20px;height:20px;border-radius:50%;flex-shrink:0;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:var(--bg)}
+.partner-chip .pc-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim)}
+.pp-head{text-align:center;padding:4px 0 16px}
+.pp-av{width:96px;height:96px;margin:0 auto;border-radius:50%;background-size:cover;background-position:center;box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--accent-other);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:2rem;font-weight:600;color:var(--bg)}
+.pp-name{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:600;margin-top:14px}
+.pp-sub{font-size:.85rem;color:var(--text-muted);margin-top:2px}
+.pp-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.pp-tile{background:var(--surface-2);border-radius:14px;padding:12px 6px;text-align:center}
+.pp-tile .ico{vertical-align:0}
+.pp-num{font-family:'Fraunces',serif;font-size:1.25rem;font-weight:600;margin-top:4px}
+.pp-lbl{font-size:.72rem;color:var(--text-muted);margin-top:2px}
+.pp-card{background:var(--surface-2);border-radius:14px;padding:14px;margin-bottom:12px}
+.pp-label{font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.pp-row{display:flex;align-items:center;gap:12px}
+.pp-grow{flex:1;min-width:0}
+.pp-t{font-weight:600;overflow-wrap:anywhere}
+.pp-sub2{font-size:.82rem;color:var(--text-muted);margin-top:2px}
+.pp-days{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:600;text-align:center;min-width:48px}
+.pp-bubble{display:inline-block;max-width:100%;border-radius:14px 14px 14px 4px;padding:9px 12px;font-size:.95rem;overflow-wrap:anywhere}
+.pp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.feed-filter{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;font-size:.92rem}
 </style>
 
 </head>
@@ -1608,6 +1631,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
       <div class="user-details">
         <div class="user-name" id="user-name">Cargando...</div>
         <div class="sync-status">Sincronizado</div>
+        <button type="button" id="partner-chip" class="partner-chip" hidden></button>
       </div>
     </div>
     <div class="header-actions">
@@ -1660,6 +1684,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
       <button type="button" data-g="month">Por mes</button>
       <button type="button" data-g="year">Por año</button>
     </div>
+    <div id="feed-filter"></div>
     <div id="feed-list"></div>
   </div>
 
@@ -1884,6 +1909,18 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
     </div>
   </div>
 
+  <!-- HOJA: PERFIL DE LA PAREJA -->
+  <div id="partner-sheet" class="sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="partner-title">
+    <div class="sheet">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head">
+        <h3 id="partner-title">Tu pareja</h3>
+        <button type="button" class="sheet-x" id="partner-x" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      </div>
+      <div id="partner-body"></div>
+    </div>
+  </div>
+
   <!-- HOJA: TIPO DE EVENTO -->
   <div id="type-sheet" class="sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="type-sheet-title">
     <div class="sheet">
@@ -2055,7 +2092,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.20.0";
+window.APP_VERSION = "2.21.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -3029,7 +3066,7 @@ function scheduleRender() {
   renderScheduled = true;
   requestAnimationFrame(() => {
     renderScheduled = false;
-    [renderCalendar, renderFeed, renderHome, renderWish, () => { if (selectedDay) renderDayModal(selectedDay); }, updateNewBadge, updateBellBadge]
+    [renderCalendar, renderFeed, renderHome, renderWish, renderPartnerSheet, () => { if (selectedDay) renderDayModal(selectedDay); }, updateNewBadge, updateBellBadge]
       .forEach((fn) => { try { fn(); } catch (err) { console.error("Error al dibujar:", err); } });
   });
 }
@@ -3740,6 +3777,7 @@ function updateUserLabels() {
 
 // ===== FOTO DE PERFIL =====
 function paintAvatar(){
+  paintPartnerChip();
   const el = document.getElementById("avatar-display");
   if (!el || !currentUID) return;
   const photo = usersData[currentUID] && usersData[currentUID].photo;
@@ -4010,8 +4048,9 @@ document.getElementById("clear-btn").addEventListener("click", async ()=>{
 
 // Navigation
 document.querySelectorAll(".nav-item[data-view]").forEach(item=>{
-  item.addEventListener("click", ()=>{
+  item.addEventListener("click", (evt)=>{
     const viewName = item.dataset.view;
+    if(evt.isTrusted) feedAuthor = null;
     document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     item.classList.add("active");
@@ -4428,12 +4467,13 @@ function renderFeed(){
   if(!document.getElementById("feed-view").classList.contains("active")) return;
   const list = document.getElementById("feed-list");
   if(!eventsReady){ list.innerHTML = '<div class="skel-card"></div><div class="skel-card"></div>'; return; }
+  paintFeedFilter();
   if(feedObserver){ feedObserver.disconnect(); feedObserver = null; }
   if(feedSeenObserver) feedSeenObserver.disconnect();
   const keep = Math.max(feedShown, FEED_PAGE);   // al redibujar no se pierde lo ya mostrado
   list.innerHTML = "";
   feedItems = eventsCache
-    .filter(ev => ev.images && ev.images.length)
+    .filter(ev => ev.images && ev.images.length && (!feedAuthor || ev.authorUID === feedAuthor))
     .sort((a,b)=> b.date.localeCompare(a.date));
   feedShown = 0;
   
@@ -5574,6 +5614,105 @@ function renderWish() {
   sect("Hechos", all.filter((w) => w.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)));
 }
 
+// ===== PERFIL DE LA PAREJA =====
+let feedAuthor = null;
+function partnerInfo(){
+  const uid = Object.keys(usersData).find((u) => u !== currentUID);
+  if (!uid) return null;
+  const u = usersData[uid] || {};
+  return { uid, name: u.displayName || "Tu pareja", photo: u.photo || "", color: u.accentColor || LS.get("accentColor_" + uid) || DEFAULT_OTHER };
+}
+function partnerStats(uid){
+  const evs = eventsCache.filter((e) => e.authorUID === uid);
+  return {
+    events: evs.length,
+    photos: evs.reduce((a, e) => a + (e.images ? e.images.length : 0), 0),
+    wishes: wishes().filter((w) => w.authorUID === uid && w.done).length
+  };
+}
+function partnerNext(){
+  const t0 = todayDate();
+  let best = null;
+  eventsCache.forEach((ev) => {
+    if (!ev.countdown || !ev.date) return;
+    const d = nextOccurrence(ev, t0);
+    if (!d) return;
+    const diff = daysBetween(t0, d);
+    if (!best || diff < best.diff) best = { title: ev.title, icon: evIconKey(ev) || primaryType(ev).ic || "calendar", date: d, diff };
+  });
+  return best;
+}
+function paintPartnerChip(){
+  const chip = document.getElementById("partner-chip");
+  if (!chip) return;
+  const p = currentUID ? partnerInfo() : null;
+  chip.hidden = !p;
+  if (!p) return;
+  chip.innerHTML = '<span class="pc-av"></span><span class="pc-name">' + escapeHTML(p.name) + '</span>';
+  const av = chip.querySelector(".pc-av");
+  if (p.photo) av.style.backgroundImage = 'url("' + p.photo + '")';
+  else { av.style.backgroundColor = p.color; av.textContent = p.name.charAt(0).toUpperCase(); }
+}
+function openPartner(){ openSheet("partner-sheet"); renderPartnerSheet(); }
+function paintFeedFilter(){
+  const box = document.getElementById("feed-filter");
+  if (!box) return;
+  if (!feedAuthor) { box.innerHTML = ""; return; }
+  box.innerHTML = '<div class="feed-filter"><span>Recuerdos de ' + escapeHTML(nameOf(feedAuthor)) + '</span><button type="button" class="btn-small" id="feed-filter-x">Ver todos</button></div>';
+  document.getElementById("feed-filter-x").addEventListener("click", () => { feedAuthor = null; renderFeed(); });
+}
+function renderPartnerSheet(){
+  if (!document.getElementById("partner-sheet").classList.contains("active")) return;
+  const body = document.getElementById("partner-body");
+  const p = partnerInfo();
+  if (!p) { body.innerHTML = '<div class="rem-empty">Aún no hay una pareja conectada.</div>'; return; }
+  const sv = getSince();
+  const sub = sv ? "Juntos desde el " + fmtDate(keyDate(sv), { day: "numeric", month: "long", year: "numeric" }) : "Define la fecha de inicio en Juntos";
+  const st = partnerStats(p.uid);
+  const nx = partnerNext();
+  const last = msgs().filter((m) => m.authorUID === p.uid).pop();
+  const recent = eventsCache
+    .filter((e) => e.authorUID === p.uid && e.images && e.images.some(isImageMedia))
+    .sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
+  const tile = (ic, n, label) => '<div class="pp-tile">' + svgIcon(ic, 20) + '<div class="pp-num">' + n + '</div><div class="pp-lbl">' + label + '</div></div>';
+  const nextHtml = nx
+    ? '<div class="pp-row">' + svgIcon(nx.icon, 24) + '<div class="pp-grow"><div class="pp-t">' + escapeHTML(nx.title) + '</div><div class="pp-sub2">' + escapeHTML(fmtDate(nx.date, { weekday: "long", day: "numeric", month: "long" })) + '</div></div><div class="pp-days" style="color:' + (ICON_COLORS[nx.icon] || "#D29922") + '">' + (nx.diff === 0 ? "Hoy" : nx.diff) + '</div></div>'
+    : '<div class="pp-sub2">Marca un evento con cuenta regresiva para verlo aquí.</div>';
+  const lastHtml = last
+    ? '<div class="pp-bubble" style="background:color-mix(in srgb,' + p.color + ' 22%,var(--surface-2))">' + escapeHTML(last.text) + '</div><div class="pp-sub2">' + fmtMsgTime(last.ts) + '</div>'
+    : '<div class="pp-sub2">Aún no te ha escrito.</div>';
+  const recentHtml = recent.length
+    ? '<div class="pp-grid">' + recent.map((e, i) => '<button type="button" class="pg-item" data-i="' + i + '"><img alt="" decoding="async"></button>').join("") + '</div>'
+    : '<div class="pp-sub2">Todavía no hay fotos suyas.</div>';
+  body.innerHTML =
+    '<div class="pp-head"><div class="pp-av" id="pp-av"></div><div class="pp-name">' + escapeHTML(p.name) + '</div><div class="pp-sub">' + escapeHTML(sub) + '</div></div>' +
+    '<div class="pp-stats">' + tile("calendar", st.events, "Eventos") + tile("camera", st.photos, "Fotos y videos") + tile("star", st.wishes, "Deseos hechos") + '</div>' +
+    '<div class="pp-card"><div class="pp-label">Próximo</div>' + nextHtml + '</div>' +
+    '<div class="pp-card"><div class="pp-label">Último mensaje</div>' + lastHtml + '</div>' +
+    '<div class="pp-card"><div class="pp-label">Recuerdos recientes</div>' + recentHtml + '</div>' +
+    '<button type="button" class="cta" id="partner-all">Ver todos sus recuerdos</button>';
+  const av = document.getElementById("pp-av");
+  if (p.photo) av.style.backgroundImage = 'url("' + p.photo + '")';
+  else { av.style.backgroundColor = p.color; av.textContent = p.name.charAt(0).toUpperCase(); }
+  body.querySelectorAll(".pp-grid .pg-item").forEach((btn, i) => {
+    const e = recent[i];
+    const media = e.images.find(isImageMedia);
+    lazyThumb(btn.querySelector("img"), media);
+    btn.addEventListener("click", () => openLightbox(media, e.images, e.images.indexOf(media)));
+  });
+}
+document.getElementById("partner-chip").addEventListener("click", openPartner);
+document.getElementById("partner-x").addEventListener("click", () => closeSheet("partner-sheet"));
+document.getElementById("partner-sheet").addEventListener("click", (e) => { if (e.target.id === "partner-sheet") closeSheet("partner-sheet"); });
+document.getElementById("partner-body").addEventListener("click", (e) => {
+  if (!e.target.closest("#partner-all")) return;
+  const p = partnerInfo();
+  if (!p) return;
+  feedAuthor = p.uid;
+  closeSheet("partner-sheet");
+  document.querySelector('.nav-item[data-view="feed-view"]').click();
+});
+
 // ===== NAVEGACIÓN CON EL BOTÓN "ATRÁS" =====
 // Cada pantalla superpuesta (día, evento, ajustes, visor de fotos) y la vista "Recuerdos"
 // cuenta como un nivel. Al abrirse se agrega una entrada al historial; "Atrás" (botón del
@@ -5587,6 +5726,7 @@ const NAV_LAYERS = {
   "type-create-sheet": () => closeSheet("type-create-sheet"),
   "type-sheet": () => closeSheet("type-sheet"),
   "photo-sheet": () => closeSheet("photo-sheet"),
+  "partner-sheet": () => closeSheet("partner-sheet"),
   "share-mode-sheet": () => closeSheet("share-mode-sheet"),
   "settings-overlay": () => document.getElementById("close-settings-btn").click(),
   "event-overlay":    () => document.getElementById("cancel-event-btn").click(),
