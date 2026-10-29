@@ -1560,6 +1560,19 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 .wi-sub{font-size:.8rem;color:var(--text-muted);margin-top:2px}
 .wi-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .btn-small.wi-done{background:var(--accent-me);color:var(--bg);border-color:transparent}
+
+/* ===== ICONOS SVG ===== */
+.hico{display:inline-flex;vertical-align:-4px;margin-right:6px;color:var(--accent-me)}
+.hico svg{width:18px;height:18px}
+.ico{display:inline-block;vertical-align:-4px;flex-shrink:0}
+.tico{vertical-align:-4px;margin-right:2px;color:var(--accent-me)}
+.fc-time svg,.event-time svg{vertical-align:-2px;margin-right:2px}
+.cd-icon,.rem-icon,.wi-emoji,.type-trigger .te,.opt .oe{color:var(--accent-me)}
+.cd-icon svg,.rem-icon svg,.wi-emoji svg{width:24px;height:24px}
+.opt .oe svg,.type-trigger .te svg{width:22px;height:22px}
+.emo{color:var(--text-dim)}
+.emo.sel{color:var(--accent-me)}
+.emo svg{width:22px;height:22px}
 </style>
 
 </head>
@@ -1655,7 +1668,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
     <div id="home-days"></div>
     <div id="home-countdowns"></div>
     <div class="home-card">
-      <div class="hc-head"><h3>💌 Mensajes</h3><button type="button" id="notif-btn" class="btn-small" hidden>Activar avisos</button></div>
+      <div class="hc-head"><h3><span class="hico" data-ico="chat"></span>Mensajes</h3><button type="button" id="notif-btn" class="btn-small" hidden>Activar avisos</button></div>
       <div class="chip-row" id="msg-chips"></div>
       <div class="msg-compose">
         <input type="text" id="msg-input" class="field" maxlength="240" placeholder="Escribe algo lindo…" autocomplete="off">
@@ -1704,25 +1717,23 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
           <label>Tipos (puedes elegir varios)</label>
           <input type="hidden" id="ev-type" value="event">
           <button type="button" id="ev-type-trigger" class="type-trigger" aria-haspopup="dialog">
-            <span class="te" id="ev-type-emoji">📅</span>
+            <span class="te" id="ev-type-emoji"></span>
             <span class="tl" id="ev-type-label">Evento</span>
             <span class="tc">›</span>
           </button>
           <div id="ev-type-hint" class="type-hint"></div>
         </div>
         <div class="form-group">
-          <label for="ev-icon">Icono de este evento (opcional)</label>
-          <div style="display:flex; align-items:center; gap:12px;">
-            <input type="text" id="ev-icon" class="field" maxlength="16" placeholder="😀" autocomplete="off" style="width:86px; flex-shrink:0; text-align:center; font-size:1.5rem; padding:8px;">
-            <span style="font-size:0.82rem; color:var(--text-muted); line-height:1.4;">Escribe o pega cualquier emoji. Si lo dejas vacío, se usa el del tipo.</span>
-          </div>
+          <label>Icono de este evento (opcional)</label>
+          <input type="hidden" id="ev-icon" value="">
+          <div class="emo-grid" id="ev-icon-grid"></div>
         </div>
         <div class="form-group">
           <label for="ev-time">Hora (opcional)</label>
           <input type="time" id="ev-time">
         </div>
         <div class="form-group">
-          <label class="set-row"><input type="checkbox" id="ev-countdown"><span>⏳ Mostrar cuenta regresiva en «Juntos»</span></label>
+          <label class="set-row"><input type="checkbox" id="ev-countdown"><span><span class="hico" data-ico="hourglass"></span>Mostrar cuenta regresiva en «Juntos»</span></label>
         </div>
         <div class="form-group">
           <label for="ev-notes">Notas (opcional)</label>
@@ -1827,7 +1838,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
         <div class="settings-section" style="border-top:1px solid var(--border); padding-top:16px;">
           <h3 style="font-size:0.95rem; margin-bottom:10px; color:var(--text);">Tipos de evento</h3>
           <div id="types-list"></div>
-          <p style="font-size:0.8rem; color:var(--text-muted); margin:10px 0 0;">Para crear uno nuevo, elige «➕ Nuevo tipo…» al crear o editar un evento.</p>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin:10px 0 0;">Para crear uno nuevo, elige «Crear tipo nuevo» al crear o editar un evento.</p>
         </div>
 
         <div class="settings-section" style="border-top:1px solid var(--border); padding-top:16px;">
@@ -1896,10 +1907,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
       </div>
       <input type="text" id="nt-name" class="field" placeholder="Ej. Salida semanal, Pago de renta" maxlength="30" autocomplete="off">
       <div class="sec-label">Icono</div>
-      <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-        <input type="text" id="nt-emoji" class="field" maxlength="16" placeholder="🎉" autocomplete="off" style="width:96px; flex-shrink:0; text-align:center; font-size:1.8rem; padding:8px;">
-        <span style="font-size:0.82rem; color:var(--text-muted); line-height:1.4;">Escribe o pega cualquier emoji, o elige una sugerencia.</span>
-      </div>
+      
       <div class="emo-grid" id="nt-emojis"></div>
       <div class="sec-label">Se repite</div>
       <div class="seg" id="nt-units">
@@ -1931,9 +1939,9 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
         <button type="button" class="sheet-x" id="share-mode-x" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
       </div>
       <div class="opt-list">
-        <button type="button" class="opt" data-mode="share"><span class="oe">📤</span><span class="ot"><div class="on">Compartir imagen</div><div class="os">Tarjeta o video, por cualquier app</div></span></button>
-        <button type="button" class="opt" data-mode="save"><span class="oe">💾</span><span class="ot"><div class="on">Guardar en el teléfono</div><div class="os">Descarga la tarjeta o el video</div></span></button>
-        <button type="button" class="opt" data-mode="link"><span class="oe">🔗</span><span class="ot"><div class="on">Compartir como texto y enlace</div><div class="os">Título, fecha y notas, con enlace a la app</div></span></button>
+        <button type="button" class="opt" data-mode="share"><span class="oe"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span><span class="ot"><div class="on">Compartir imagen</div><div class="os">Tarjeta o video, por cualquier app</div></span></button>
+        <button type="button" class="opt" data-mode="save"><span class="oe"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span><span class="ot"><div class="on">Guardar en el teléfono</div><div class="os">Descarga la tarjeta o el video</div></span></button>
+        <button type="button" class="opt" data-mode="link"><span class="oe"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span><span class="ot"><div class="on">Compartir como texto y enlace</div><div class="os">Título, fecha y notas, con enlace a la app</div></span></button>
       </div>
     </div>
   </div>
@@ -2046,7 +2054,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.17.0";
+window.APP_VERSION = "2.18.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2158,7 +2166,7 @@ const LS = {
 // ===== SERVICE WORKER CON ACTUALIZACIÓN AUTOMÁTICA =====
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").then((reg) => {
-    console.log("✅ Service Worker registrado");
+    console.log("Service Worker registrado");
     const ensureCache = () => { if (navigator.onLine && reg.active) reg.active.postMessage({ type: "ENSURE_CACHE" }); };
     ensureCache();
     navigator.serviceWorker.ready.then(ensureCache);
@@ -2202,11 +2210,11 @@ const firebaseConfig = {
 
 console.log("🚀 Inicializando Firebase...");
 const app = initializeApp(firebaseConfig);
-console.log("✅ Firebase inicializado");
+console.log("Firebase inicializado");
 
 window.__bootStage = "sesión";
 const auth = getAuth(app);
-console.log("✅ Auth inicializado");
+console.log("Auth inicializado");
 
 // Caché persistente (IndexedDB): los eventos quedan guardados en el dispositivo, se muestran al instante
 // y siguen disponibles sin conexión. Los cambios hechos sin conexión se sincronizan solos al reconectar.
@@ -2217,7 +2225,7 @@ try {
   console.warn("Caché persistente no disponible, usando memoria:", err);
   db = getFirestore(app);
 }
-console.log("✅ Firestore inicializado");
+console.log("Firestore inicializado");
 
 let currentUID = null;
 let currentUser = null;
@@ -2241,6 +2249,41 @@ let appStarted = false;
 
 const DEFAULT_ME = "#3FB950";
 const DEFAULT_OTHER = "#F85149";
+
+// ===== ICONOS SVG (sustituyen a los emojis) =====
+const ICON_PATHS = {
+  calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>',
+  cake: '<path d="M3 21h18"/><path d="M4 21v-8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8"/><path d="M4 16c1.7 1 3.3 1 5 0s3.3-1 5 0 3.3 1 5 0"/><path d="M8 11V8"/><path d="M12 11V8"/><path d="M16 11V8"/>',
+  heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/>',
+  repeat: '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  pin: '<path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+  plane: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  film: '<rect x="2" y="2" width="20" height="20" rx="2.2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/>',
+  utensils: '<path d="M3 2v7c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2V2"/><line x1="5" y1="2" x2="5" y2="22"/><path d="M16 2c-1.7 1.5-2 4-2 7 0 1.7 1 2.5 2 2.5V22"/>',
+  sparkle: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17l.7 1.8 1.8.7-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z"/>',
+  star: '<polygon points="12 2 15.1 8.6 22 9.3 16.9 14.1 18.2 21 12 17.6 5.8 21 7.1 14.1 2 9.3 8.9 8.6 12 2"/>',
+  gift: '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+  tag: '<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+  hourglass: '<path d="M6 2h12"/><path d="M6 22h12"/><path d="M7 2c0 5 5 6 5 10s-5 5-5 10"/><path d="M17 2c0 5-5 6-5 10s5 5 5 10"/>',
+  camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  coffee: '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>',
+  home: '<path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  dumbbell: '<path d="M6 6v12M18 6v12M3 9v6M21 9v6M6 12h12"/>'
+};
+const PICK_ICONS = ["calendar","cake","heart","sparkle","star","gift","pin","plane","film","utensils","music","coffee","home","dumbbell","camera","tag"];
+const svgIcon = (k, size = 18, cls = "") => '<svg class="ico ' + cls + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON_PATHS[k] || ICON_PATHS.tag) + '</svg>';
+function iconImage(k, color, px) {
+  return new Promise((res, rej) => {
+    const markup = svgIcon(k, px).replace('stroke="currentColor"', 'stroke="' + color + '"');
+    const img = new Image();
+    img.onload = () => res(img); img.onerror = rej;
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(markup);
+  });
+}
+const evIconKey = (ev) => (ev && ev.icon && ICON_PATHS[ev.icon]) ? ev.icon : null;
 
 // ===== UTILIDADES =====
 function dateKey(d) {
@@ -2330,15 +2373,25 @@ function firstEmoji(v) {
   try { return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(v)][0].segment; }
   catch (e) { return Array.from(v)[0]; }
 }
-document.getElementById("ev-icon").addEventListener("input", (e) => { e.target.value = firstEmoji(e.target.value); });
+function setEvIcon(k) {
+  document.getElementById("ev-icon").value = k || "";
+  document.querySelectorAll("#ev-icon-grid .emo").forEach((b) => b.classList.toggle("sel", (b.dataset.k || "") === (k || "")));
+}
+["", ...PICK_ICONS].forEach((k) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "emo"; b.dataset.k = k;
+  b.innerHTML = k ? svgIcon(k, 22) : '<span style="font-size:.7rem;font-weight:700">Auto</span>';
+  b.addEventListener("click", () => setEvIcon(k));
+  document.getElementById("ev-icon-grid").appendChild(b);
+});
 
 // ===== TIPOS DE EVENTO =====
 // Cada tipo tiene una repetición: null (una sola vez) o { unit: "day"|"week"|"month"|"year", every: N }.
 // Los tipos personalizados se guardan en el perfil de quien los crea (users/<uid>.eventTypes).
 const BUILTIN_TYPES = [
-  { id: "event", name: "Evento", emoji: "📅", repeat: null },
-  { id: "birthday", name: "Cumpleaños", emoji: "🎂", repeat: { unit: "year", every: 1 } },
-  { id: "anniversary", name: "Aniversario", emoji: "💞", repeat: { unit: "year", every: 1 } }
+  { id: "event", name: "Evento", ic: "calendar", repeat: null },
+  { id: "birthday", name: "Cumpleaños", ic: "cake", repeat: { unit: "year", every: 1 } },
+  { id: "anniversary", name: "Aniversario", ic: "heart", repeat: { unit: "year", every: 1 } }
 ];
 const ownTypes = () => (usersData[currentUID] && usersData[currentUID].eventTypes) || [];
 const normType = (t) => ({ ...t, repeat: t.repeat !== undefined ? t.repeat : (t.yearly ? { unit: "year", every: 1 } : null) });
@@ -2365,7 +2418,7 @@ function repeatLabel(rp) {
   const n = rp.every || 1;
   return n === 1 ? UNIT_EVERY[rp.unit] : "Cada " + n + " " + UNIT_WORDS[rp.unit][1];
 }
-const typeIcon = (ev) => { if (ev.icon) return ev.icon + " "; const e = typesOf(ev).map(typeOf).filter((t) => t.id !== "event" && t.emoji).map((t) => t.emoji).join(""); return e ? e + " " : ""; };
+const typeIcon = (ev) => { const k = evIconKey(ev); if (k) return svgIcon(k, 18, "tico") + " "; const t = typesOf(ev).map(typeOf).find((x) => x.id !== "event" && x.ic); return t ? svgIcon(t.ic, 18, "tico") + " " : ""; };
 
 // ----- fechas: un evento "ocurre" en un día si cae en su fecha o en una repetición -----
 const keyDate = (k) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
@@ -2425,7 +2478,7 @@ function refreshTypeSelect(sel) {
   const list = selTypes.map(typeOf);
   document.getElementById("ev-type").value = selTypes[0];
   const em = document.getElementById("ev-type-emoji");
-  em.textContent = list.map((t) => t.emoji || "📅").slice(0, 3).join("");
+  em.innerHTML = list.slice(0, 3).map((t) => svgIcon(t.ic || "tag", 22)).join("");
   em.style.fontSize = list.length > 1 ? "0.95rem" : "";
   document.getElementById("ev-type-label").textContent = list.map((t) => t.name).join(" + ");
   const reps = list.filter((t) => t.repeat).map((t) => (list.length > 1 ? t.name + ": " : "") + repeatLabel(t.repeat).toLowerCase());
@@ -2446,7 +2499,7 @@ function renderTypeSheet() {
     b.type = "button";
     b.className = "opt multi";
     const who = t.owner && t.owner !== currentUID ? " · de tu pareja" : "";
-    b.innerHTML = '<span class="oe">' + escapeHTML(t.emoji || "📅") + '</span>' +
+    b.innerHTML = '<span class="oe">' + svgIcon(t.ic || "tag", 22) + '</span>' +
       '<span class="ot"><div class="on">' + escapeHTML(t.name) + '</div><div class="os">' + escapeHTML(repeatLabel(t.repeat) + who) + '</div></span>' +
       '<span class="ock"></span>';
     b.addEventListener("click", () => {
@@ -2474,28 +2527,19 @@ document.getElementById("type-sheet").addEventListener("click", (e) => { if (e.t
 document.getElementById("type-create-sheet").addEventListener("click", (e) => { if (e.target.id === "type-create-sheet") closeSheet("type-create-sheet"); });
 
 // ----- crear tipo nuevo -----
-const NT_EMOJIS = ["🎉", "🏠", "✈️", "💪", "🍽️", "🎬", "🐶", "🌙", "💍", "📚", "☕", "🎵", "🛒", "💊", "🎮", "⚽"];
-const nt = { emoji: "🎉", unit: "year", every: 1 };
-NT_EMOJIS.forEach((em) => {
+const nt = { ic: "gift", unit: "year", every: 1 };
+PICK_ICONS.forEach((k) => {
   const b = document.createElement("button");
-  b.type = "button"; b.className = "emo"; b.dataset.e = em; b.textContent = em;
-  b.addEventListener("click", () => { nt.emoji = em; ntRender(); });
+  b.type = "button"; b.className = "emo"; b.dataset.e = k; b.innerHTML = svgIcon(k, 22);
+  b.addEventListener("click", () => { nt.ic = k; ntRender(); });
   document.getElementById("nt-emojis").appendChild(b);
-});
-document.getElementById("nt-emoji").addEventListener("input", (e) => {
-  const f = firstEmoji(e.target.value);
-  e.target.value = f;
-  if (f) nt.emoji = f;
-  document.querySelectorAll("#nt-emojis .emo").forEach((b) => b.classList.toggle("sel", b.dataset.e === nt.emoji));
 });
 document.querySelectorAll("#nt-units button").forEach((b) =>
   b.addEventListener("click", () => { nt.unit = b.dataset.u; ntRender(); }));
 document.getElementById("nt-minus").addEventListener("click", () => { nt.every = Math.max(1, nt.every - 1); ntRender(); });
 document.getElementById("nt-plus").addEventListener("click", () => { nt.every = Math.min(99, nt.every + 1); ntRender(); });
 function ntRender() {
-  document.querySelectorAll("#nt-emojis .emo").forEach((b) => b.classList.toggle("sel", b.dataset.e === nt.emoji));
-  const ni = document.getElementById("nt-emoji");
-  if (document.activeElement !== ni) ni.value = nt.emoji;
+  document.querySelectorAll("#nt-emojis .emo").forEach((b) => b.classList.toggle("sel", b.dataset.e === nt.ic));
   document.querySelectorAll("#nt-units button").forEach((b) => b.classList.toggle("sel", b.dataset.u === nt.unit));
   document.getElementById("nt-every-wrap").style.display = nt.unit === "none" ? "none" : "block";
   document.getElementById("nt-every").textContent = String(nt.every);
@@ -2503,9 +2547,8 @@ function ntRender() {
   document.getElementById("nt-preview").textContent = nt.unit === "none" ? "Solo ocurrirá una vez" : "↻ " + repeatLabel({ unit: nt.unit, every: nt.every });
 }
 function openTypeCreate() {
-  nt.emoji = "🎉"; nt.unit = "year"; nt.every = 1;
+  nt.ic = "gift"; nt.unit = "year"; nt.every = 1;
   document.getElementById("nt-name").value = "";
-  document.getElementById("nt-emoji").value = "🎉";
   ntRender();
   openSheet("type-create-sheet");
 }
@@ -2514,7 +2557,7 @@ document.getElementById("nt-create").addEventListener("click", async () => {
   if (!name) { await appAlert("Escribe un nombre para el tipo."); return; }
   const t = {
     id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
-    name, emoji: nt.emoji || "🏷️",
+    name, ic: nt.ic || "tag",
     repeat: nt.unit === "none" ? null : { unit: nt.unit, every: nt.every }
   };
   const mine = [...ownTypes(), t];
@@ -2538,7 +2581,7 @@ function renderTypesList() {
   custom.forEach((t) => {
     const row = document.createElement("div");
     row.className = "type-row";
-    row.innerHTML = '<span>' + escapeHTML((t.emoji || "") + " " + t.name) +
+    row.innerHTML = '<span>' + svgIcon(t.ic || "tag", 16) + " " + escapeHTML(t.name) +
       ' <span style="color:var(--text-muted); font-size:0.78rem;">· ' + escapeHTML(repeatLabel(t.repeat).toLowerCase()) + '</span></span>';
     if (t.owner === currentUID) {
       const btn = document.createElement("button");
@@ -2710,20 +2753,20 @@ function maybeShowReminders(fromCache, force) {
     const others = sortedTypes(typesOf(ev)).slice(1).filter((x) => x.id !== "event").map((x) => x.name);
     const when = diff === 0 ? "Hoy" : diff === 1 ? "Mañana" : "En " + diff + " días";
     const yrs = years + (years === 1 ? " año" : " años");
-    let icon = "📅", sub = "";
+    let icon = "", sub = "";
     if (kind === "yearly") {
-      icon = ev.icon || t.emoji || "📅";
+      icon = svgIcon(evIconKey(ev) || t.ic || "calendar", 22);
       if (t.id === "birthday") sub = years > 0 ? "Cumple " + yrs : "Cumpleaños";
       else if (t.id === "anniversary") sub = years > 0 ? yrs + " juntos" : "Aniversario";
       else sub = t.name + (years > 0 ? " · " + yrs : "");
       if (others.length) sub += " · también " + others.join(", ");
     }
-    else if (kind === "recurring") { icon = t.emoji || "🔁"; sub = repeatLabel(t.repeat); }
-    else if (kind === "memory") { icon = "📸"; sub = "Hace " + yrs + " en este día"; }
-    else { icon = ev.icon || t.emoji || "📅"; sub = pending ? "Agrega las fotos de hoy" : (ev.time ? "🕐 " + ev.time : t.id === "event" ? "Próximo evento" : t.name); }
+    else if (kind === "recurring") { icon = svgIcon(t.ic || "repeat", 22); sub = repeatLabel(t.repeat); }
+    else if (kind === "memory") { icon = svgIcon("camera", 22); sub = "Hace " + yrs + " en este día"; }
+    else { icon = svgIcon(evIconKey(ev) || t.ic || "calendar", 22); sub = pending ? "Agrega las fotos de hoy" : (ev.time ? ev.time : t.id === "event" ? "Próximo evento" : t.name); }
     const row = document.createElement("div");
     row.className = "rem-item";
-    row.innerHTML = '<div class="rem-icon">' + escapeHTML(icon) + '</div><div class="rem-text"><div class="rem-title">' + escapeHTML(ev.title) + '</div><div class="rem-sub">' + escapeHTML(sub) + '</div></div>' +
+    row.innerHTML = '<div class="rem-icon">' + icon + '</div><div class="rem-text"><div class="rem-title">' + escapeHTML(ev.title) + '</div><div class="rem-sub">' + escapeHTML(sub) + '</div></div>' +
       (kind === "memory" ? "" : '<div class="rem-when">' + when + '</div>');
     row.addEventListener("click", () => {
       document.getElementById("reminders-overlay").classList.remove("active");
@@ -2878,6 +2921,7 @@ function appDialog(message, opts = {}) {
     if (!type) {
       if (opts.cancelText) type = opts.danger ? "danger" : "question";
       else if (/^(Error|No se pudo)/.test(text)) type = "error";
+      else if (/(actualizad|guardad|habilitad|eliminad|enviamos|deshabilitad)/i.test(text)) type = "success";
       else if (/^(Sin conexión|Las fotos|Este dispositivo)/.test(text)) type = "warning";
       else type = "info";
     }
@@ -3748,7 +3792,7 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
   try {
     console.log("🔄 Conectando a Firebase...");
     const result = await signInWithEmailAndPassword(auth, email, password);
-    console.log("✅ Login exitoso:", result.user.email);
+    console.log("Login exitoso:", result.user.email);
     errorDiv.textContent = "";
     clearTimeout(loginWatch);
     loginWatch = setTimeout(() => {
@@ -3773,7 +3817,7 @@ document.getElementById("forgot-link").addEventListener("click", async (e)=>{
   if (!email) { await appAlert("Escribe tu correo en el campo de arriba y vuelve a pulsar «¿Olvidaste tu contraseña?»."); return; }
   try {
     await sendPasswordResetEmail(auth, email);
-    await appAlert("✅ Te enviamos un correo a " + email + " para restablecer tu contraseña. Revisa también la carpeta de spam.");
+    await appAlert("Te enviamos un correo a " + email + " para restablecer tu contraseña. Revisa también la carpeta de spam.");
   } catch (err) {
     console.error("Error enviando correo de recuperación:", err);
     await appAlert(authErrorMessage(err), { type: "error" });
@@ -3836,7 +3880,7 @@ bioToggle.addEventListener("change", async ()=>{
       }
       await registerBiometric();
       LS.set(bioEnabledKey(currentUID), "true");
-      await appAlert("✅ Autenticación biométrica habilitada");
+      await appAlert("Autenticación biométrica habilitada");
     } catch(err) {
       console.error("Error activando biometría:", err);
       bioToggle.checked = false;
@@ -3900,7 +3944,7 @@ document.getElementById("save-name-btn").addEventListener("click", async ()=>{
     usersData[currentUID] = { ...(usersData[currentUID] || {}), displayName };
     document.getElementById("user-name").textContent = displayName;
     updateUserLabels();
-    await appAlert(r === "queued" ? "✅ Nombre guardado. Se sincronizará cuando haya conexión." : "✅ Nombre actualizado");
+    await appAlert(r === "queued" ? "Nombre guardado. Se sincronizará cuando haya conexión." : "Nombre actualizado");
   } catch(err) {
     console.error("Error guardando nombre:", err);
     await appAlert("Error al guardar el nombre");
@@ -3924,7 +3968,7 @@ document.getElementById("export-btn").addEventListener("click", ()=>{
 });
 
 document.getElementById("clear-btn").addEventListener("click", async ()=>{
-  if(await appConfirm("⚠️ Se borrarán TODOS los eventos (" + eventsCache.length + "). No se puede deshacer. Escribe ELIMINAR TODO para confirmar.", { requireWord: "ELIMINAR TODO", confirmText: "Eliminar todo", danger: true })) {
+  if(await appConfirm("Se borrarán TODOS los eventos (" + eventsCache.length + "). No se puede deshacer. Escribe ELIMINAR TODO para confirmar.", { requireWord: "ELIMINAR TODO", confirmText: "Eliminar todo", danger: true })) {
     {
       let failed = 0, lastErr = null;
       for(const ev of eventsCache.slice()) {
@@ -3937,7 +3981,7 @@ document.getElementById("clear-btn").addEventListener("click", async ()=>{
         }
       }
       if(failed) await appAlert("No se pudieron eliminar " + failed + " evento(s). " + writeErrorMessage(lastErr), { type: "error" });
-      else await appAlert("✅ Eventos eliminados");
+      else await appAlert("Eventos eliminados");
     }
   }
 });
@@ -4135,7 +4179,7 @@ function openNewEventFor(key){
   refreshTypeSelect("event");
   document.getElementById("ev-countdown").checked = false;
   pendingWishId = null;
-  document.getElementById("ev-icon").value = "";
+  setEvIcon("");
   document.getElementById("thumbs").innerHTML = "";
   document.getElementById("event-overlay").classList.add("active");
 }
@@ -4166,7 +4210,7 @@ function openEditEvent(ev){
   document.getElementById("ev-notes").value = ev.notes || "";
   refreshTypeSelect(typesOf(ev));
   document.getElementById("ev-countdown").checked = !!ev.countdown;
-  document.getElementById("ev-icon").value = ev.icon || "";
+  setEvIcon(evIconKey(ev) || "");
   document.getElementById("thumbs").innerHTML = "";
   pendingImages.forEach((media, i)=> {
     if(typeof media === "object" && (media.data || isBig(media))) {
@@ -4222,7 +4266,7 @@ function buildVirtualCard(ev){
   const rl = ts.length > 1 ? ts.map((t) => t.name + ": " + repeatLabel(t.repeat).toLowerCase()).join(" · ") : repeatLabel(ts[0].repeat);
   const item = document.createElement("div");
   item.className = "event-item " + (ev.authorUID === currentUID ? "by-me" : "by-other");
-  item.innerHTML = '<div class="event-body"><h3 class="event-title">' + escapeHTML(ts.map((t) => t.emoji).filter(Boolean).join("") + " " + ts[0].name) + '</h3>' +
+  item.innerHTML = '<div class="event-body"><h3 class="event-title">' + svgIcon(ts[0].ic || "repeat", 16) + " " + escapeHTML(ts[0].name) + '</h3>' +
     '<div class="event-time">↻ ' + escapeHTML(rl) + '</div>' +
     '<div class="event-notes">Repetición automática. Edítala para ponerle nombre, notas o fotos solo a este día; no cambia las demás.</div>' +
     '<div class="event-footer"><span>Automático</span><div class="event-actions"><button type="button" class="btn-small">Editar esta repetición</button></div></div></div>';
@@ -4240,7 +4284,7 @@ function openVirtualEdit(ev){
   document.getElementById("ev-notes").value = "";
   refreshTypeSelect(ev.types || ev.type);
   document.getElementById("ev-countdown").checked = false;
-  document.getElementById("ev-icon").value = "";
+  setEvIcon("");
   document.getElementById("thumbs").innerHTML = "";
   document.getElementById("event-overlay").classList.add("active");
 }
@@ -4277,7 +4321,7 @@ function buildEventCard(ev, feedStyle){
   
   if(feedStyle){
     html += '<div class="fc-body">';
-    if(ev.time) html += '<div class="fc-time">🕐 ' + ev.time + '</div>';
+    if(ev.time) html += '<div class="fc-time">' + svgIcon("clock", 14) + ' ' + ev.time + '</div>';
     if(ev.notes) html += '<div class="fc-notes">' + escapeHTML(ev.notes) + '</div>';
     html += '<div class="fc-footer"><span>' + authorLabel + '</span>' +
       '<div class="fc-actions">' +
@@ -4286,7 +4330,7 @@ function buildEventCard(ev, feedStyle){
       '</div></div></div>';
   } else {
     html += '<div class="event-body"><h3 class="event-title">' + typeIcon(ev) + escapeHTML(ev.title) + newBadge + '</h3>' +
-      (ev.time ? '<div class="event-time">🕐 ' + ev.time + '</div>' : '') +
+      (ev.time ? '<div class="event-time">' + svgIcon("clock", 14) + ' ' + ev.time + '</div>' : '') +
       (ev.notes ? '<div class="event-notes">' + escapeHTML(ev.notes) + '</div>' : '') +
       '<div class="event-footer"><span>' + authorLabel + '</span>' +
       '<div class="event-actions">' +
@@ -4813,7 +4857,7 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     return;
   }
 
-  const eventData = { title, notes, time, type: currentTypes()[0], types: currentTypes(), icon: firstEmoji(document.getElementById("ev-icon").value) || null, countdown: document.getElementById("ev-countdown").checked };
+  const eventData = { title, notes, time, type: currentTypes()[0], types: currentTypes(), icon: document.getElementById("ev-icon").value || null, countdown: document.getElementById("ev-countdown").checked };
 
   const saveBtn = document.getElementById("save-event-btn");
   saveBtn.disabled = true;
@@ -4973,7 +5017,7 @@ async function makeCardBlob(ev, pick) {
     gr.addColorStop(0, accent); gr.addColorStop(1, "#161B22");
     g.fillStyle = gr; g.fillRect(px, py, pw, ph);
     g.font = "300px serif"; g.textAlign = "center"; g.fillStyle = "#fff";
-    g.fillText(ev.icon || t.emoji || "📸", centerX, py + ph / 2 + 100);
+    g.drawImage(await iconImage(evIconKey(ev) || t.ic || "camera", "#ffffff", 300), centerX - 150, py + ph / 2 - 150, 300, 300);
   }
 
   // pie de la polaroid (centrado)
@@ -4982,7 +5026,7 @@ async function makeCardBlob(ev, pick) {
   let y = py + ph + 60;
   if (tnames.length) {
     g.font = "600 28px " + sans; g.fillStyle = accent;
-    g.fillText(((t.emoji ? t.emoji + " " : "") + tnames.map((x) => x.name).join(" · ")).toUpperCase(), centerX, y);
+    g.fillText(tnames.map((x) => x.name).join(" · ").toUpperCase(), centerX, y);
     y += 14;
   }
   g.font = "700 56px " + serif; g.fillStyle = "#1A1D23";
@@ -5157,8 +5201,8 @@ const socialMap = new Map();
 let socialReady = false;
 let editingSince = false;
 let wishCat = "place";
-const WISH_CATS = { place: ["📍", "Lugar"], movie: ["🎬", "Película"], trip: ["✈️", "Viaje"], food: ["🍽️", "Comida"], other: ["✨", "Otro"] };
-const MSG_QUICK = ["Pensé en ti 💭", "Te quiero ❤️", "Buenos días ☀️", "Buenas noches 🌙", "Te extraño 🥺", "Gracias 🙏"];
+const WISH_CATS = { place: ["pin", "Lugar"], movie: ["film", "Película"], trip: ["plane", "Viaje"], food: ["utensils", "Comida"], other: ["sparkle", "Otro"] };
+const MSG_QUICK = ["Pensé en ti", "Te quiero", "Buenos días", "Buenas noches", "Te extraño", "Gracias"];
 const msgReadKey = (uid) => "msgRead_" + uid;
 const msgs = () => [...socialMap.values()].filter((d) => d.kind === "msg").sort((a, b) => (a.ts || 0) - (b.ts || 0));
 const wishes = () => [...socialMap.values()].filter((d) => d.kind === "wish");
@@ -5188,7 +5232,7 @@ function listenSocial() {
     const first = !socialReady;
     socialReady = true;
     if (fresh.length) notifyMsgs(fresh);
-    if (first) { const n = unreadCount(); if (n && !homeActive()) showToast("💌 Tienes " + n + (n === 1 ? " mensaje nuevo" : " mensajes nuevos"), 5000); }
+    if (first) { const n = unreadCount(); if (n && !homeActive()) showToast("Tienes " + n + (n === 1 ? " mensaje nuevo" : " mensajes nuevos"), 5000); }
     updateHomeBadge();
     scheduleRender();
   }, (err) => {
@@ -5212,10 +5256,10 @@ async function saveSince(val) {
 }
 function milestonesFor(s) {
   const m = new Map();
-  for (let n = 100; n <= 12000; n += 100) m.set(n, { n, label: n + " días juntos", icon: "🎉" });
+  for (let n = 100; n <= 12000; n += 100) m.set(n, { n, label: n + " días juntos", icon: "sparkle" });
   for (let y = 1; y <= 40; y++) {
     const n = daysBetween(s, new Date(s.getFullYear() + y, s.getMonth(), s.getDate()));
-    m.set(n, { n, label: y === 1 ? "1 año juntos" : y + " años juntos", icon: "💞" });
+    m.set(n, { n, label: y === 1 ? "1 año juntos" : y + " años juntos", icon: "heart" });
   }
   return [...m.values()].sort((a, b) => a.n - b.n);
 }
@@ -5226,7 +5270,7 @@ function renderDays() {
   const sv = getSince();
   if (box.querySelector("#since-input") && (editingSince || !sv)) return;   // no borrar lo que se está escribiendo
   if (!sv || editingSince) {
-    box.innerHTML = '<div class="home-card"><h3>💞 Días juntos</h3><div class="dc-next" style="margin-bottom:12px">¿Desde cuándo están juntos? Los dos verán el contador.</div>' +
+    box.innerHTML = '<div class="home-card"><h3>' + svgIcon("heart", 18) + ' Días juntos</h3><div class="dc-next" style="margin-bottom:12px">¿Desde cuándo están juntos? Los dos verán el contador.</div>' +
       '<input type="date" id="since-input" class="field" value="' + (sv || "") + '" max="' + dateKey(new Date()) + '">' +
       '<button type="button" class="cta" id="since-save">Guardar fecha</button>' +
       (sv ? '<button type="button" class="cta ghost" id="since-cancel">Cancelar</button>' : '') + '</div>';
@@ -5254,7 +5298,7 @@ function renderDays() {
     const nx = ms.find((x) => x.n >= days);
     const pv = [...ms].reverse().find((x) => x.n < days);
     const pn = pv ? pv.n : 0;
-    if (nx.n === days) { next = "🎉 ¡Hoy cumplen " + nx.label + "!"; pct = 100; }
+    if (nx.n === days) { next = "¡Hoy cumplen " + nx.label + "!"; pct = 100; }
     else {
       pct = Math.round((days - pn) / (nx.n - pn) * 100);
       next = "Próximo hito: " + nx.label + " · " + fmtDate(new Date(s.getFullYear(), s.getMonth(), s.getDate() + nx.n)) + " · faltan " + (nx.n - days) + " días";
@@ -5288,7 +5332,7 @@ function renderCountdowns() {
     if (!ev.countdown || !ev.date) return;
     hasFlag = true;
     const d = nextOccurrence(ev, t0);
-    if (d) items.push({ title: ev.title, icon: ev.icon || primaryType(ev).emoji || "📅", date: d, diff: daysBetween(t0, d), key: dateKey(d) });
+    if (d) items.push({ title: ev.title, icon: evIconKey(ev) || primaryType(ev).ic || "calendar", date: d, diff: daysBetween(t0, d), key: dateKey(d) });
   });
   const sv = getSince();
   if (sv) {
@@ -5301,11 +5345,11 @@ function renderCountdowns() {
   items.sort((a, b) => a.diff - b.diff);
   const shown = items.slice(0, 6);
   const rows = shown.map((it, i) =>
-    '<div class="cd-item" data-i="' + i + '"><div class="cd-icon">' + escapeHTML(it.icon) + '</div><div class="cd-text"><div class="cd-title">' + escapeHTML(it.title) +
+    '<div class="cd-item" data-i="' + i + '"><div class="cd-icon">' + svgIcon(it.icon, 24) + '</div><div class="cd-text"><div class="cd-title">' + escapeHTML(it.title) +
     '</div><div class="cd-date">' + escapeHTML(fmtDate(it.date, { weekday: "long", day: "numeric", month: "long" })) + '</div></div>' +
     '<div class="cd-days">' + (it.diff === 0 ? '<b>¡Hoy!</b>' : '<b>' + it.diff + '</b><span>' + (it.diff === 1 ? "día" : "días") + '</span>') + '</div></div>').join("");
   const hint = hasFlag ? "" : '<div class="cd-hint">Marca un evento con «Cuenta regresiva» al crearlo o editarlo y aparecerá aquí.</div>';
-  box.innerHTML = '<div class="home-card"><h3>⏳ Cuenta regresiva</h3>' + rows + hint + '</div>';
+  box.innerHTML = '<div class="home-card"><h3>' + svgIcon("hourglass", 18) + ' Cuenta regresiva</h3>' + rows + hint + '</div>';
   box.querySelectorAll(".cd-item").forEach((el) => el.addEventListener("click", () => {
     const it = shown[Number(el.dataset.i)];
     if (it && !it.milestone) openDay(it.key, it.date);
@@ -5339,9 +5383,9 @@ function notifyMsgs(list) {
   const text = list.length > 1 ? list.length + " mensajes nuevos" : nameOf(last.authorUID) + ": " + last.text;
   if (document.hidden) {
     if ("Notification" in window && Notification.permission === "granted" && navigator.serviceWorker) {
-      navigator.serviceWorker.ready.then((r) => r.showNotification("Together 💌", { body: text, icon: "./icon-192.png", tag: "together-msg" })).catch(() => {});
+      navigator.serviceWorker.ready.then((r) => r.showNotification("Together", { body: text, icon: "./icon-192.png", tag: "together-msg" })).catch(() => {});
     }
-  } else showToast("💌 " + text, 5000);
+  } else showToast(text, 5000);
 }
 const fmtMsgTime = (ts) => {
   const d = new Date(ts || Date.now());
@@ -5352,7 +5396,7 @@ function renderMsgs() {
   const box = document.getElementById("msg-list");
   const list = msgs().slice(-30).reverse();
   box.innerHTML = "";
-  if (!list.length) { box.innerHTML = '<div class="rem-empty" style="padding:14px 0">Aún no hay mensajes.<br>Envía el primero 💌</div>'; return; }
+  if (!list.length) { box.innerHTML = '<div class="rem-empty" style="padding:14px 0">Aún no hay mensajes.<br>Envía el primero</div>'; return; }
   list.forEach((m) => {
     const mine = m.authorUID === currentUID;
     const b = document.createElement("div");
@@ -5401,7 +5445,7 @@ setInterval(() => { if (appStarted && !document.hidden) renderHome(); }, 60000);
 Object.keys(WISH_CATS).forEach((k) => {
   const b = document.createElement("button");
   b.type = "button"; b.className = "chip"; b.dataset.k = k;
-  b.textContent = WISH_CATS[k][0] + " " + WISH_CATS[k][1];
+  b.innerHTML = svgIcon(WISH_CATS[k][0], 16) + " " + WISH_CATS[k][1];
   b.addEventListener("click", () => { wishCat = k; paintWishCats(); });
   document.getElementById("wish-cats").appendChild(b);
 });
@@ -5423,7 +5467,7 @@ document.getElementById("wish-input").addEventListener("keydown", (e) => { if (e
 function completeWish(w) {
   openNewEventFor(dateKey(new Date()));
   document.getElementById("ev-title").value = w.title;
-  document.getElementById("ev-icon").value = (WISH_CATS[w.cat] || WISH_CATS.other)[0];
+  setEvIcon((WISH_CATS[w.cat] || WISH_CATS.other)[0]);
   pendingWishId = w.id;
   showToast("Agrega las fotos y guarda para pasarlo a Recuerdos", 4000);
 }
@@ -5439,7 +5483,7 @@ function wishRow(w) {
   const ev = w.eventId ? eventsMap.get(w.eventId) : null;
   const row = document.createElement("div");
   row.className = "wish-item " + (w.authorUID === currentUID ? "by-me" : "by-other") + (w.done ? " done" : "");
-  row.innerHTML = '<div class="wi-emoji">' + c[0] + '</div><div class="wi-text"><div class="wi-title">' + escapeHTML(w.title) + '</div><div class="wi-sub">' +
+  row.innerHTML = '<div class="wi-emoji">' + svgIcon(c[0], 22) + '</div><div class="wi-text"><div class="wi-title">' + escapeHTML(w.title) + '</div><div class="wi-sub">' +
     escapeHTML(c[1] + " · " + nameOf(w.authorUID) + (w.done && w.doneAt ? " · hecho el " + fmtDate(new Date(w.doneAt), { day: "numeric", month: "short", year: "numeric" }) : "")) + '</div></div><div class="wi-actions"></div>';
   const acts = row.querySelector(".wi-actions");
   const btn = (label, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn-small " + cls; b.textContent = label; b.addEventListener("click", fn); acts.appendChild(b); };
@@ -5553,6 +5597,8 @@ if (history.state && history.state.navDepth) {
 }
 
 renderCalendar();
+
+document.querySelectorAll("[data-ico]").forEach((el) => { el.innerHTML = svgIcon(el.dataset.ico, 18); });
 
 // Arranque inmediato con la sesión guardada: abre (o pide la huella) sin esperar a Firebase Auth ni a la red.
 // Cuando Auth confirma la sesión se usa el usuario real; si ya no es válida, vuelve al inicio de sesión.
