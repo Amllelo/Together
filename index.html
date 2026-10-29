@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Together</title>
 
 <!-- PWA -->
@@ -44,7 +44,7 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { overscroll-behavior: none; touch-action: pan-y; overflow-x: clip; margin: 0; } /* solo desplazamiento vertical: nada se desliza hacia los lados */
+html, body { overscroll-behavior: none; touch-action: pan-y pinch-zoom; overflow-x: clip; margin: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; } /* solo desplazamiento vertical: nada se desliza hacia los lados */
 
 body {
   min-height: 100vh;
@@ -373,7 +373,7 @@ header.topbar {
   position: relative;
   overflow: hidden;
   transition: var(--transition);
-  min-height: 60px;
+  min-width: 0;
 }
 
 .day-cell:hover:not(.other-month) {
@@ -1574,6 +1574,38 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 .emo.sel{color:var(--accent-me)}
 .emo svg{width:22px;height:22px}
 .ico{display:inline-block;vertical-align:-3px;flex-shrink:0}
+
+/* ===== ADAPTACIÓN A CUALQUIER PANTALLA Y DPI ===== */
+/* Todo escala con el ancho real disponible (vw / cqw / rem), nunca con tamaños fijos en píxeles. */
+html { font-size: clamp(87.5%, 75% + 0.9vw, 112.5%); }
+:root { --cal-gap: clamp(3px, 1.2vw, 6px); --page-pad: clamp(10px, 3.6vw, 16px); }
+#app { padding-left: var(--page-pad); padding-right: var(--page-pad); }
+#calendar { container-type: inline-size; }
+.grid-week, .grid-days { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--cal-gap); }
+.grid-week { margin-bottom: var(--cal-gap); }
+.day-label { font-size: clamp(0.55rem, 2.6cqw, 0.7rem); letter-spacing: 0.04em; padding: 8px 0 2px; overflow: hidden; }
+.day-cell { aspect-ratio: 1 / 1; min-width: 0; min-height: 0; padding: clamp(3px, 1.6cqw, 6px); border-radius: clamp(8px, 2.6cqw, 12px); }
+.day-num { font-size: clamp(0.7rem, 3.8cqw, 0.95rem); line-height: 1.1; }
+.day-dots { gap: clamp(2px, 0.8cqw, 3px); }
+.day-dot, .day-cell.has-photo .day-dot { width: clamp(4px, 1.4cqw, 6px); height: clamp(4px, 1.4cqw, 6px); }
+.day-cell.has-new::after { width: clamp(6px, 2cqw, 9px); height: clamp(6px, 2cqw, 9px); }
+.month-header h2 { font-size: clamp(1.3rem, 6vw, 1.8rem); min-width: 0; }
+.brand h1 { font-size: clamp(2.2rem, 11vw, 3rem); }
+.dc-num { font-size: clamp(3rem, 16vw, 4rem); }
+.user-info, .user-details { min-width: 0; }
+.user-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legend { flex-wrap: wrap; gap: 6px 20px; }
+.nav-item { min-width: 0; padding: 10px 2px; font-size: clamp(0.62rem, 2.9vw, 0.8rem); }
+.emo-grid { grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); }
+.seg button { min-width: 0; padding-left: 2px; padding-right: 2px; font-size: clamp(0.68rem, 3vw, 0.82rem); }
+.event-carousel img, .fc-carousel img, .vid-tile { max-width: 78vw; }
+@supports (height: 100dvh) {
+  body, #login-screen, #app { min-height: 100dvh; }
+  .modal-content { max-height: 85dvh; }
+  .sheet { max-height: 88dvh; }
+}
+@media (min-width: 768px) { .modal-content { max-width: 640px; } }
+@media (max-height: 520px) and (orientation: landscape) { #login-screen { gap: 24px; } .modal-content { max-height: 92dvh; } }
 </style>
 
 </head>
@@ -1593,7 +1625,6 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
   </form>
   <div id="boot-info" aria-hidden="true" style="margin-top:22px; font-size:0.72rem; color:var(--text-muted); opacity:0.65; text-align:center;"></div>
   <a id="forgot-link" href="#" style="margin-top:14px; color:var(--text-muted); font-size:0.85rem; text-align:center; text-decoration:underline;">¿Olvidaste tu contraseña?</a>
-  <a id="repair-link" href="#" onclick="window.repairApp(); return false;" style="display:none; margin-top:18px; color:var(--text-muted); font-size:0.85rem; text-align:center; text-decoration:underline;">¿No carga? Reparar app</a>
 </div>
 
 <div id="boot-splash" style="display:none; min-height:100vh; align-items:center; justify-content:center;">
@@ -1773,9 +1804,8 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
           <div class="setting-item">
             <label for="biometric-toggle" style="display:flex; align-items:center; gap:12px; cursor:pointer; user-select:none;">
               <input type="checkbox" id="biometric-toggle" style="width:18px; height:18px; cursor:pointer;">
-              <span>Autenticación biométrica (huella dactilar)</span>
+              <span>Bloquear la app con huella o rostro</span>
             </label>
-            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:8px; margin-bottom:0;">Requiere huella dactilar para acceder a la app</p>
           </div>
         </div>
 
@@ -1860,14 +1890,6 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
             <button id="clear-btn" style="width:100%; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--accent-other); background:transparent; color:var(--accent-other); font-weight:600; cursor:pointer; font-size:0.9rem;">Eliminar todos los eventos</button>
           </div>
           <p id="app-version" style="margin:14px 0 0; text-align:center; font-size:0.75rem; color:var(--text-muted);"></p>
-        </div>
-
-        <div class="settings-section" style="border-top:1px solid var(--border); padding-top:16px;">
-          <h3 style="font-size:0.95rem; margin-bottom:14px; color:var(--text);">Info</h3>
-          <div style="font-size:0.85rem; color:var(--text-muted); line-height:1.6;">
-            <p style="margin:0 0 8px 0;"><strong>Together v2.0</strong></p>
-            <p style="margin:0;">Calendario compartido para parejas</p>
-          </div>
         </div>
       </div>
     </div>
@@ -1997,11 +2019,10 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
         <path d="M8.65 22c.21-.66.45-1.32.57-2"/>
         <path d="M9 6.8a6 6 0 0 1 9 5.2v2"/>
       </svg>
-      <p style="font-size:1rem; color:var(--text); margin:0 0 12px 0;">Usa tu huella dactilar para acceder</p>
-      <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Solo tú y tu pareja pueden ingresar a esta app</p>
+      <p style="font-size:1rem; color:var(--text); margin:0;">Desbloquea con tu huella o rostro</p>
     </div>
     <div id="biometric-error"></div>
-    <button id="biometric-btn" style="width:100%; padding:12px 16px; border-radius:var(--radius-sm); border:none; background:var(--accent-me); color:var(--bg); font-weight:600; cursor:pointer; font-size:1rem; margin-bottom:10px;">Verificar huella dactilar</button>
+    <button id="biometric-btn" style="width:100%; padding:12px 16px; border-radius:var(--radius-sm); border:none; background:var(--accent-me); color:var(--bg); font-weight:600; cursor:pointer; font-size:1rem; margin-bottom:10px;">Desbloquear</button>
     <button id="biometric-cancel-btn" style="width:100%; padding:12px 16px; border-radius:var(--radius-sm); border:1px solid var(--border); background:transparent; color:var(--text); font-weight:600; cursor:pointer; font-size:1rem;">Cerrar sesión</button>
   </div>
 </div>
@@ -2055,7 +2076,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.20.1";
+window.APP_VERSION = "2.21.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2099,7 +2120,6 @@ try {
     var login = document.getElementById("login-screen");
     if (el && login && login.style.display !== "none") el.textContent = msg;
   }
-  function showRepair() { var l = document.getElementById("repair-link"); if (l) l.style.display = "block"; }
 
   // Mientras la app no esté lista, el formulario no recarga la página sin explicar
   document.addEventListener("submit", function (e) {
@@ -2110,7 +2130,7 @@ try {
   }, true);
   setTimeout(function () { if (!window.__appBooted) show("Cargando la app… (conexión lenta)." + detail()); }, 4000);
   setTimeout(function () {
-    if (!window.__appBooted) { show("La app no pudo iniciar." + detail() + " Pulsa «Reparar app»."); showRepair(); }
+    if (!window.__appBooted) { show("La app no pudo iniciar." + detail() + " Cierra la app y vuelve a abrirla."); }
   }, 12000);
 
   // Borra el service worker y las cachés de la app (no toca tus eventos ni tu sesión) y recarga
@@ -2126,6 +2146,7 @@ try {
 </script>
 
 <script type="module">
+// Convención: identificadores del código en inglés; comentarios y textos de la interfaz en español latinoamericano.
 // Firebase se carga desde tu propio sitio (firebase-bundle.js): más rápido y sin depender de servidores externos.
 // Si ese archivo no está, se usa la CDN de Google como respaldo.
 window.__bootStage = "descargando Firebase";
@@ -2167,18 +2188,15 @@ const LS = {
 // ===== SERVICE WORKER CON ACTUALIZACIÓN AUTOMÁTICA =====
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").then((reg) => {
-    console.log("Service Worker registrado");
     const ensureCache = () => { if (navigator.onLine && reg.active) reg.active.postMessage({ type: "ENSURE_CACHE" }); };
     ensureCache();
     navigator.serviceWorker.ready.then(ensureCache);
     
     reg.addEventListener("updatefound", () => {
       const newWorker = reg.installing;
-      console.log("🔄 Actualización del Service Worker disponible");
       
       newWorker.addEventListener("statechange", () => {
         if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-          console.log("⚡ Nueva versión lista, recargando...");
           newWorker.postMessage({ type: "SKIP_WAITING" });
           // Máximo una recarga automática por minuto (evita bucles si el servidor sirve versiones mezcladas)
           let last = 0;
@@ -2196,7 +2214,7 @@ if ("serviceWorker" in navigator) {
       if (!document.hidden && navigator.onLine) reg.update().catch(() => {});
     }, 60000);
   }).catch((err) => {
-    console.error("❌ Error registrando Service Worker:", err);
+    console.error("Error registrando Service Worker:", err);
   });
 }
 
@@ -2209,13 +2227,10 @@ const firebaseConfig = {
   appId: "1:985516430457:web:e70ab030c9c6779fdc30a8"
 };
 
-console.log("🚀 Inicializando Firebase...");
 const app = initializeApp(firebaseConfig);
-console.log("Firebase inicializado");
 
 window.__bootStage = "sesión";
 const auth = getAuth(app);
-console.log("Auth inicializado");
 
 // Caché persistente (IndexedDB): los eventos quedan guardados en el dispositivo, se muestran al instante
 // y siguen disponibles sin conexión. Los cambios hechos sin conexión se sincronizan solos al reconectar.
@@ -2226,7 +2241,6 @@ try {
   console.warn("Caché persistente no disponible, usando memoria:", err);
   db = getFirestore(app);
 }
-console.log("Firestore inicializado");
 
 let currentUID = null;
 let currentUser = null;
@@ -2939,7 +2953,7 @@ function appDialog(message, opts = {}) {
     if (!type) {
       if (opts.cancelText) type = opts.danger ? "danger" : "question";
       else if (/^(Error|No se pudo)/.test(text)) type = "error";
-      else if (/(actualizad|guardad|habilitad|eliminad|enviamos|deshabilitad)/i.test(text)) type = "success";
+      else if (/(actualizad|guardad|activad|eliminad|enviamos)/i.test(text)) type = "success";
       else if (/^(Sin conexión|Las fotos|Este dispositivo)/.test(text)) type = "warning";
       else type = "info";
     }
@@ -3001,6 +3015,20 @@ document.addEventListener("keydown", (e) => {
 
 // Espera la confirmación del servidor, pero sin bloquear la interfaz si no hay conexión:
 // Firestore guarda el cambio en el dispositivo y lo envía cuando vuelve Internet.
+const FB_ERRORS_ES = {
+  "permission-denied": "sin permiso", "unavailable": "servicio no disponible o sin conexión", "deadline-exceeded": "tiempo de espera agotado",
+  "resource-exhausted": "se alcanzó el límite de uso", "unauthenticated": "la sesión ya no es válida", "not-found": "no se encontró",
+  "already-exists": "ya existe", "failed-precondition": "operación no permitida en este momento", "aborted": "operación interrumpida",
+  "cancelled": "cancelado", "invalid-argument": "datos no válidos", "internal": "error interno del servidor", "unknown": "error desconocido",
+  "data-loss": "datos dañados", "out-of-range": "valor fuera de rango", "unimplemented": "función no disponible"
+};
+function errEs(err) {
+  const c = String((err && err.code) || "").replace(/^[^/]*\//, "");
+  if (FB_ERRORS_ES[c]) return FB_ERRORS_ES[c];
+  if (err && err.name === "NotAllowedError") return "permiso denegado";
+  const m = String((err && err.message) || "");
+  return /[áéíóúñ]|tiempo|archivo|pesad|conexión/i.test(m) ? m.slice(0, 160) : "error inesperado";
+}
 function writeErrorMessage(err) {
   if (err && err.code === "permission-denied") {
     return "Firebase rechazó el cambio: tu cuenta no tiene permiso. Las reglas de Firestore deben permitir que ambos editen y eliminen los eventos (se configuran en la consola de Firebase).";
@@ -3227,6 +3255,15 @@ function lazyThumb(img, media) {
   thumbObserver.observe(img);
 }
 
+function mediaThumb(media) {
+  const img = document.createElement("img");
+  img.decoding = "async";
+  img.alt = "";
+  lazyThumb(img, media);
+  return img;
+}
+const mediaTile = (media) => isImageMedia(media) ? mediaThumb(media) : makeVideoTile(media);
+
 function makeVideoTile(media) {
   const tile = document.createElement("div");
   tile.className = "vid-tile";
@@ -3432,7 +3469,7 @@ function showBiometricLock() {
   document.getElementById("navbar").classList.remove("visible");
   const btn = document.getElementById("biometric-btn");
   btn.disabled = false;
-  btn.textContent = "Verificar huella dactilar";
+  btn.textContent = "Desbloquear";
   setBioError("");
   document.getElementById("biometric-overlay").classList.add("active");
 }
@@ -3776,7 +3813,7 @@ async function pickProfilePhoto(file){
     showToast(r === "queued" ? "Foto guardada. Se sincronizará cuando haya conexión." : "Foto de perfil actualizada");
   } catch (err) {
     console.error("Error con la foto de perfil:", err);
-    await appAlert("No se pudo cambiar la foto de perfil." + (err && err.message ? "\n\nDetalle: " + String(err.message).slice(0, 140) : ""), { type: "error" });
+    await appAlert("No se pudo cambiar la foto de perfil." + "\n\nMotivo: " + errEs(err), { type: "error" });
   }
 }
 
@@ -3794,8 +3831,8 @@ function authErrorMessage(err) {
   else if (/user-disabled/.test(code)) msg = "Esta cuenta está deshabilitada en Firebase.";
   else if (/operation-not-allowed/.test(code)) msg = "El acceso con correo y contraseña está desactivado en Firebase (Authentication → Método de acceso).";
   else if (/api-key|unauthorized-domain|app-not-authorized|requests-from-referer|app-check/.test(code)) msg = "Firebase rechazó esta app (clave de API o dominio no autorizado). Revisa Authentication → Configuración → Dominios autorizados y las restricciones de la clave de API.";
-  else msg = (err && err.message) || "No se pudo iniciar sesión.";
-  return msg + (code ? " (" + code + ")" : "");
+  else msg = "No se pudo iniciar sesión. Intenta de nuevo.";
+  return msg;
 }
 
 document.getElementById("login-form").addEventListener("submit", async (e)=>{
@@ -3806,26 +3843,22 @@ document.getElementById("login-form").addEventListener("submit", async (e)=>{
   const submitBtn = document.querySelector("#login-form button[type=submit]");
   
   if (!navigator.onLine) { errorDiv.textContent = "Sin conexión: la primera vez que inicias sesión en este dispositivo necesitas Internet."; return; }
-  console.log("🔍 Intentando login con:", email);
   errorDiv.textContent = "Ingresando...";
   submitBtn.disabled = true;
   const slow = setTimeout(() => { errorDiv.textContent = "Está tardando más de lo normal… revisa tu conexión a Internet."; }, 12000);
   
   try {
-    console.log("🔄 Conectando a Firebase...");
     const result = await signInWithEmailAndPassword(auth, email, password);
-    console.log("Login exitoso:", result.user.email);
     errorDiv.textContent = "";
     clearTimeout(loginWatch);
     loginWatch = setTimeout(() => {
       const lockShown = document.getElementById("biometric-overlay").classList.contains("active");
       if (!appStarted && !lockShown && document.getElementById("login-screen").style.display !== "none") {
-        errorDiv.textContent = "Iniciaste sesión, pero la app no pudo abrirse. Pulsa «Reparar app».";
-        document.getElementById("repair-link").style.display = "block";
+        errorDiv.textContent = "Iniciaste sesión, pero la app no pudo abrirse. Cierra la app y vuelve a abrirla.";
       }
     }, 10000);
   } catch(err){
-    console.error("❌ Error de login:", err.code, err.message);
+    console.error("Error de login:", err.code, err.message);
     errorDiv.textContent = authErrorMessage(err);
   } finally {
     clearTimeout(slow);
@@ -3902,7 +3935,7 @@ bioToggle.addEventListener("change", async ()=>{
       }
       await registerBiometric();
       LS.set(bioEnabledKey(currentUID), "true");
-      await appAlert("Autenticación biométrica habilitada");
+      await appAlert("Bloqueo activado");
     } catch(err) {
       console.error("Error activando biometría:", err);
       bioToggle.checked = false;
@@ -3921,7 +3954,7 @@ bioToggle.addEventListener("change", async ()=>{
   } else {
     LS.remove(bioEnabledKey(currentUID));
     LS.remove(bioCredKey(currentUID));
-    await appAlert("Autenticación biométrica deshabilitada");
+    await appAlert("Bloqueo desactivado");
   }
 });
 
@@ -3938,7 +3971,7 @@ document.getElementById("biometric-btn").addEventListener("click", async ()=>{
     startApp(currentUser);
   } catch(err) {
     console.error("Error verificando biometría:", err);
-    btn.textContent = "Verificar huella dactilar";
+    btn.textContent = "Desbloquear";
     btn.disabled = false;
     setBioError(err.name === "NotAllowedError"
       ? "Verificación cancelada o fallida. Intenta de nuevo."
@@ -4273,15 +4306,7 @@ function addThumb(src, idx, type = "image"){
     refreshThumbs();
   });
   
-  if(type === "video") {
-    t.appendChild(makeVideoTile(pendingImages[idx]));
-  } else {
-    const img = document.createElement("img");
-    img.decoding = "async";
-    img.alt = "";
-    lazyThumb(img, { data: src, type: "image" });
-    t.appendChild(img);
-  }
+  t.appendChild(type === "video" ? makeVideoTile(pendingImages[idx]) : mediaThumb({ data: src, type: "image" }));
   
   t.appendChild(btn);
   document.getElementById("thumbs").appendChild(t);
@@ -4381,15 +4406,7 @@ function buildEventCard(ev, feedStyle){
   const carouselEl = item.querySelector("." + carouselClass);
   if(carouselEl){
     (ev.images||[]).forEach((media, idx)=>{
-      let el;
-      if(isImageMedia(media)) {
-        el = document.createElement("img");
-        el.decoding = "async";
-        el.alt = "";
-        lazyThumb(el, media);
-      } else {
-        el = makeVideoTile(media);
-      }
+      const el = mediaTile(media);
       el.addEventListener("click", ()=> openLightbox(media, ev.images, idx));
       carouselEl.appendChild(el);
     });
@@ -4949,11 +4966,11 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     if(result === "queued") showToast("Guardado en tu dispositivo. Se sincronizará cuando haya conexión.");
     if(degradedInfo){
       const er = degradedInfo.err || {};
-      await appAlert(degradedInfo.n + (degradedInfo.n === 1 ? " foto se guardó comprimida" : " fotos se guardaron comprimidas") + " porque no se pudo subir el original.\n\nMotivo: " + (er.code || er.name || "error") + (er.message ? " — " + String(er.message).slice(0, 140) : ""), { type: "warning" });
+      await appAlert(degradedInfo.n + (degradedInfo.n === 1 ? " foto se guardó comprimida" : " fotos se guardaron comprimidas") + " porque no se pudo subir el original.\n\nMotivo: " + errEs(er), { type: "warning" });
     }
   } catch(err) {
     console.error("Error guardando evento:", err);
-    const detail = "\n\nDetalle: " + ((err && (err.code || err.name)) || "error") + (err && err.message ? " — " + String(err.message).slice(0, 160) : "");
+    const detail = "\n\nMotivo: " + errEs(err);
     await appAlert((err && err.code === "permission-denied"
       ? writeErrorMessage(err)
       : "No se pudo guardar el evento. Revisa tu conexión o reduce el tamaño de los archivos.") + detail, { type: "error" });
@@ -5109,8 +5126,7 @@ async function shareCards(ev, medias, mode = "share") {
     }
   } catch (err) {
     console.error("Error preparando archivos:", err);
-    const msg = String((err && err.message) || "").slice(0, 160);
-    await appAlert("No se pudo preparar el archivo.\n\nDetalle: " + ((err && (err.name || "error")) || "error") + (msg ? " — " + msg : ""), { type: "error" });
+    await appAlert("No se pudo preparar el archivo.\n\nMotivo: " + errEs(err), { type: "error" });
     return;
   }
   if (mode === "save") { await downloadFiles(files); return; }
@@ -5174,11 +5190,7 @@ function openPhotoPicker(ev, items) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "pg-item";
-    const img = document.createElement("img");
-    img.alt = "";
-    img.decoding = "async";
-    lazyThumb(img, m);
-    b.appendChild(img);
+    b.appendChild(mediaThumb(m));
     if (!isImageMedia(m)) {
       const p = document.createElement("span");
       p.className = "pg-play";
@@ -5578,20 +5590,23 @@ function renderWish() {
 // Cada pantalla superpuesta (día, evento, ajustes, visor de fotos) y la vista "Recuerdos"
 // cuenta como un nivel. Al abrirse se agrega una entrada al historial; "Atrás" (botón del
 // teléfono o gesto) cierra el nivel superior en vez de salirse de la app.
+const clickEl = (id) => () => document.getElementById(id).click();
+const closeSheetOf = (id) => () => closeSheet(id);
+const goCalendar = () => document.querySelector('.nav-item[data-view="month-view"]').click();
 const NAV_LAYERS = {
-  "feed-view":        () => document.querySelector('.nav-item[data-view="month-view"]').click(),
-  "home-view":        () => document.querySelector('.nav-item[data-view="month-view"]').click(),
-  "wish-view":        () => document.querySelector('.nav-item[data-view="month-view"]').click(),
-  "day-overlay":      () => document.getElementById("close-day-btn").click(),
-  "reminders-overlay": () => document.getElementById("close-reminders-btn").click(),
-  "type-create-sheet": () => closeSheet("type-create-sheet"),
-  "type-sheet": () => closeSheet("type-sheet"),
-  "photo-sheet": () => closeSheet("photo-sheet"),
-  "share-mode-sheet": () => closeSheet("share-mode-sheet"),
-  "settings-overlay": () => document.getElementById("close-settings-btn").click(),
-  "event-overlay":    () => document.getElementById("cancel-event-btn").click(),
-  "lightbox":         () => document.getElementById("lightbox").click(),
-  "app-dialog":       () => { if (dialogResolve) dialogResolve(false); }
+  "feed-view": goCalendar,
+  "home-view": goCalendar,
+  "wish-view": goCalendar,
+  "day-overlay": clickEl("close-day-btn"),
+  "reminders-overlay": clickEl("close-reminders-btn"),
+  "type-create-sheet": closeSheetOf("type-create-sheet"),
+  "type-sheet": closeSheetOf("type-sheet"),
+  "photo-sheet": closeSheetOf("photo-sheet"),
+  "share-mode-sheet": closeSheetOf("share-mode-sheet"),
+  "settings-overlay": clickEl("close-settings-btn"),
+  "event-overlay": clickEl("cancel-event-btn"),
+  "lightbox": clickEl("lightbox"),
+  "app-dialog": () => { if (dialogResolve) dialogResolve(false); }
 };
 
 let navDepth = 0;     // entradas de historial que la app ha agregado
