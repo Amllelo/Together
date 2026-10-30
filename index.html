@@ -1606,6 +1606,9 @@ html { font-size: clamp(87.5%, 75% + 0.9vw, 112.5%); }
 }
 @media (min-width: 768px) { .modal-content { max-width: 640px; } }
 @media (max-height: 520px) and (orientation: landscape) { #login-screen { gap: 24px; } .modal-content { max-height: 92dvh; } }
+.month-nav { align-items: center; }
+.month-nav #today-btn { width: auto; padding: 0 12px; font: inherit; font-size: 0.85rem; font-weight: 600; color: var(--accent-me); border-color: var(--accent-me); background: transparent; }
+.month-nav #today-btn[hidden] { display: none; }
 </style>
 
 </head>
@@ -1667,6 +1670,7 @@ html { font-size: clamp(87.5%, 75% + 0.9vw, 112.5%); }
     <div class="month-header">
       <h2 id="month-title">Septiembre 2024</h2>
       <div class="month-nav">
+        <button id="today-btn" type="button" hidden aria-label="Volver al mes actual">Hoy</button>
         <button id="prev-month" title="Mes anterior" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
         <button id="next-month" title="Mes siguiente" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
       </div>
@@ -2076,7 +2080,7 @@ html { font-size: clamp(87.5%, 75% + 0.9vw, 112.5%); }
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.21.0";
+window.APP_VERSION = "2.21.2";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -2684,6 +2688,9 @@ function originFor(o, key) {
   return best;
 }
 
+// Un evento cargado hoy para hoy no genera recordatorio (ya lo tienes presente)
+const createdToday = (ev) => { const c = createdMs(ev); return !!c && dateKey(new Date(c)) === dateKey(new Date()); };
+
 function computeReminders() {
   const cfg = getRemCfg();
   const now = new Date();
@@ -2695,6 +2702,7 @@ function computeReminders() {
       const key = dateKey(d);
       eventsOnDay(key).forEach((o) => {
         if (!hasRepeat(o)) return;
+        if (i === 0 && !o.virtual && createdToday(o)) return;
         const sk = typesOf(o).join(",") + "|" + (o.baseId || o.id);
         if (seen.has(sk)) return;
         seen.add(sk);
@@ -2710,7 +2718,7 @@ function computeReminders() {
     const hasMedia = !!(ev.images && ev.images.length);
     const diff = Math.round((new Date(y, m - 1, d) - today) / 864e5);
     if (diff >= 0 && diff <= cfg.days) {
-      if (cfg.upcoming) out.push({ ev, diff, date: new Date(y, m - 1, d), kind: "upcoming", pending: diff === 0 && !hasMedia });
+      if (cfg.upcoming && !(diff === 0 && createdToday(ev))) out.push({ ev, diff, date: new Date(y, m - 1, d), kind: "upcoming", pending: diff === 0 && !hasMedia });
     } else if (diff < 0 && cfg.memories && m - 1 === today.getMonth() && d === today.getDate()) {
       out.push({ ev, diff: 0, date: today, kind: "memory", years: today.getFullYear() - y });
     }
@@ -4067,6 +4075,11 @@ function changeMonth(delta){
 
 document.getElementById("prev-month").addEventListener("click", ()=> changeMonth(-1));
 document.getElementById("next-month").addEventListener("click", ()=> changeMonth(1));
+document.getElementById("today-btn").addEventListener("click", ()=>{
+  const n = new Date();
+  const delta = (n.getFullYear() * 12 + n.getMonth()) - (currentDate.getFullYear() * 12 + currentDate.getMonth());
+  if(delta) changeMonth(delta);
+});
 
 // Deslizar en el calendario: de izquierda a derecha = mes anterior; de derecha a izquierda = mes siguiente.
 // Los bordes de la pantalla quedan libres para el gesto «Atrás» del sistema.
@@ -4095,6 +4108,8 @@ function renderCalendar(){
   document.getElementById("month-title").textContent = 
     currentDate.toLocaleDateString("es-419", { month:"long", year:"numeric" });
   
+  const nowD = new Date();
+  document.getElementById("today-btn").hidden = year === nowD.getFullYear() && month === nowD.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const grid = document.getElementById("calendar");
