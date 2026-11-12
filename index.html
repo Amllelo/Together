@@ -2080,7 +2080,7 @@ html { font-size: clamp(87.5%, 75% + 0.9vw, 112.5%); }
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.22.0";
+window.APP_VERSION = "2.23.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -5021,6 +5021,48 @@ function rrect(g, x, y, w, h, r) {
   if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
 }
 
+// Guirnaldas de focos cálidos de fondo (estilo luces de patio de noche)
+function drawStringLights(g, W, H) {
+  const strings = [
+    [-30, 35, W + 30, 50, W / 2, 175, 15],
+    [-30, 120, W + 30, 80, W / 2, 250, 15],
+    [-30, H - 250, W + 30, H - 150, W / 2, H - 20, 15]
+  ];
+  // luces lejanas desenfocadas
+  g.save();
+  g.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 16; i++) {
+    const x = (i * 197 + 80) % W, y = 40 + ((i * 131) % (H - 80)), r = 18 + (i % 4) * 9;
+    const b = g.createRadialGradient(x, y, 0, x, y, r);
+    b.addColorStop(0, "rgba(255,205,120,0.16)"); b.addColorStop(1, "rgba(255,205,120,0)");
+    g.fillStyle = b; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  g.restore();
+  const pt = (st, t) => {
+    const u = 1 - t;
+    return [u * u * st[0] + 2 * u * t * st[4] + t * t * st[2], u * u * st[1] + 2 * u * t * st[5] + t * t * st[3]];
+  };
+  strings.forEach((st) => {
+    g.save();
+    g.strokeStyle = "rgba(20,20,22,0.95)"; g.lineWidth = 3; g.beginPath();
+    for (let k = 0; k <= 40; k++) { const [x, y] = pt(st, k / 40); k ? g.lineTo(x, y) : g.moveTo(x, y); }
+    g.stroke();
+    for (let i = 0; i <= st[6]; i++) {
+      const [x, y0] = pt(st, i / st[6]), y = y0 + 14;
+      g.fillStyle = "#1b1b1e"; g.fillRect(x - 4, y0, 8, 10);
+      g.globalCompositeOperation = "lighter";
+      const h = g.createRadialGradient(x, y, 0, x, y, 62);
+      h.addColorStop(0, "rgba(255,214,140,0.55)"); h.addColorStop(0.35, "rgba(255,190,100,0.18)"); h.addColorStop(1, "rgba(255,170,80,0)");
+      g.fillStyle = h; g.beginPath(); g.arc(x, y, 62, 0, 7); g.fill();
+      g.globalCompositeOperation = "source-over";
+      const c = g.createRadialGradient(x, y, 0, x, y, 11);
+      c.addColorStop(0, "#FFFFFF"); c.addColorStop(0.6, "#FFEBC0"); c.addColorStop(1, "#FFD28A");
+      g.fillStyle = c; g.beginPath(); g.arc(x, y, 11, 0, 7); g.fill();
+    }
+    g.restore();
+  });
+}
+
 async function makeCardBlob(ev, pick) {
   try { await document.fonts.load("700 64px Fraunces"); } catch (e) {}
   const W = 1080, H = 1350;
@@ -5049,6 +5091,7 @@ async function makeCardBlob(ev, pick) {
   g.save(); g.globalAlpha = 0.4;
   g.fillStyle = glow; g.fillRect(0, 0, W, H);
   g.restore();
+  drawStringLights(g, W, H);
 
   // El área de la foto tiene exactamente la proporción de la imagen: el marco se adapta a ella
   const pad = 48, PS = 804, MAXH = 880, MINW = 420, CAP = 300;
