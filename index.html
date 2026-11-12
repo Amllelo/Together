@@ -1761,6 +1761,10 @@ html { font-size: clamp(87.5%, 75% + 0.9vw, 112.5%); }
           <div class="emo-grid" id="ev-icon-grid"></div>
         </div>
         <div class="form-group">
+          <label for="ev-date">Fecha</label>
+          <input type="date" id="ev-date">
+        </div>
+        <div class="form-group">
           <label for="ev-time">Hora (opcional)</label>
           <input type="time" id="ev-time">
         </div>
@@ -2076,7 +2080,7 @@ html { font-size: clamp(87.5%, 75% + 0.9vw, 112.5%); }
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.21.0";
+window.APP_VERSION = "2.22.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -4244,6 +4248,7 @@ function openNewEventFor(key){
   pendingImages = [];
   document.getElementById("event-modal-title").textContent = "Nuevo evento";
   document.getElementById("ev-title").value = "";
+  document.getElementById("ev-date").value = key || "";
   document.getElementById("ev-time").value = "";
   document.getElementById("ev-notes").value = "";
   refreshTypeSelect("event");
@@ -4276,6 +4281,7 @@ function openEditEvent(ev){
   pendingImages = ev.images ? [...ev.images] : [];
   document.getElementById("event-modal-title").textContent = "Editar evento";
   document.getElementById("ev-title").value = ev.title || "";
+  document.getElementById("ev-date").value = ev.date || "";
   document.getElementById("ev-time").value = ev.time || "";
   document.getElementById("ev-notes").value = ev.notes || "";
   refreshTypeSelect(typesOf(ev));
@@ -4342,6 +4348,7 @@ function openVirtualEdit(ev){
   const t = primaryType(ev);
   document.getElementById("event-modal-title").textContent = "Editar repetición";
   document.getElementById("ev-title").value = t.name;
+  document.getElementById("ev-date").value = ev.date || selectedDay || "";
   document.getElementById("ev-time").value = "";
   document.getElementById("ev-notes").value = "";
   refreshTypeSelect(ev.types || ev.type);
@@ -4911,7 +4918,9 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
     return;
   }
 
-  const eventData = { title, notes, time, type: currentTypes()[0], types: currentTypes(), icon: document.getElementById("ev-icon").value || null, countdown: document.getElementById("ev-countdown").checked };
+  const chosenDate = document.getElementById("ev-date").value;
+  if(!chosenDate){ await appAlert("Elige la fecha del evento."); return; }
+  const eventData = { date: chosenDate, title, notes, time, type: currentTypes()[0], types: currentTypes(), icon: document.getElementById("ev-icon").value || null, countdown: document.getElementById("ev-countdown").checked };
 
   const saveBtn = document.getElementById("save-event-btn");
   saveBtn.disabled = true;
@@ -4948,8 +4957,6 @@ document.getElementById("save-event-btn").addEventListener("click", async ()=>{
       result = await commitWrite(updateDoc(doc(db,"events", editingEventId), eventData));
       editingEventId = null;
     } else {
-      if(!selectedDay){ await appAlert("Selecciona un día del calendario."); return; }
-      eventData.date = selectedDay;
       eventData.authorUID = currentUID;
       eventData.createdAt = serverTimestamp();
       const newRef = doc(collection(db,"events"));
