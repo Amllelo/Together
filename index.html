@@ -309,6 +309,8 @@ header.topbar {
   background: var(--surface-2);
 }
 
+#today-btn { width: auto; padding: 0 14px; font: inherit; font-size: 0.82rem; font-weight: 700; color: var(--accent-me); border-color: var(--accent-me); background: var(--accent-me-soft); }
+#today-btn[hidden] { display: none; }
 .month-nav button svg {
   width: 18px;
   height: 18px;
@@ -1667,6 +1669,7 @@ html { font-size: clamp(87.5%, 75% + 0.9vw, 112.5%); }
     <div class="month-header">
       <h2 id="month-title">Septiembre 2024</h2>
       <div class="month-nav">
+        <button id="today-btn" type="button" title="Volver a hoy" hidden>Hoy</button>
         <button id="prev-month" title="Mes anterior" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
         <button id="next-month" title="Mes siguiente" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
       </div>
@@ -2080,7 +2083,7 @@ html { font-size: clamp(87.5%, 75% + 0.9vw, 112.5%); }
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.23.0";
+window.APP_VERSION = "2.24.0";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -4069,6 +4072,18 @@ function changeMonth(delta){
   g.classList.add(delta > 0 ? "slide-from-right" : "slide-from-left");
 }
 
+function goToday(){
+  const n = new Date();
+  const target = new Date(n.getFullYear(), n.getMonth(), 1);
+  const delta = target > currentDate ? 1 : -1;
+  currentDate = target;
+  renderCalendar();
+  const g = document.getElementById("calendar");
+  g.classList.remove("slide-from-right", "slide-from-left");
+  void g.offsetWidth;
+  g.classList.add(delta > 0 ? "slide-from-right" : "slide-from-left");
+}
+document.getElementById("today-btn").addEventListener("click", goToday);
 document.getElementById("prev-month").addEventListener("click", ()=> changeMonth(-1));
 document.getElementById("next-month").addEventListener("click", ()=> changeMonth(1));
 
@@ -4099,6 +4114,8 @@ function renderCalendar(){
   document.getElementById("month-title").textContent = 
     currentDate.toLocaleDateString("es-419", { month:"long", year:"numeric" });
   
+  const nowD = new Date();
+  document.getElementById("today-btn").hidden = (year === nowD.getFullYear() && month === nowD.getMonth());
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const grid = document.getElementById("calendar");
