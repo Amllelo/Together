@@ -153,11 +153,11 @@ h1, h2, h3, h4, h5, h6 {
   font-family: 'Inter', sans-serif;
 }
 
-#login-form button:hover {
+@media (hover:hover){ #login-form button:hover {
   filter: brightness(1.1);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(63, 185, 80, 0.25);
-}
+} }
 
 #login-form button:active {
   transform: translateY(0);
@@ -246,10 +246,10 @@ header.topbar {
   padding: 0;
 }
 
-.icon-btn:hover {
+@media (hover:hover){ .icon-btn:hover {
   background: var(--surface-2);
   border-color: var(--text-dim);
-}
+} }
 
 .icon-btn:active {
   transform: scale(0.92);
@@ -305,12 +305,14 @@ header.topbar {
   padding: 0;
 }
 
-.month-nav button:hover {
+@media (hover:hover){ .month-nav button:hover {
   background: var(--surface-2);
-}
+} }
 
 #today-btn { width: auto; padding: 0 14px; font: inherit; font-size: 0.82rem; font-weight: 700; color: var(--accent-me); border-color: var(--accent-me); background: var(--accent-me-soft); }
 #today-btn[hidden] { display: none; }
+#today-btn { background: var(--accent-me-soft); border-color: var(--accent-me); touch-action: manipulation; }
+#today-btn:active { transform: scale(0.94); }
 .month-nav button svg {
   width: 18px;
   height: 18px;
@@ -378,12 +380,12 @@ header.topbar {
   min-width: 0;
 }
 
-.day-cell:hover:not(.other-month) {
+@media (hover:hover){ .day-cell:hover:not(.other-month) {
   background: var(--surface-2);
   border-color: var(--accent-me);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(63, 185, 80, 0.1);
-}
+} }
 
 .day-cell.other-month {
   opacity: 0.35;
@@ -490,9 +492,9 @@ header.topbar {
   padding: 0;
 }
 
-.modal-close:hover {
+@media (hover:hover){ .modal-close:hover {
   background: var(--surface-3);
-}
+} }
 
 .modal-close:active {
   transform: scale(0.88);
@@ -541,11 +543,11 @@ header.topbar {
   background: var(--surface-2);
 }
 
-.event-carousel img:hover,
+@media (hover:hover){ .event-carousel img:hover,
 .event-carousel video:hover {
   transform: scale(1.05);
   box-shadow: var(--shadow-md);
-}
+} }
 
 .event-body {
   display: flex;
@@ -598,10 +600,10 @@ header.topbar {
   transition: var(--transition);
 }
 
-.btn-small:hover {
+@media (hover:hover){ .btn-small:hover {
   background: var(--surface-2);
   border-color: var(--text-dim);
-}
+} }
 
 .btn-small:active {
   transform: scale(0.95);
@@ -669,11 +671,11 @@ header.topbar {
   font-size: 0.95rem;
 }
 
-#file-drop:hover {
+@media (hover:hover){ #file-drop:hover {
   border-color: var(--accent-me);
   background: var(--accent-me-soft);
   color: var(--accent-me);
-}
+} }
 
 #file-input { display: none; }
 
@@ -757,20 +759,20 @@ header.topbar {
   border: none;
 }
 
-#save-event-btn:hover {
+@media (hover:hover){ #save-event-btn:hover {
   filter: brightness(1.1);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(63, 185, 80, 0.25);
-}
+} }
 
 #cancel-event-btn {
   background: transparent;
   color: var(--text);
 }
 
-#cancel-event-btn:hover {
+@media (hover:hover){ #cancel-event-btn:hover {
   background: var(--surface-2);
-}
+} }
 
 /* ===== FEED ===== */
 #feed-list {
@@ -795,12 +797,12 @@ header.topbar {
   transition: var(--transition);
 }
 
-.feed-card:hover {
+@media (hover:hover){ .feed-card:hover {
   border-color: var(--accent-me);
   background: var(--surface-3);
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(63, 185, 80, 0.1);
-}
+} }
 
 .fc-header {
   display: flex;
@@ -857,10 +859,10 @@ header.topbar {
   transition: var(--transition);
 }
 
-.fc-carousel img:hover,
+@media (hover:hover){ .fc-carousel img:hover,
 .fc-carousel video:hover {
   transform: scale(1.05);
-}
+} }
 
 .fc-body {
   padding: 14px;
@@ -918,10 +920,10 @@ header.topbar {
   accent-color: var(--accent-me);
 }
 
-.setting-item button:hover {
+@media (hover:hover){ .setting-item button:hover {
   opacity: 0.9;
   transform: translateY(-1px);
-}
+} }
 
 .setting-item button:active {
   transform: translateY(0);
@@ -946,9 +948,9 @@ header.topbar {
   color: var(--text);
 }
 
-.color-option:hover {
+@media (hover:hover){ .color-option:hover {
   transform: translateY(-2px);
-}
+} }
 
 .color-option.active {
   border-color: var(--text);
@@ -1286,7 +1288,7 @@ img:not([src]), img[src=""], #calendar.is-loading .day-cell, .skel-card {
 
 /* ===== SELECTOR DE TIPO (diseño propio) ===== */
 .type-trigger{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;border:1px solid var(--border);background:linear-gradient(180deg,var(--surface-2),var(--surface));color:var(--text);font:inherit;font-size:1rem;cursor:pointer;text-align:left;transition:transform .15s,border-color .2s}
-.type-trigger:hover{border-color:color-mix(in srgb,var(--accent-me) 50%,var(--border))}
+@media (hover:hover){ .type-trigger:hover {border-color:color-mix(in srgb,var(--accent-me) 50%,var(--border))} }
 .type-trigger:active{transform:scale(.985)}
 .type-trigger .te{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:color-mix(in srgb,var(--accent-me) 14%,transparent);flex-shrink:0}
 .type-trigger .tl{flex:1;font-weight:600;min-width:0}
@@ -1407,9 +1409,9 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
   background: #ECEDF2; border: none; padding: 0; border-radius: 12px;
   box-shadow: 0 8px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.7);
 }
-.day-cell.has-photo:hover:not(.other-month) {
+@media (hover:hover){ .day-cell.has-photo:hover:not(.other-month) {
   background: #F4F5F9; border: none; transform: translateY(-2px) rotate(-.6deg); box-shadow: 0 12px 24px rgba(0,0,0,.55);
-}
+} }
 .day-cell.has-photo:active:not(.other-month) { transform: scale(.96); }
 .day-cell.has-photo .day-thumb {
   top: 4px; left: 4px; right: 4px; bottom: 22%; border-radius: 6px; opacity: 1;
@@ -1453,7 +1455,7 @@ body:not(:has(#navbar.visible))::before { opacity: 0; }
 .fc-carousel img { width: 142px; height: 170px; }
 .event-carousel img:nth-child(odd), .fc-carousel img:nth-child(odd) { transform: rotate(-1.8deg); }
 .event-carousel img:nth-child(even), .fc-carousel img:nth-child(even) { transform: rotate(1.5deg); }
-.event-carousel img:hover, .fc-carousel img:hover { transform: rotate(0) scale(1.05); }
+@media (hover:hover){ .event-carousel img:hover, .fc-carousel img:hover { transform: rotate(0) scale(1.05); } }
 .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
 .pg-item{position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:2px solid transparent;background:var(--surface-2);padding:0;cursor:pointer;transition:transform .12s,border-color .2s}
 .pg-item:active{transform:scale(.96)}
@@ -2083,7 +2085,7 @@ html { font-size: clamp(87.5%, 75% + 0.9vw, 112.5%); }
 
 <script>
 // Vigilante de arranque: si la app no logra iniciar, lo dice en pantalla (etapa y motivo) y ofrece repararla.
-window.APP_VERSION = "2.24.0";
+window.APP_VERSION = "2.24.2";
 // Si ya había una sesión en este dispositivo, no se muestra el formulario mientras la app arranca
 try {
   if (localStorage.getItem("lastSession")) {
@@ -4083,7 +4085,13 @@ function goToday(){
   void g.offsetWidth;
   g.classList.add(delta > 0 ? "slide-from-right" : "slide-from-left");
 }
-document.getElementById("today-btn").addEventListener("click", goToday);
+(function(){
+  const b = document.getElementById("today-btn");
+  let last = 0;
+  const fire = (e) => { e.preventDefault(); const t = Date.now(); if (t - last < 400) return; last = t; goToday(); };
+  b.addEventListener("pointerup", fire);   // responde al primer toque (evita el "primer toque = hover" de móviles)
+  b.addEventListener("click", fire);
+})();
 document.getElementById("prev-month").addEventListener("click", ()=> changeMonth(-1));
 document.getElementById("next-month").addEventListener("click", ()=> changeMonth(1));
 
